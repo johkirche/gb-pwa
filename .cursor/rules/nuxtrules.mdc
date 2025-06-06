@@ -1,0 +1,198 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Nuxt 3 + Vue 3 + TypeScript Development Rules
+
+## Core Principles
+- Follow Nuxt 3 conventions and best practices
+- Use TypeScript for type safety
+- Prioritize performance and SEO
+- Write clean, maintainable code
+- Follow Vue 3 Composition API patterns
+
+## Framework & Architecture
+- Use Nuxt 3 with Vue 3 Composition API
+- Leverage auto-imports for composables, components, and utilities
+- Use server-side rendering (SSR) by default
+- Implement proper error handling with error.vue pages
+- Use Nuxt layers for code organization when needed
+
+## File Structure & Naming
+- Follow Nuxt 3 directory structure conventions
+- Use kebab-case for file and directory names
+- Component files: PascalCase (e.g., `MyComponent.vue`)
+- Page files: kebab-case (e.g., `about-us.vue`)
+- Composable files: camelCase with `use` prefix (e.g., `useAuth.ts`)
+- Middleware files: kebab-case (e.g., `auth-guard.ts`)
+- Plugin files: kebab-case with `.client` or `.server` suffix when needed
+
+## Vue 3 & Composition API
+- Always use `<script setup>` syntax
+- Use `ref()` for reactive primitives, `reactive()` for objects
+- Prefer `computed()` over methods for derived state
+- Use `watch()` and `watchEffect()` appropriately
+- Implement proper lifecycle hooks (`onMounted`, `onUnmounted`, etc.)
+- Use `defineProps()` and `defineEmits()` for component communication
+- Leverage `defineExpose()` when component methods need external access
+
+## TypeScript Guidelines
+- Use strict TypeScript configuration
+- Define interfaces for all data structures
+- Use generic types where appropriate
+- Avoid `any` type - use `unknown` or proper typing
+- Use type assertions sparingly and safely
+- Define custom types in `types/` directory
+- Use `Ref<T>` and `ComputedRef<T>` for reactive references
+
+## State Management (Pinia)
+- Use Pinia stores for global state management
+- Define stores in `stores/` directory
+- Use composition API style for stores
+- Implement proper store organization (state, getters, actions)
+- Use `storeToRefs()` when destructuring reactive store properties
+- Handle async actions with proper error handling
+
+## Directus Integration
+- Use `nuxt-directus` module for CMS integration
+- Implement proper authentication flows
+- Use typed interfaces for Directus collections
+- Handle API errors gracefully
+- Implement proper caching strategies for CMS data
+- Use `gql-query-builder` for complex GraphQL queries when needed
+
+## Styling & UI (Reka UI)
+- Use Reka UI components for consistent design
+- Implement responsive design patterns
+- Use CSS modules or scoped styles in components
+- Follow accessibility best practices
+- Use semantic HTML elements
+- Implement proper color contrast and focus management
+
+## Performance Optimization
+- Use `lazy` loading for heavy components
+- Implement proper image optimization with `@nuxt/image`
+- Use `defineAsyncComponent()` for code splitting
+- Leverage Nuxt's built-in performance features
+- Implement proper caching strategies
+- Use `useLazyFetch()` and `useLazyAsyncData()` for data fetching
+
+## PWA Implementation
+- Configure `@vite-pwa/nuxt` for offline functionality
+- Implement proper service worker strategies
+- Handle offline states gracefully
+- Use proper manifest configuration
+- Implement push notifications when needed
+
+## Audio Integration (Howler.js)
+- Use Howler.js for audio playback
+- Implement proper audio loading states
+- Handle audio permissions and autoplay policies
+- Use composables for audio management
+- Implement proper cleanup for audio resources
+
+## Data Fetching Patterns
+- Use `useFetch()` for client-side data fetching
+- Use `$fetch()` for programmatic requests
+- Implement proper loading and error states
+- Use `refresh()` and `pending` from composables
+- Handle server-side data requirements properly
+- Use `navigateTo()` for programmatic navigation
+
+## Error Handling
+- Implement global error handling with error.vue
+- Use try-catch blocks for async operations
+- Provide meaningful error messages to users
+- Log errors appropriately for debugging
+- Handle network failures gracefully
+- Use Nuxt's built-in error handling mechanisms
+
+## SEO & Meta Management
+- Use `useSeoMeta()` and `useHead()` for meta tags
+- Implement proper Open Graph and Twitter Card tags
+- Use structured data when appropriate
+- Implement proper canonical URLs
+- Handle dynamic meta tags based on content
+- Use `definePageMeta()` for page-specific configuration
+
+## Testing Guidelines
+- Write unit tests for composables and utilities
+- Use Vitest for testing framework
+- Test component behavior, not implementation details
+- Mock external dependencies appropriately
+- Test error scenarios and edge cases
+- Implement E2E tests for critical user flows
+
+## Security Best Practices
+- Sanitize user inputs
+- Use HTTPS in production
+- Implement proper CORS configuration
+- Use environment variables for sensitive data
+- Validate data on both client and server
+- Implement proper authentication and authorization
+
+## Code Quality
+- Use ESLint with Nuxt configuration
+- Follow consistent code formatting
+- Write descriptive commit messages
+- Use meaningful variable and function names
+- Implement proper documentation for complex logic
+- Remove unused imports and dead code
+
+## Development Workflow
+- Use pnpm for package management
+- Follow semantic versioning
+- Use feature branches for development
+- Implement proper CI/CD pipelines
+- Use environment-specific configurations
+- Test thoroughly before deployment
+
+## Common Patterns to Follow
+```typescript
+// Composable pattern
+export const useMyFeature = () => {
+  const state = ref(initialState)
+  const computedValue = computed(() => transformation(state.value))
+  
+  const action = async () => {
+    try {
+      // async logic
+    } catch (error) {
+      // error handling
+    }
+  }
+  
+  return {
+    state: readonly(state),
+    computedValue,
+    action
+  }
+}
+
+// Component pattern
+<script setup lang="ts">
+interface Props {
+  // Define props with proper types
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  action: [payload: PayloadType]
+}>()
+
+// Use composables
+const { data, pending, error } = await useFetch('/api/data')
+</script>
+```
+
+## Avoid These Patterns
+- Don't use Options API - stick to Composition API
+- Don't mix reactive and non-reactive data carelessly
+- Don't ignore TypeScript errors
+- Don't skip error handling in async operations
+- Don't use inline styles - use proper CSS organization
+- Don't forget to clean up watchers and listeners
+- Don't ignore accessibility requirements
+
+- Don't skip proper loading states for async operations
