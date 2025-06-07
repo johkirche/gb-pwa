@@ -95,6 +95,8 @@
           </div>
         </CardContent>
       </Card>
+
+      {{ items?.[0] }}
     </main>
   </div>
 </template>
@@ -109,9 +111,27 @@ import {
   UserCheck,
 } from "lucide-vue-next";
 
+import type { components } from "@/lib/api-collection";
+
+const { getItems } = useDirectusItems();
+
 const { user, userName, logout } = useAuth();
 
 const handleLogout = async () => {
   await logout();
 };
+
+const items = ref<components["schemas"]["ItemsGesangbuchlied"][]>([]);
+
+const fetchArticles = async () => {
+  try {
+    items.value = await getItems<components["schemas"]["ItemsGesangbuchlied"]>({
+      collection: "gesangbuchlied",
+    });
+  } catch (e) {}
+};
+
+onMounted(async () => {
+  await fetchArticles();
+});
 </script>

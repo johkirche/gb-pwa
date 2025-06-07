@@ -8,7 +8,8 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "generate-types": "npx directus-typescript-gen --host $NUXT_PUBLIC_DIRECTUS_URL --email $DIRECTUS_EMAIL --password $DIRECTUS_PASSWORD --typeName ApiCollections --outFile api-collection.d.ts"
   },
   "dependencies": {
     "@nuxt/image": "1.10.0",
