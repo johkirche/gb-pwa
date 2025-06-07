@@ -7,11 +7,10 @@ export default defineNuxtConfig({
   modules: [
     "@nuxt/eslint",
     "@nuxt/image",
-    "reka-ui/nuxt",
     "nuxt-directus",
     "@pinia/nuxt",
     "@vite-pwa/nuxt",
-    "@nuxt/icon",
+    "shadcn-nuxt",
   ],
   vite: {
     plugins: [tailwindcss() as any],
@@ -41,5 +40,17 @@ export default defineNuxtConfig({
         base: "./.nuxt/storage",
       },
     },
+  },
+
+  shadcn: {
+    /**
+     * Prefix for all the imported component
+     */
+    prefix: "",
+    /**
+     * Directory that the component lives in.
+     * @default "./components/ui"
+     */
+    componentDir: "./components/ui",
   },
 });

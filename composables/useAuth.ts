@@ -47,11 +47,20 @@ export const useAuth = () => {
     }
   };
 
+  /**
+   * Get redirect URL after successful authentication
+   */
+  const getRedirectUrl = (defaultPath = "/home"): string => {
+    const route = useRoute();
+    return (route.query?.redirect as string) || defaultPath;
+  };
+
   return {
     // Core methods
     login,
     logout,
     checkAuth,
+    getRedirectUrl,
 
     // State from nuxt-directus
     user,
