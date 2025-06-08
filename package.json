@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "1.4.1",
+    "@nuxtjs/apollo": "5.0.0-alpha.14",
     "@types/node": "^22.15.30",
     "eslint": "^9.0.0"
   },

@@ -95,8 +95,6 @@
           </div>
         </CardContent>
       </Card>
-
-      {{ items?.[0] }}
     </main>
   </div>
 </template>
@@ -111,9 +109,9 @@ import {
   UserCheck,
 } from "lucide-vue-next";
 
-import type { components } from "@/lib/api-collection";
-
-const { getItems } = useDirectusItems();
+definePageMeta({
+  middleware: "auth",
+});
 
 const { user, userName, logout } = useAuth();
 
@@ -121,17 +119,21 @@ const handleLogout = async () => {
   await logout();
 };
 
-const items = ref<components["schemas"]["ItemsGesangbuchlied"][]>([]);
+try {
+  // Query options
+  const variables = {
+    limit: 50,
+    offset: 0,
+    filter: {
+      status: { _eq: "published" },
+    },
+  };
 
-const fetchArticles = async () => {
-  try {
-    items.value = await getItems<components["schemas"]["ItemsGesangbuchlied"]>({
-      collection: "gesangbuchlied",
-    });
-  } catch (e) {}
-};
-
-onMounted(async () => {
-  await fetchArticles();
-});
+  const { useGesangbuchliedQuery } = useGesangbuchlied();
+  // Execute the query
+  const { gesangbuchlied, loading, error, refetch } =
+    useGesangbuchliedQuery(variables);
+} catch (error) {
+  console.error(error);
+}
 </script>

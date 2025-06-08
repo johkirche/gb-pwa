@@ -67,6 +67,21 @@
                   />
                 </div>
               </div>
+
+              <div class="flex items-center">
+                <input
+                  id="preload-content"
+                  v-model="preloadContent"
+                  type="checkbox"
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <Label
+                  for="preload-content"
+                  class="ml-2 block text-sm text-gray-900"
+                >
+                  Download content for offline use
+                </Label>
+              </div>
             </div>
 
             <Alert v-if="error" variant="destructive">
@@ -106,6 +121,7 @@ import { Loader2, Mail, Lock, AlertCircle, LogIn } from "lucide-vue-next";
 const email = ref("");
 const password = ref("");
 const error = ref("");
+const preloadContent = ref(false);
 const checking = ref(false);
 
 const { login, isLoading, checkAuth, getRedirectUrl, isLoggedIn } = useAuth();
@@ -140,7 +156,7 @@ const handleLogin = async () => {
     return;
   }
 
-  const result = await login(email.value, password.value);
+  const result = await login(email.value, password.value, preloadContent.value);
 
   if (result.success) {
     // Use the redirect URL if available, otherwise go to home

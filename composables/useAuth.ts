@@ -5,10 +5,24 @@ export const useAuth = () => {
 
   const isLoading = ref(false);
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string,
+    preloadContent = false
+  ) => {
     try {
       isLoading.value = true;
       await directusLogin({ email, password });
+
+      // Optionally preload content for offline access
+      if (preloadContent) {
+        const { preloadContent: startPreload } = useOfflineContent();
+        // Start preloading in the background (don't await)
+        startPreload().catch((error: unknown) =>
+          console.warn("Background content preloading failed:", error)
+        );
+      }
+
       return { success: true };
     } catch (error: any) {
       console.error("Login error:", error);

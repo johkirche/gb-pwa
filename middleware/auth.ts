@@ -1,15 +1,6 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const { user, checkAuth } = useAuth();
 
-  // Define public routes that don't require authentication
-  const publicRoutes = ["/login", "/"];
-  const isPublicRoute = publicRoutes.includes(to.path);
-
-  // Always allow access to public routes
-  if (isPublicRoute) {
-    return;
-  }
-
   // On server side, check if user is authenticated via nuxt-directus
   if (import.meta.server) {
     // The nuxt-directus module should have populated user from cookies
