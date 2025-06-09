@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
-  >
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <Card class="max-w-md w-full">
       <template v-if="checking">
         <div class="mb-6">
@@ -29,58 +27,23 @@
               <div>
                 <Label for="email" class="mb-2"> Email address </Label>
                 <div class="relative">
-                  <div
-                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-                  >
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail class="h-5 w-5 text-gray-400" />
                   </div>
-                  <Input
-                    id="email"
-                    v-model="email"
-                    type="email"
-                    name="email"
-                    autocomplete="email"
-                    required
-                    placeholder="Enter your email"
-                    class="pl-10"
-                  />
+                  <Input id="email" v-model="email" type="email" name="email" autocomplete="email" required
+                    placeholder="Enter your email" class="pl-10" />
                 </div>
               </div>
 
               <div>
                 <Label for="password" class="mb-2"> Password </Label>
                 <div class="relative">
-                  <div
-                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-                  >
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock class="h-5 w-5 text-gray-400" />
                   </div>
-                  <Input
-                    id="password"
-                    v-model="password"
-                    type="password"
-                    name="password"
-                    autocomplete="current-password"
-                    required
-                    placeholder="Enter your password"
-                    class="pl-10"
-                  />
+                  <Input id="password" v-model="password" type="password" name="password"
+                    autocomplete="current-password" required placeholder="Enter your password" class="pl-10" />
                 </div>
-              </div>
-
-              <div class="flex items-center">
-                <input
-                  id="preload-content"
-                  v-model="preloadContent"
-                  type="checkbox"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <Label
-                  for="preload-content"
-                  class="ml-2 block text-sm text-gray-900"
-                >
-                  Download content for offline use
-                </Label>
               </div>
             </div>
 
@@ -92,12 +55,7 @@
             </Alert>
 
             <div>
-              <Button
-                type="submit"
-                :disabled="isLoading"
-                class="w-full"
-                size="lg"
-              >
+              <Button type="submit" :disabled="isLoading" class="w-full" size="lg">
                 <span v-if="isLoading" class="flex items-center">
                   <Loader2 class="animate-spin -ml-1 mr-3 h-5 w-5" />
                   Signing in...
@@ -121,7 +79,6 @@ import { Loader2, Mail, Lock, AlertCircle, LogIn } from "lucide-vue-next";
 const email = ref("");
 const password = ref("");
 const error = ref("");
-const preloadContent = ref(false);
 const checking = ref(false);
 
 const { login, isLoading, checkAuth, getRedirectUrl, isLoggedIn } = useAuth();
@@ -156,7 +113,7 @@ const handleLogin = async () => {
     return;
   }
 
-  const result = await login(email.value, password.value, preloadContent.value);
+  const result = await login(email.value, password.value);
 
   if (result.success) {
     // Use the redirect URL if available, otherwise go to home

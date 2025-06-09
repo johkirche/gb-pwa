@@ -1,200 +1,327 @@
+import { query } from "gql-query-builder";
+import { computed, unref, type Ref } from "vue";
+import type { Gesangbuchlied } from "~/gql/graphql";
+
 export const useGesangbuchlied = () => {
-  const { token } = useDirectusToken();
+    const { graphql, createReactiveFetch } = useApiClient();
+    const config = useRuntimeConfig();
 
-  // GraphQL query for fetching gesangbuchlied
-  const GET_GESANGBUCHLIED = gql`
-    query GetGesangbuchlied(
-      $limit: Int
-      $offset: Int
-      $filter: gesangbuchlied_filter
-    ) {
-      gesangbuchlied(limit: $limit, offset: $offset, filter: $filter) {
-        id
-        status
-        sort
-        user_created {
-          id
-          first_name
-          last_name
-        }
-        date_created
-        user_updated {
-          id
-          first_name
-          last_name
-        }
-        date_updated
-        titel
-        autor
-        komponist
-        text
-        melodie
-        copyright
-        kategorie {
-          id
-          name
-        }
-        audio_datei {
-          id
-          filename_disk
-          filename_download
-          title
-          type
-        }
-        # Add other fields you need
-      }
-    }
-  `;
+    // GraphQL endpoint
+    const graphqlEndpoint = `${config.public.directus.url}/graphql`;
 
-  // Single item query
-  const GET_GESANGBUCHLIED_BY_ID = gql`
-    query GetGesangbuchliedById($id: ID!) {
-      gesangbuchlied_by_id(id: $id) {
-        id
-        status
-        titel
-        autor
-        komponist
-        text
-        melodie
-        copyright
-        kategorie {
-          id
-          name
-        }
-        audio_datei {
-          id
-          filename_disk
-          filename_download
-          title
-          type
-        }
-        # Add other fields you need
-      }
-    }
-  `;
+    // Get reactive headers for useFetch
+    const { graphqlHeaders } = createReactiveFetch();
 
-  /**
-   * Fetch all gesangbuchlied with optional filtering
-   */
-  const fetchGesangbuchlied = async (options?: {
-    limit?: number;
-    offset?: number;
-    filter?: any;
-  }) => {
-    const variables = {
-      limit: options?.limit || 100,
-      offset: options?.offset || 0,
-      filter: options?.filter || null,
+    const fileFields = ["id", "title", "type", "filename_download", "filesize"];
+
+    const autorFields = [
+        "geburtsjahr",
+        "id",
+        "nachname",
+        "status",
+        "sterbejahr",
+        "vorname",
+    ];
+
+    // Common fields for gesangbuchlied queries
+    const getGesangbuchliedFields = () => [
+        "id",
+        "status",
+        "titel",
+        "date_updated",
+        "einreicherName",
+        "externerLink",
+        "liedHatAenderung",
+        "liednummer2000",
+        "linkCloud",
+        "melodieGeaendert",
+        "textGeaendert",
+        "rueckfrageAutor",
+        {
+            kategorieId: [
+                "id",
+                {
+                    kategorie_id: ["name", "typ"],
+                },
+            ],
+        },
+        {
+            melodieId: [
+                "id",
+                {
+                    noten: [
+                        "id",
+                        {
+                            directus_files_id: fileFields,
+                        },
+                    ],
+                },
+                {
+                    autorId: [
+                        "id",
+                        {
+                            autor_id: autorFields,
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            textId: [
+                "id",
+                "strophenEinzeln",
+                {
+                    autorId: [
+                        "id",
+                        {
+                            autor_id: autorFields,
+                        },
+                    ],
+                },
+            ],
+        },
+    ];
+
+    // Build query for fetching gesangbuchlied list
+    const buildGesangbuchliedQuery = (variables: {
+        limit?: number;
+        offset?: number;
+        filter?: any;
+    }) => {
+        const queryVars: any = {};
+
+        if (variables.limit !== undefined) {
+            queryVars.limit = { value: variables.limit, type: "Int" };
+        }
+        if (variables.offset !== undefined) {
+            queryVars.offset = { value: variables.offset, type: "Int" };
+        }
+        if (variables.filter !== undefined && variables.filter !== null) {
+            queryVars.filter = {
+                value: variables.filter,
+                type: "gesangbuchlied_filter",
+            };
+        }
+        return query({
+            operation: "gesangbuchlied",
+            variables: queryVars,
+            fields: getGesangbuchliedFields(),
+        });
     };
 
-    return useAsyncQuery(GET_GESANGBUCHLIED, variables, {
-      context: {
-        headers: {
-          authorization: token.value ? `Bearer ${token.value}` : "",
-        },
-      },
-    });
-  };
+    // Build query for fetching single gesangbuchlied by ID
+    const buildGesangbuchliedByIdQuery = (id: string | number) => {
+        return query({
+            operation: "gesangbuchlied_by_id",
+            variables: {
+                id: { value: id, type: "ID!" },
+            },
+            fields: getGesangbuchliedFields(),
+        });
+    };
 
-  /**
-   * Fetch a single gesangbuchlied by ID
-   */
-  const fetchGesangbuchliedById = async (id: string | number) => {
-    return useAsyncQuery(
-      GET_GESANGBUCHLIED_BY_ID,
-      { id },
-      {
-        context: {
-          headers: {
-            authorization: token.value ? `Bearer ${token.value}` : "",
-          },
-        },
-      }
-    );
-  };
+    /**
+     * Direct async query for gesangbuchlied - perfect for button clicks and imperative calls
+     * Uses the API client with automatic token refresh
+     */
+    const queryGesangbuchlied = async (variables: {
+        limit?: number;
+        offset?: number;
+        filter?: any;
+    }): Promise<Gesangbuchlied[]> => {
+        const queryBuilder = buildGesangbuchliedQuery({
+            limit: variables.limit || 100,
+            offset: variables.offset || 0,
+            filter: variables.filter || null,
+        });
 
-  /**
-   * Reactive query for gesangbuchlied list
-   */
-  const useGesangbuchliedQuery = (options?: {
-    limit?: number;
-    offset?: number;
-    filter?: any;
-  }) => {
-    const variables = computed(() => ({
-      limit: options?.limit || 100,
-      offset: options?.offset || 0,
-      filter: options?.filter || null,
-    }));
+        console.log(queryBuilder);
 
-    const { result, loading, error, refetch } = useQuery(
-      GET_GESANGBUCHLIED,
-      variables,
-      {
-        context: {
-          headers: {
-            authorization: token.value ? `Bearer ${token.value}` : "",
-          },
-        },
-        errorPolicy: "all",
-      }
-    );
+        try {
+            const response = await graphql<{
+                data: {
+                    gesangbuchlied: Gesangbuchlied[];
+                };
+            }>(graphqlEndpoint, queryBuilder);
 
-    const gesangbuchlied = computed(() => result.value?.gesangbuchlied || []);
+            return response.data?.gesangbuchlied || [];
+        } catch (error) {
+            console.error("Error fetching gesangbuchlied:", error);
+            throw error;
+        }
+    };
+
+    /**
+     * Direct async query for single gesangbuchlied by ID
+     * Uses the API client with automatic token refresh
+     */
+    const queryGesangbuchliedById = async (
+        id: string | number
+    ): Promise<Gesangbuchlied | null> => {
+        const queryBuilder = buildGesangbuchliedByIdQuery(id);
+
+        try {
+            const response = await graphql<{
+                data: {
+                    gesangbuchlied_by_id: Gesangbuchlied;
+                };
+            }>(graphqlEndpoint, queryBuilder);
+
+            return response.data?.gesangbuchlied_by_id || null;
+        } catch (error) {
+            console.error("Error fetching gesangbuchlied by ID:", error);
+            throw error;
+        }
+    };
+
+    /**
+     * Fetch all gesangbuchlied with optional filtering
+     * Uses useFetch with reactive auth headers
+     */
+    const fetchGesangbuchlied = async (options?: {
+        limit?: number;
+        offset?: number;
+        filter?: any;
+    }) => {
+        const variables = {
+            limit: options?.limit || 100,
+            offset: options?.offset || 0,
+            filter: options?.filter || null,
+        };
+
+        const queryBuilder = buildGesangbuchliedQuery(variables);
+
+        return useFetch<{
+            data: {
+                gesangbuchlied: Gesangbuchlied[];
+            };
+        }>(graphqlEndpoint, {
+            method: "POST",
+            headers: graphqlHeaders,
+            body: JSON.stringify(queryBuilder),
+            key: `gesangbuchlied-${JSON.stringify(variables)}`,
+            transform: (data: any) => data.data?.gesangbuchlied || [],
+        });
+    };
+
+    /**
+     * Fetch a single gesangbuchlied by ID
+     * Uses useFetch with reactive auth headers
+     */
+    const fetchGesangbuchliedById = async (id: string | number) => {
+        const queryBuilder = buildGesangbuchliedByIdQuery(id);
+
+        return useFetch<{
+            data: {
+                gesangbuchlied_by_id: any;
+            };
+        }>(graphqlEndpoint, {
+            method: "POST",
+            headers: graphqlHeaders,
+            body: JSON.stringify(queryBuilder),
+            key: `gesangbuchlied-by-id-${id}`,
+            transform: (data: any) => data.data?.gesangbuchlied_by_id || null,
+        });
+    };
+
+    /**
+     * Reactive query for gesangbuchlied list
+     * Uses reactive auth headers that update automatically
+     */
+    const useGesangbuchliedQuery = (options?: {
+        limit?: number;
+        offset?: number;
+        filter?: any;
+    }) => {
+        const variables = computed(() => ({
+            limit: options?.limit || 100,
+            offset: options?.offset || 0,
+            filter: options?.filter || null,
+        }));
+
+        const queryKey = computed(
+            () => `gesangbuchlied-${JSON.stringify(variables.value)}`
+        );
+        const queryBuilder = computed(() =>
+            buildGesangbuchliedQuery(variables.value)
+        );
+
+        const {
+            data,
+            pending: loading,
+            error,
+            refresh: refetch,
+        } = useFetch<{
+            data: {
+                gesangbuchlied: any[];
+            };
+        }>(graphqlEndpoint, {
+            method: "POST",
+            headers: graphqlHeaders,
+            body: JSON.stringify(queryBuilder.value),
+            key: queryKey.value,
+            transform: (data: any) => data.data?.gesangbuchlied || [],
+            watch: [variables],
+        });
+
+        return {
+            data,
+            loading,
+            error,
+            refetch,
+        };
+    };
+
+    /**
+     * Reactive query for single gesangbuchlied
+     * Uses reactive auth headers that update automatically
+     */
+    const useGesangbuchliedByIdQuery = (
+        id: Ref<string | number> | string | number
+    ) => {
+        const idRef = computed(() => unref(id));
+        const queryKey = computed(() => `gesangbuchlied-by-id-${idRef.value}`);
+        const queryBuilder = computed(() =>
+            buildGesangbuchliedByIdQuery(idRef.value)
+        );
+
+        const {
+            data: gesangbuchlied,
+            pending: loading,
+            error,
+            refresh: refetch,
+        } = useFetch<{
+            data: {
+                gesangbuchlied_by_id: any;
+            };
+        }>(graphqlEndpoint, {
+            method: "POST",
+            headers: graphqlHeaders,
+            body: JSON.stringify(queryBuilder.value),
+            key: queryKey.value,
+            transform: (data: any) => data.data?.gesangbuchlied_by_id || null,
+            watch: [idRef],
+        });
+
+        return {
+            gesangbuchlied,
+            loading,
+            error,
+            refetch,
+        };
+    };
 
     return {
-      gesangbuchlied,
-      loading,
-      error,
-      refetch,
+        // Direct async methods with API client (automatic token refresh!)
+        queryGesangbuchlied,
+        queryGesangbuchliedById,
+
+        // Methods using useFetch with reactive auth headers
+        fetchGesangbuchlied,
+        fetchGesangbuchliedById,
+
+        // Reactive composables with reactive auth headers
+        useGesangbuchliedQuery,
+        useGesangbuchliedByIdQuery,
     };
-  };
-
-  /**
-   * Reactive query for single gesangbuchlied
-   */
-  const useGesangbuchliedByIdQuery = (
-    id: Ref<string | number> | string | number
-  ) => {
-    const variables = computed(() => ({ id: unref(id) }));
-
-    const { result, loading, error, refetch } = useQuery(
-      GET_GESANGBUCHLIED_BY_ID,
-      variables,
-      {
-        context: {
-          headers: {
-            authorization: token.value ? `Bearer ${token.value}` : "",
-          },
-        },
-        errorPolicy: "all",
-      }
-    );
-
-    const gesangbuchlied = computed(
-      () => result.value?.gesangbuchlied_by_id || null
-    );
-
-    return {
-      gesangbuchlied,
-      loading,
-      error,
-      refetch,
-    };
-  };
-
-  return {
-    // Queries
-    GET_GESANGBUCHLIED,
-    GET_GESANGBUCHLIED_BY_ID,
-
-    // Methods
-    fetchGesangbuchlied,
-    fetchGesangbuchliedById,
-
-    // Reactive composables
-    useGesangbuchliedQuery,
-    useGesangbuchliedByIdQuery,
-  };
 };

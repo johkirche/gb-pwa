@@ -9,10 +9,11 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "generate-types": "npx directus-typescript-gen --host $NUXT_PUBLIC_DIRECTUS_URL --email $DIRECTUS_EMAIL --password $DIRECTUS_PASSWORD --typeName ApiCollections --outFile api-collection.d.ts"
+    "codegen": "dotenv -e .env -- graphql-codegen --config codegen.ts"
   },
   "dependencies": {
     "@nuxt/image": "1.10.0",
+    "@panzoom/panzoom": "^4.6.0",
     "@pinia/nuxt": "0.11.1",
     "@tailwindcss/vite": "^4.1.8",
     "@types/howler": "^2.2.12",
@@ -21,10 +22,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gql-query-builder": "^3.8.0",
+    "graphql": "^16.11.0",
     "howler": "^2.2.4",
     "lucide-vue-next": "^0.513.0",
     "nuxt": "^3.17.5",
-    "nuxt-directus": "5.7.0",
     "pinia": "^3.0.3",
     "reka-ui": "^2.3.0",
     "shadcn-nuxt": "2.2.0",
@@ -35,10 +36,12 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "5.0.7",
     "@nuxt/eslint": "1.4.1",
-    "@nuxtjs/apollo": "5.0.0-alpha.14",
     "@types/node": "^22.15.30",
-    "eslint": "^9.0.0"
+    "dotenv-cli": "^8.0.0",
+    "eslint": "^9.0.0",
+    "gql-query-builder": "^3.8.0"
   },
   "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c"
 }

@@ -33,13 +33,13 @@ onMounted(async () => {
       if (authenticated) {
         await navigateTo("/home");
       } else {
-        await navigateTo("/login");
+        await navigateTo("/auth/login");
       }
     }
   } catch (error) {
     console.error("Authentication check failed:", error);
     // On error, redirect to login page
-    await navigateTo("/login");
+    await navigateTo("/auth/login");
   }
 });
 </script>
