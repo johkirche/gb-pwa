@@ -1,13 +1,22 @@
 <template>
   <div class="min-h-screen bg-background">
-    <AppHeader :page-title="`Willkommen, ${userName}!`" :show-logout-button="true" @logout="handleLogout" />
+    <AppHeader
+      :page-title="`Willkommen, ${userName}!`"
+      :show-logout-button="true"
+      @logout="handleLogout"
+    />
 
     <!-- Main Content -->
     <main class="container mx-auto py-8">
       <HomeWelcomeCard />
       <HomeUserInfoCard :user="user" />
-      <HomeGesangbuchliederCard :songs="gesangbuchlieder" :is-loading="isLoading" :query-error="queryError"
-        @fetch-songs="fetchGesangbuchlieder" />
+      <OfflineDownloadCard />
+      <HomeGesangbuchliederCard
+        :songs="gesangbuchlieder"
+        :is-loading="isLoading"
+        :query-error="queryError"
+        @fetch-songs="fetchGesangbuchlieder"
+      />
     </main>
   </div>
 </template>
@@ -48,8 +57,15 @@ const fetchGesangbuchlieder = async () => {
     gesangbuchlieder.value = result;
   } catch (err) {
     console.error("Error fetching gesangbuchlieder:", err);
-    queryError.value =
-      err instanceof Error ? err.message : "Unknown error occurred";
+
+    // Handle offline errors gracefully
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      queryError.value =
+        "This feature requires an internet connection. Please check your network and try again.";
+    } else {
+      queryError.value =
+        err instanceof Error ? err.message : "Unknown error occurred";
+    }
   } finally {
     isLoading.value = false;
   }
