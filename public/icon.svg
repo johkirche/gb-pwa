@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Book shape -->
+  <rect x="96" y="64" width="320" height="384" rx="16" ry="16" fill="#2563eb" stroke="#1d4ed8" stroke-width="4"/>
+  <rect x="112" y="80" width="288" height="352" rx="8" ry="8" fill="#ffffff"/>
+  
+  <!-- Musical notes -->
+  <circle cx="200" cy="180" r="16" fill="#2563eb"/>
+  <rect x="196" y="164" width="8" height="60" fill="#2563eb"/>
+  <path d="M204 164 Q220 160 220 180 Q220 200 204 196" fill="#2563eb"/>
+  
+  <circle cx="280" cy="200" r="16" fill="#2563eb"/>
+  <rect x="276" y="184" width="8" height="60" fill="#2563eb"/>
+  <path d="M284 184 Q300 180 300 200 Q300 220 284 216" fill="#2563eb"/>
+  
+  <!-- Staff lines -->
+  <line x1="160" y1="240" x2="360" y2="240" stroke="#e5e7eb" stroke-width="2"/>
+  <line x1="160" y1="260" x2="360" y2="260" stroke="#e5e7eb" stroke-width="2"/>
+  <line x1="160" y1="280" x2="360" y2="280" stroke="#e5e7eb" stroke-width="2"/>
+  <line x1="160" y1="300" x2="360" y2="300" stroke="#e5e7eb" stroke-width="2"/>
+  <line x1="160" y1="320" x2="360" y2="320" stroke="#e5e7eb" stroke-width="2"/>
+  
+  <!-- Text lines -->
+  <rect x="160" y="350" width="120" height="8" rx="4" fill="#d1d5db"/>
+  <rect x="160" y="370" width="160" height="8" rx="4" fill="#d1d5db"/>
+  <rect x="160" y="390" width="100" height="8" rx="4" fill="#d1d5db"/>
+</svg> 
