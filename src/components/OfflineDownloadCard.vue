@@ -72,11 +72,35 @@
         </p>
       </div>
 
+      <!-- Image Precaching Progress -->
+      <div v-if="isPrecachingImages" class="space-y-3">
+        <div class="flex items-center justify-between text-sm">
+          <span class="font-medium text-blue-700">{{
+            imagePrecacheProgress.currentImage
+          }}</span>
+          <span class="text-muted-foreground">
+            {{ imagePrecacheProgress.current }} /
+            {{ imagePrecacheProgress.total || "?" }}
+          </span>
+        </div>
+
+        <div class="w-full bg-secondary rounded-full h-2">
+          <div
+            class="bg-blue-500 h-2 rounded-full transition-all duration-300"
+            :style="`width: ${imagePrecacheProgress.percentage}%`"
+          ></div>
+        </div>
+
+        <p class="text-xs text-blue-600 text-center">
+          {{ imagePrecacheProgress.percentage }}% images cached
+        </p>
+      </div>
+
       <!-- Action Buttons -->
       <div class="flex space-x-2">
         <Button
           @click="startDownload"
-          :disabled="isDownloading"
+          :disabled="isDownloading || isPrecachingImages"
           class="flex-1"
           :variant="hasOfflineContent ? 'outline' : 'default'"
         >
@@ -89,7 +113,7 @@
           @click="confirmClearContent"
           variant="outline"
           size="sm"
-          :disabled="isDownloading"
+          :disabled="isDownloading || isPrecachingImages"
         >
           <Trash2 class="w-4 h-4" />
         </Button>
@@ -145,6 +169,8 @@ const {
   downloadProgress,
   hasOfflineContent,
   offlineContentInfo,
+  isPrecachingImages,
+  imagePrecacheProgress,
   downloadAllContent,
   clearOfflineContent,
   checkOfflineContent,

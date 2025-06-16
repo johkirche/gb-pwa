@@ -17,16 +17,24 @@
       />
     </div>
 
-    <!-- Load More Button -->
+    <!-- Infinite Scroll Trigger Element -->
+    <div v-if="hasMore" ref="scrollTrigger" class="h-4"></div>
+
+    <!-- Load More Button (fallback) -->
     <div v-if="hasMore" class="mt-8 text-center">
       <Button
-        @click="$emit('loadMore')"
+        @click="handleLoadMore"
         :disabled="isLoadingMore"
         variant="outline"
       >
         <Plus class="w-4 h-4 mr-2" />
         {{ isLoadingMore ? "Loading..." : "Load More" }}
       </Button>
+    </div>
+
+    <!-- Loading indicator for infinite scroll -->
+    <div v-if="isLoadingMore" class="mt-4 text-center">
+      <p class="text-sm text-muted-foreground">Loading more songs...</p>
     </div>
   </div>
 </template>
@@ -36,6 +44,7 @@ import { Button } from "@/components/ui/button";
 import SongsCard from "./Card.vue";
 import { Plus } from "lucide-vue-next";
 import type { Gesangbuchlied } from "@/gql/graphql";
+import { ref, onMounted, onUnmounted } from "vue";
 
 interface Props {
   lieder: Gesangbuchlied[];
@@ -44,10 +53,43 @@ interface Props {
   isLoadingMore: boolean;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
-defineEmits<{
+const emit = defineEmits<{
   cardClick: [id: string];
   loadMore: [];
 }>();
+
+const scrollTrigger = ref<HTMLElement>();
+let observer: IntersectionObserver | null = null;
+
+const handleLoadMore = () => {
+  emit("loadMore");
+};
+
+onMounted(() => {
+  if (scrollTrigger.value) {
+    observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && !props.isLoadingMore && props.hasMore) {
+          handleLoadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "100px", // Start loading 100px before the element comes into view
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(scrollTrigger.value);
+  }
+});
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect();
+  }
+});
 </script>

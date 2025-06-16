@@ -13,22 +13,12 @@
     <main class="container mx-auto py-8">
       <!-- Data Source Control -->
       <div
-        v-if="gesangbuchlieder.length > 0"
+        v-if="shouldShowDataSourceControl"
         class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
-            <svg
-              class="w-4 h-4 text-blue-600"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <InfoIcon class="w-4 h-4 text-blue-600" />
             <p class="text-sm text-blue-800">
               <span v-if="isUsingCachedData">
                 Showing offline songs ({{ gesangbuchlieder.length }} available).
@@ -46,8 +36,7 @@
               </Label>
               <Switch
                 id="data-source-switch"
-                v-model:checked="preferOfflineData"
-                @update:checked="handleDataSourceToggle"
+                v-model="preferOfflineData"
                 :disabled="isLoading"
               />
             </div>
@@ -98,21 +87,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
+import { InfoIcon } from "lucide-vue-next";
+
 import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
+import { usePWA } from "@/composables/usePWA";
+
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
 import AppHeader from "@/components/AppHeader.vue";
 import SongsSearchFilters from "@/components/songs/SearchFilters.vue";
 import SongsLoadingState from "@/components/songs/LoadingState.vue";
 import SongsErrorState from "@/components/songs/ErrorState.vue";
 import SongsGrid from "@/components/songs/Grid.vue";
 import SongsEmptyState from "@/components/songs/EmptyState.vue";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+
 import type { Gesangbuchlied } from "@/gql/graphql";
 
 const router = useRouter();
+
+// Composables
+const { isInstalled: isPWAInstalled } = usePWA();
+const { hasOfflineContent, checkOfflineContent } = useOfflineDownload();
 
 // Reactive data
 const gesangbuchlieder = ref<Gesangbuchlied[]>([]);
@@ -129,6 +128,13 @@ const isUsingCachedData = ref(false);
 const preferOfflineData = ref(true);
 
 // Computed properties
+const shouldShowDataSourceControl = computed(() => {
+  return (
+    (hasOfflineContent.value || isPWAInstalled.value) &&
+    gesangbuchlieder.value.length > 0
+  );
+});
+
 const availableCategories = computed(() => {
   const categories = new Set<string>();
   gesangbuchlieder.value.forEach((lied) => {
@@ -215,6 +221,8 @@ const filteredLieder = computed(() => {
 // Methods
 const fetchGesangbuchlieder = async (forceOnline = false) => {
   try {
+    console.log("fetchGesangbuchlieder called with forceOnline:", forceOnline);
+    console.log("preferOfflineData.value:", preferOfflineData.value);
     isLoading.value = true;
     queryError.value = null;
 
@@ -222,6 +230,7 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
 
     // If user prefers offline data (and not forcing online), try offline first
     if (preferOfflineData.value && !forceOnline) {
+      console.log("Trying offline data first...");
       const offlineSongs = await getOfflineSongs();
       console.log("offlineSongs", offlineSongs);
 
@@ -232,6 +241,8 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
         hasMore.value = false; // IndexedDB contains all songs
         return;
       }
+    } else {
+      console.log("Skipping offline data, going straight to API...");
     }
 
     // If user prefers online data or no offline songs available, try API
@@ -266,9 +277,11 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
     const result = await queryGesangbuchlied(variables);
 
     if (result) {
+      console.log(`Loaded ${result.length} songs from API`);
       gesangbuchlieder.value = result;
       isUsingCachedData.value = false;
       hasMore.value = result.length === currentLimit.value;
+      console.log("isUsingCachedData set to:", isUsingCachedData.value);
     } else {
       queryError.value = "No songs found.";
     }
@@ -364,54 +377,6 @@ const getAuthors = (lied: Gesangbuchlied): string[] => {
   return authors;
 };
 
-const getFirstCategory = (lied: Gesangbuchlied): string | null => {
-  if (lied.kategorieId && lied.kategorieId.length > 0) {
-    return lied.kategorieId[0]?.kategorie_id?.name || null;
-  }
-  return null;
-};
-
-const getFirstStrophe = (lied: Gesangbuchlied): string | null => {
-  if (lied.textId?.strophenEinzeln && lied.textId.strophenEinzeln.length > 0) {
-    return lied.textId.strophenEinzeln[0]?.strophe || null;
-  }
-  return null;
-};
-
-const getFileInfo = (lied: Gesangbuchlied): string[] => {
-  const fileTypes = new Set<string>();
-
-  // Check melody files
-  if (lied.melodieId?.noten) {
-    lied.melodieId.noten.forEach((note) => {
-      if (note?.directus_files_id?.type) {
-        const type = note.directus_files_id.type;
-        if (type.includes("pdf")) fileTypes.add("PDF");
-        else if (type.includes("audio")) fileTypes.add("Audio");
-        else if (type.includes("image")) fileTypes.add("Image");
-        else fileTypes.add("File");
-      }
-    });
-  }
-
-  return Array.from(fileTypes);
-};
-
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return "Unknown";
-
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("de-DE", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "Invalid date";
-  }
-};
-
 const toggleSortDirection = () => {
   sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
 };
@@ -423,14 +388,19 @@ const clearFilters = () => {
   sortDirection.value = "asc";
 };
 
-const handleDataSourceToggle = async (checked: boolean) => {
-  preferOfflineData.value = checked;
-  // Refetch data based on new preference
-  await fetchGesangbuchlieder(!checked); // Force online if switching to online mode
-};
+// Watch for changes to the data source preference
+watch(preferOfflineData, async (newValue, oldValue) => {
+  console.log("Data source preference changed:", oldValue, "->", newValue);
+  console.log("Force online (forceOnline parameter):", !newValue);
+  // Only refetch if the value actually changed (not on initial load)
+  if (oldValue !== undefined && oldValue !== newValue) {
+    await fetchGesangbuchlieder(!newValue); // Force online if switching to online mode
+  }
+});
 
 // Initialize data on mount
-onMounted(() => {
+onMounted(async () => {
+  await checkOfflineContent();
   fetchGesangbuchlieder();
 });
 </script>

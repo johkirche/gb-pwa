@@ -71,23 +71,16 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, User, Music } from "lucide-vue-next";
-
-interface Author {
-  id: string;
-  vorname?: string;
-  nachname?: string;
-  geburtsjahr?: number;
-  sterbejahr?: number;
-}
+import type { Autor } from "@/gql/graphql";
 
 interface Props {
-  textAuthors: Author[];
-  melodyAuthors: Author[];
+  textAuthors: Autor[];
+  melodyAuthors: Autor[];
 }
 
 defineProps<Props>();
 
-const getAuthorName = (author: Author): string => {
+const getAuthorName = (author: Autor): string => {
   return `${author.vorname || ""} ${author.nachname || ""}`.trim() || "Unknown";
 };
 </script>

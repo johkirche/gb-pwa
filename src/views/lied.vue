@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
@@ -178,7 +178,9 @@ const getTextAuthors = (lied: Gesangbuchlied) => {
 
   return lied.textId.autorId
     .map((autorRel) => autorRel?.autor_id)
-    .filter(Boolean);
+    .filter((author): author is import("@/gql/graphql").Autor =>
+      Boolean(author)
+    );
 };
 
 const getMelodyAuthors = (lied: Gesangbuchlied) => {
@@ -186,11 +188,9 @@ const getMelodyAuthors = (lied: Gesangbuchlied) => {
 
   return lied.melodieId.autorId
     .map((autorRel) => autorRel?.autor_id)
-    .filter(Boolean);
-};
-
-const getAuthorName = (author: any): string => {
-  return `${author.vorname || ""} ${author.nachname || ""}`.trim() || "Unknown";
+    .filter((author): author is import("@/gql/graphql").Autor =>
+      Boolean(author)
+    );
 };
 
 const hasFiles = (lied: Gesangbuchlied): boolean => {

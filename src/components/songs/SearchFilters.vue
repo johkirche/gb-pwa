@@ -40,7 +40,7 @@
           />
           <Input
             :model-value="searchQuery"
-            @update:model-value="$emit('update:searchQuery', $event)"
+            @update:model-value="$emit('update:searchQuery', $event as string)"
             placeholder="Search by title, author, or text..."
             class="pl-10"
           />

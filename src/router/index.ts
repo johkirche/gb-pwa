@@ -46,7 +46,7 @@ const router = createRouter({
 });
 
 // Navigation guard for authentication
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   // Import auth composable here to avoid circular dependency
   const { useAuth } = await import("@/composables/useAuth");
   const { checkAuth, isLoggedIn } = useAuth();

@@ -15,6 +15,14 @@ export interface OfflineContent {
   version: string;
 }
 
+// Add interface for image precaching progress
+export interface ImagePrecacheProgress {
+  current: number;
+  total: number;
+  percentage: number;
+  currentImage?: string;
+}
+
 // IndexedDB setup
 const DB_NAME = "GesangbuchOfflineDB";
 const DB_VERSION = 1;
@@ -136,6 +144,14 @@ export const useOfflineDownload = () => {
     null
   );
 
+  // Add state for image precaching
+  const isPrecachingImages = ref(false);
+  const imagePrecacheProgress = ref<ImagePrecacheProgress>({
+    current: 0,
+    total: 0,
+    percentage: 0,
+  });
+
   // IndexedDB instance
   const dbManager = new IndexedDBManager();
 
@@ -216,6 +232,118 @@ export const useOfflineDownload = () => {
     }
   };
 
+  // Precache images from songs
+  const precacheImages = async (songs: any[]) => {
+    try {
+      if (typeof window === "undefined") return;
+
+      isPrecachingImages.value = true;
+      const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
+
+      if (!directusUrl) {
+        console.warn("Directus URL not configured, skipping image precaching");
+        return;
+      }
+
+      // Collect all unique image URLs from songs
+      const imageUrls = new Set<string>();
+
+      for (const song of songs) {
+        // Check for images in melodieId.noten
+        if (song.melodieId?.noten && Array.isArray(song.melodieId.noten)) {
+          for (const note of song.melodieId.noten) {
+            if (note.directus_files_id?.id) {
+              // Add the image regardless of type - many musical note files are images (PNG, JPG, etc.)
+              const imageUrl = `${directusUrl}/assets/${note.directus_files_id.id}`;
+              imageUrls.add(imageUrl);
+            }
+          }
+        }
+
+        // Check for other potential image fields (like gesangbuchlied_satz_mit_melodie_und_text)
+        if (
+          song.gesangbuchlied_satz_mit_melodie_und_text &&
+          Array.isArray(song.gesangbuchlied_satz_mit_melodie_und_text)
+        ) {
+          for (const file of song.gesangbuchlied_satz_mit_melodie_und_text) {
+            if (file.directus_files_id?.id) {
+              const imageUrl = `${directusUrl}/assets/${file.directus_files_id.id}`;
+              imageUrls.add(imageUrl);
+            }
+          }
+        }
+      }
+
+      const uniqueImageUrls = Array.from(imageUrls);
+      const totalImages = uniqueImageUrls.length;
+
+      if (totalImages === 0) {
+        console.log("No images found to precache");
+        return;
+      }
+
+      imagePrecacheProgress.value = {
+        current: 0,
+        total: totalImages,
+        percentage: 0,
+        currentImage: "Starting image precaching...",
+      };
+
+      console.log(`Starting to precache ${totalImages} images`);
+
+      // Precache images in batches to avoid overwhelming the browser
+      const batchSize = 5;
+      for (let i = 0; i < uniqueImageUrls.length; i += batchSize) {
+        const batch = uniqueImageUrls.slice(i, i + batchSize);
+
+        await Promise.allSettled(
+          batch.map(async (imageUrl) => {
+            try {
+              imagePrecacheProgress.value.currentImage = `Precaching image ${
+                imagePrecacheProgress.value.current + 1
+              }/${totalImages}`;
+
+              // Make a fetch request to trigger caching by the service worker
+              const response = await fetch(imageUrl, {
+                method: "GET",
+                mode: "cors",
+                cache: "force-cache", // Prefer cached version if available
+              });
+
+              if (response.ok) {
+                console.log(`Successfully precached image: ${imageUrl}`);
+              } else {
+                console.warn(
+                  `Failed to precache image: ${imageUrl}, status: ${response.status}`
+                );
+              }
+            } catch (error) {
+              console.warn(`Error precaching image ${imageUrl}:`, error);
+            } finally {
+              imagePrecacheProgress.value.current++;
+              imagePrecacheProgress.value.percentage = Math.round(
+                (imagePrecacheProgress.value.current / totalImages) * 100
+              );
+            }
+          })
+        );
+
+        // Small delay between batches to prevent overwhelming the browser
+        if (i + batchSize < uniqueImageUrls.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+
+      imagePrecacheProgress.value.currentImage = `Completed precaching ${totalImages} images`;
+      console.log(`Completed precaching ${totalImages} images`);
+    } catch (error) {
+      console.error("Error precaching images:", error);
+      imagePrecacheProgress.value.currentImage = "Image precaching failed";
+    } finally {
+      isPrecachingImages.value = false;
+    }
+  };
+
   // Download all content for offline usage
   const downloadAllContent = async () => {
     if (isDownloading.value) return;
@@ -236,7 +364,7 @@ export const useOfflineDownload = () => {
       downloadProgress.value.currentItem = "Fetching song list...";
 
       // Fetch all songs in batches to avoid overwhelming the API
-      const batchSize = 50;
+      const batchSize = 100;
       let allSongs: any[] = [];
       let offset = 0;
       let hasMore = true;
@@ -245,7 +373,10 @@ export const useOfflineDownload = () => {
       await queryGesangbuchlied({
         limit: 1,
         offset: 0,
-        filter: { status: { _eq: "published" } },
+        filter: {
+          status: { _eq: "published" },
+          bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
+        },
       });
 
       // Now fetch all songs in batches
@@ -257,7 +388,10 @@ export const useOfflineDownload = () => {
         const batch = await queryGesangbuchlied({
           limit: batchSize,
           offset,
-          filter: { status: { _eq: "published" } },
+          filter: {
+            status: { _eq: "published" },
+            bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
+          },
         });
 
         if (batch.length === 0) {
@@ -299,9 +433,16 @@ export const useOfflineDownload = () => {
 
       await storeOfflineContent(offlineContent);
 
-      // Mark as complete
+      // Mark songs download as complete
       downloadProgress.value.isComplete = true;
       downloadProgress.value.currentItem = `Downloaded ${allSongs.length} songs successfully!`;
+
+      // Start image precaching after songs are downloaded
+      downloadProgress.value.currentItem = "Starting image precaching...";
+      await precacheImages(allSongs);
+
+      // Final completion message
+      downloadProgress.value.currentItem = `Download complete! ${allSongs.length} songs and images cached.`;
 
       return allSongs.length;
     } catch (error) {
@@ -410,6 +551,8 @@ export const useOfflineDownload = () => {
     downloadProgress: readonly(downloadProgress),
     hasOfflineContent: readonly(hasOfflineContent),
     offlineContentInfo: readonly(offlineContentInfo),
+    isPrecachingImages: readonly(isPrecachingImages),
+    imagePrecacheProgress: readonly(imagePrecacheProgress),
 
     // Actions
     downloadAllContent,
@@ -419,5 +562,6 @@ export const useOfflineDownload = () => {
     getOfflineSongById,
     getOfflineContent,
     getStorageInfo,
+    precacheImages,
   };
 };

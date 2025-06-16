@@ -21,8 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeMount, nextTick } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from "vue";
 
 import { useAuth } from "@/composables/useAuth";
 import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
@@ -31,17 +30,17 @@ import AppHeader from "@/components/AppHeader.vue";
 import HomeUserInfoCard from "@/components/home/UserInfoCard.vue";
 import OfflineDownloadCard from "@/components/OfflineDownloadCard.vue";
 import HomeGesangbuchliederCard from "@/components/home/GesangbuchliederCard.vue";
+import type { Gesangbuchlied } from "@/gql/graphql";
 
-const { user, userName, logout, isLoggedIn, checkAuth } = useAuth();
-const router = useRouter();
+const { user, userName, logout } = useAuth();
 
 const handleLogout = async () => {
   await logout();
 };
 
-const gesangbuchlieder = ref([]);
+const gesangbuchlieder = ref<Gesangbuchlied[]>([]);
 const isLoading = ref(false);
-const queryError = ref(null);
+const queryError = ref<string | null>(null);
 
 const fetchGesangbuchlieder = async () => {
   try {
@@ -54,6 +53,7 @@ const fetchGesangbuchlieder = async () => {
       offset: 0,
       filter: {
         status: { _eq: "published" },
+        bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
       },
     };
 

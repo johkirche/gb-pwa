@@ -6,22 +6,14 @@
 </template>
 
 <script setup lang="ts">
-import type { Gesangbuchlied } from "@/gql/graphql";
+import type { Gesangbuchlied, Autor } from "@/gql/graphql";
 import AuthorsCard from "./AuthorsCard.vue";
 import InfoCard from "./InfoCard.vue";
 
-interface Author {
-  id: string;
-  vorname?: string;
-  nachname?: string;
-  geburtsjahr?: number;
-  sterbejahr?: number;
-}
-
 interface Props {
   lied: Gesangbuchlied;
-  textAuthors: Author[];
-  melodyAuthors: Author[];
+  textAuthors: Autor[];
+  melodyAuthors: Autor[];
 }
 
 defineProps<Props>();

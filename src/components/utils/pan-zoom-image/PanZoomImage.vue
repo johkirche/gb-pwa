@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { ref, onUnmounted, nextTick, watch } from "vue";
 import { X, Plus, Minus, RotateCcw } from "lucide-vue-next";
 import Panzoom from "@panzoom/panzoom";
 import { Button } from "@/components/ui/button";
@@ -143,20 +143,18 @@ const initializePanzoom = () => {
   }
 
   // Check if panZoomImage.value is actually a DOM element
-  if (!panZoomImage.value.$el && !panZoomImage.value.nodeType) {
-    const imageEl = panZoomImage.value.$el || panZoomImage.value;
-    if (!imageEl || imageEl.nodeType !== 1) {
-      console.log("Still not a valid DOM element, retrying...");
-      setTimeout(() => {
-        initializePanzoom();
-      }, 50);
-      return;
-    }
+  const imageEl = panZoomImage.value as HTMLElement;
+  if (!imageEl || imageEl.nodeType !== 1) {
+    console.log("Still not a valid DOM element, retrying...");
+    setTimeout(() => {
+      initializePanzoom();
+    }, 50);
+    return;
   }
 
   if (!panzoomInstance) {
-    // Get the actual DOM element (handle Vue component wrapper)
-    const imageElement = panZoomImage.value.$el || panZoomImage.value;
+    // Get the actual DOM element
+    const imageElement = panZoomImage.value as HTMLElement;
     console.log("Initializing panzoom for:", imageElement);
 
     panzoomInstance = Panzoom(imageElement, {

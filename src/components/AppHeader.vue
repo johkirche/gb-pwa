@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Home, LogOut } from "lucide-vue-next";
@@ -78,7 +78,6 @@ const emit = defineEmits<{
   back: [];
 }>();
 
-const route = useRoute();
 const router = useRouter();
 const { logout } = useAuth();
 
