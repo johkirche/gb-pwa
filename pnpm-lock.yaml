@@ -11,6 +11,9 @@ importers:
       '@graphql-typed-document-node/core':
         specifier: ^3.2.0
         version: 3.2.0(graphql@16.11.0)
+      '@liripeng/vue-audio-player':
+        specifier: ^2.0.4
+        version: 2.0.4(typescript@5.8.3)
       '@panzoom/panzoom':
         specifier: ^4.6.0
         version: 4.6.0
@@ -20,6 +23,9 @@ importers:
       '@vueuse/core':
         specifier: ^13.3.0
         version: 13.3.0(vue@3.5.16(typescript@5.8.3))
+      '@vueuse/sound':
+        specifier: ^2.1.3
+        version: 2.1.3(vue@3.5.16(typescript@5.8.3))
       axios:
         specifier: ^1.10.0
         version: 1.10.0
@@ -1037,6 +1043,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
+  '@liripeng/vue-audio-player@2.0.4':
+    resolution: {integrity: sha512-mhKuIsko1cGZcXoDsQWbfVS0zieFDFPTwAIJ9ntrPvw5Uq2wHamGteTpW+pRgp3R98XB7hcdnTUty4wTnqKzSQ==}
+
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -1432,6 +1441,15 @@ packages:
     resolution: {integrity: sha512-L1QKsF0Eg9tiZSFXTgodYnu0Rsa2P0En2LuLrIs/jgrkyiDuJSsPZK+tx+wU0mMsYHUYEjNsuE41uqqkuR8VhA==}
     peerDependencies:
       vue: ^3.5.0
+
+  '@vueuse/sound@2.1.3':
+    resolution: {integrity: sha512-yZW1dzMJqCp57+ZM1tJ2oPye4RJvWhzkUpGvokB5fhk/jAmOwKGbdvm8O7dJ/YAmP+eLFCBQmELjso6sXSfnAg==}
+    peerDependencies:
+      '@vue/composition-api': ^1.0.0-rc.1
+      vue: ^2.0.0 || >=3.0.0
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
 
   '@whatwg-node/disposablestack@0.0.6':
     resolution: {integrity: sha512-LOtTn+JgJvX8WfBVJtF08TGrdjuFzGJc4mkP8EdDI8ADbvO7kiexYep1o8dwnt0okb0jYclCDXF13xU7Ge4zSw==}
@@ -2103,6 +2121,9 @@ packages:
 
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
+
+  howler@2.2.4:
+    resolution: {integrity: sha512-iARIBPgcQrwtEr+tALF+rapJ8qSc+Set2GJQl7xT1MQzWaVkFebdJhR3alVlSiUf5U7nAANKuj3aWpwerocD5w==}
 
   http-proxy-agent@7.0.2:
     resolution: {integrity: sha512-T1gkAiYYDWYx3V5Bmyu7HcfcvL7mUrTWiM6yOfa3PIphViJ/gFPbvidQ+veqSOHci/PxBcDabeUNCzpOODJZig==}
@@ -4700,6 +4721,13 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
+  '@liripeng/vue-audio-player@2.0.4(typescript@5.8.3)':
+    dependencies:
+      vue: 3.5.16(typescript@5.8.3)
+      vue-router: 4.5.1(vue@3.5.16(typescript@5.8.3))
+    transitivePeerDependencies:
+      - typescript
+
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -5076,6 +5104,12 @@ snapshots:
   '@vueuse/shared@13.3.0(vue@3.5.16(typescript@5.8.3))':
     dependencies:
       vue: 3.5.16(typescript@5.8.3)
+
+  '@vueuse/sound@2.1.3(vue@3.5.16(typescript@5.8.3))':
+    dependencies:
+      howler: 2.2.4
+      vue: 3.5.16(typescript@5.8.3)
+      vue-demi: 0.14.10(vue@3.5.16(typescript@5.8.3))
 
   '@whatwg-node/disposablestack@0.0.6':
     dependencies:
@@ -5854,6 +5888,8 @@ snapshots:
       tslib: 2.8.1
 
   hookable@5.5.3: {}
+
+  howler@2.2.4: {}
 
   http-proxy-agent@7.0.2:
     dependencies:

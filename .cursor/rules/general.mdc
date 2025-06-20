@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+After you have done something. Do not start a dev server as there is already one running.
+
+We use pnpm. 

@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "@graphql-typed-document-node/core": "^3.2.0",
+    "@liripeng/vue-audio-player": "^2.0.4",
     "@panzoom/panzoom": "^4.6.0",
     "@tailwindcss/vite": "^4.1.10",
     "@vueuse/core": "^13.3.0",
+    "@vueuse/sound": "^2.1.3",
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -1,101 +1,111 @@
 <template>
-  <Card v-if="files.length > 0">
-    <CardHeader>
-      <CardTitle class="flex items-center">
-        <Files class="w-5 h-5 mr-2 text-muted-foreground" />
-        Files & Media
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div
-          v-for="file in files"
-          :key="file.id"
-          class="border rounded-lg p-4 hover:shadow-md transition-shadow"
-        >
-          <!-- Image Preview -->
-          <div v-if="file.type.includes('image')" class="mb-3">
-            <div
-              class="relative aspect-video w-full overflow-hidden rounded-md bg-gray-100 cursor-pointer group"
-              @click="openImagePreview(file)"
-            >
-              <img
-                :src="`${directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`"
-                :alt="file.title || file.filename_download || 'Image'"
-                class="w-full h-full object-cover transition-transform group-hover:scale-105"
-                loading="lazy"
-                @error="handleImageError"
-                @load="handleImageLoad"
-              />
-              <!-- Fallback for failed images -->
+  <div class="space-y-6">
+    <!-- Audio Player Section -->
+    <AudioFilesPlayer
+      v-if="audioFiles.length > 0"
+      :files="files"
+      :directus-url="directusUrl"
+    />
+
+    <!-- Other Files Section -->
+    <Card v-if="nonAudioFiles.length > 0">
+      <CardHeader>
+        <CardTitle class="flex items-center">
+          <Files class="w-5 h-5 mr-2 text-muted-foreground" />
+          Other Files & Media
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-for="file in nonAudioFiles"
+            :key="file.id"
+            class="border rounded-lg p-4 hover:shadow-md transition-shadow"
+          >
+            <!-- Image Preview -->
+            <div v-if="file.type.includes('image')" class="mb-3">
               <div
-                v-if="imageErrors.has(file.id)"
-                class="absolute inset-0 flex items-center justify-center bg-gray-50 text-gray-400"
+                class="relative aspect-video w-full overflow-hidden rounded-md bg-gray-100 cursor-pointer group"
+                @click="openImagePreview(file)"
               >
-                <div class="text-center">
-                  <Image class="w-8 h-8 mx-auto mb-2" />
-                  <p class="text-xs">Image failed to load</p>
+                <img
+                  :src="`${directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`"
+                  :alt="file.title || file.filename_download || 'Image'"
+                  class="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                  @error="handleImageError"
+                  @load="handleImageLoad"
+                />
+                <!-- Fallback for failed images -->
+                <div
+                  v-if="imageErrors.has(file.id)"
+                  class="absolute inset-0 flex items-center justify-center bg-gray-50 text-gray-400"
+                >
+                  <div class="text-center">
+                    <Image class="w-8 h-8 mx-auto mb-2" />
+                    <p class="text-xs">Image failed to load</p>
+                  </div>
+                </div>
+                <div
+                  class="absolute inset-0 hover:bg-black/20 bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center"
+                >
+                  <Eye
+                    class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
                 </div>
               </div>
-              <div
-                class="absolute inset-0 hover:bg-black/20 bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center"
-              >
-                <Eye
-                  class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                />
-              </div>
             </div>
-          </div>
 
-          <div class="flex items-start space-x-3">
-            <div class="flex-shrink-0">
-              <FileText
-                v-if="file.type.includes('pdf')"
-                class="w-8 h-8 text-red-500"
-              />
-              <Music
-                v-else-if="file.type.includes('audio')"
-                class="w-8 h-8 text-purple-500"
-              />
-              <Image
-                v-else-if="file.type.includes('image')"
-                class="w-8 h-8 text-green-500"
-              />
-              <File v-else class="w-8 h-8 text-gray-500" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-medium text-sm truncate">
-                {{ file.title || file.filename_download }}
-              </p>
-              <p class="text-xs text-muted-foreground">{{ file.type }}</p>
-              <p class="text-xs text-muted-foreground">
-                {{ formatFileSize(file.filesize) }}
-              </p>
-              <div class="flex items-center gap-2 mt-1">
-                <Button
-                  v-if="file.type.includes('image')"
-                  @click="openImagePreview(file)"
-                  variant="link"
-                >
-                  Preview
-                  <Eye class="w-3 h-3 ml-1" />
-                </Button>
-                <Button
-                  variant="link"
-                  @click="downloadFile(file)"
-                  rel="noopener noreferrer"
-                  class="text-xs text-primary hover:underline inline-flex items-center"
-                >
-                  Download
-                  <Download class="w-3 h-3 ml-1" />
-                </Button>
+            <div class="flex items-start space-x-3">
+              <div class="flex-shrink-0">
+                <FileText
+                  v-if="file.type.includes('pdf')"
+                  class="w-8 h-8 text-red-500"
+                />
+                <Music
+                  v-else-if="file.type.includes('audio')"
+                  class="w-8 h-8 text-purple-500"
+                />
+                <Image
+                  v-else-if="file.type.includes('image')"
+                  class="w-8 h-8 text-green-500"
+                />
+                <File v-else class="w-8 h-8 text-gray-500" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-sm truncate">
+                  {{ file.title || file.filename_download }}
+                </p>
+                <p class="text-xs text-muted-foreground">{{ file.type }}</p>
+                <p class="text-xs text-muted-foreground">
+                  {{ formatFileSize(file.filesize) }}
+                </p>
+                <div class="flex items-center gap-2 mt-1">
+                  <Button
+                    v-if="file.type.includes('image')"
+                    @click="openImagePreview(file)"
+                    variant="link"
+                  >
+                    Preview
+                    <Eye class="w-3 h-3 ml-1" />
+                  </Button>
+                  <Button
+                    variant="link"
+                    @click="downloadFile(file)"
+                    rel="noopener noreferrer"
+                    class="text-xs text-primary hover:underline inline-flex items-center"
+                  >
+                    Download
+                    <Download class="w-3 h-3 ml-1" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </CardContent>
-  </Card>
+      </CardContent>
+    </Card>
+  </div>
   <!-- Image Preview Dialog -->
   <Dialog v-model:open="isImagePreviewOpen">
     <DialogContent
@@ -162,6 +172,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PanZoomImage from "@/components/utils/pan-zoom-image/PanZoomImage.vue";
+import AudioFilesPlayer from "./AudioFilesPlayer.vue";
 import {
   Files,
   FileText,
@@ -182,6 +193,15 @@ const props = defineProps<{
   }>;
   directusUrl: string;
 }>();
+
+// Separate audio and non-audio files
+const audioFiles = computed(() => {
+  return props.files.filter((file) => file.type.includes("audio"));
+});
+
+const nonAudioFiles = computed(() => {
+  return props.files.filter((file) => !file.type.includes("audio"));
+});
 
 // Image preview modal state
 const fullScreenImage = ref<any>(null);
