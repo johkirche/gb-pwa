@@ -82,7 +82,12 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowRight, Calendar, Tag } from "lucide-vue-next";
+
 import { computed } from "vue";
+
+import type { Gesangbuchlied } from "@/gql/graphql";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -92,8 +97,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tag, Calendar, ArrowRight } from "lucide-vue-next";
-import type { Gesangbuchlied } from "@/gql/graphql";
 
 interface Props {
   lied: Gesangbuchlied;

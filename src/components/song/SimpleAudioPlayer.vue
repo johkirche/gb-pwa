@@ -27,8 +27,8 @@
               <DropdownMenuItem
                 v-for="rate in speedOptions"
                 :key="rate"
-                @click="setPlaybackRate(rate)"
                 :class="currentRate === rate ? 'bg-accent' : ''"
+                @click="setPlaybackRate(rate)"
               >
                 {{ rate }}x
                 <DropdownMenuShortcut v-if="rate === 1.0"
@@ -56,10 +56,10 @@
                   @keyup.enter="applyCustomSpeed"
                 />
                 <Button
-                  @click="applyCustomSpeed"
                   size="sm"
                   variant="outline"
                   class="h-6 px-2 text-xs"
+                  @click="applyCustomSpeed"
                 >
                   Apply
                 </Button>
@@ -79,10 +79,10 @@
 
         <!-- Download Button -->
         <Button
-          @click="downloadAudio"
           variant="outline"
           size="sm"
           class="text-xs"
+          @click="downloadAudio"
         >
           <Download class="w-3 h-3 mr-1" />
           Download
@@ -95,10 +95,10 @@
       <!-- Play/Pause and Progress -->
       <div class="flex items-center space-x-3">
         <Button
-          @click="togglePlayPause"
           variant="outline"
           size="sm"
           :disabled="!canPlay"
+          @click="togglePlayPause"
         >
           <Play v-if="!isPlaying" class="w-4 h-4" />
           <Pause v-else class="w-4 h-4" />
@@ -114,8 +114,8 @@
             :max="duration || 100"
             :min="0"
             :step="0.1"
-            @update:model-value="onSeek"
             class="flex-1"
+            @update:model-value="onSeek"
           />
           <span class="text-xs text-muted-foreground w-12">{{
             formatTime(duration)
@@ -137,8 +137,8 @@
           :max="1"
           :min="0"
           :step="0.01"
-          @update:model-value="onVolumeChange"
           class="flex-1"
+          @update:model-value="onVolumeChange"
         />
         <span class="text-xs text-muted-foreground w-8"
           >{{ Math.round(volume * 100) }}%</span
@@ -171,29 +171,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuGroup,
-  DropdownMenuShortcut,
-} from "@/components/ui/dropdown-menu";
-import {
-  Play,
+  ChevronDown,
+  Download,
   Pause,
+  Play,
   Volume1,
   Volume2,
   VolumeX,
-  Download,
-  ChevronDown,
 } from "lucide-vue-next";
+
+import { onMounted, onUnmounted, ref, watch } from "vue";
+
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 
 interface Props {
   audioUrl: string;
@@ -204,6 +206,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   title: "Audio File",
+  fileSize: undefined,
   autoplay: false,
 });
 

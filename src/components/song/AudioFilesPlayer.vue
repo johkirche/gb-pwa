@@ -36,10 +36,10 @@
         >
           <!-- Simple Audio Player -->
           <SimpleAudioPlayer
+            :key="file.id"
             :audio-url="getAudioUrl(file)"
             :title="file.title || getFileName(file)"
             :file-size="file.filesize"
-            :key="file.id"
           />
         </TabsContent>
       </Tabs>
@@ -48,29 +48,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { Music } from "lucide-vue-next";
+
+import { computed, ref } from "vue";
+
+import type { Directus_Files } from "@/gql/graphql";
+
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Music } from "lucide-vue-next";
-import SimpleAudioPlayer from "./SimpleAudioPlayer.vue";
 
-interface AudioFile {
-  id: string;
-  title?: string;
-  filename_download?: string;
-  type: string;
-  filesize?: string | number;
-  duration?: number;
-}
+import SimpleAudioPlayer from "@/components/song/SimpleAudioPlayer.vue";
 
 interface Props {
-  files: AudioFile[];
+  files: Directus_Files[];
   directusUrl: string;
 }
 
@@ -78,7 +74,7 @@ const props = defineProps<Props>();
 
 // Filter only audio files
 const audioFiles = computed(() => {
-  return props.files.filter((file) => file.type.includes("audio"));
+  return props.files.filter((file) => file.type?.includes("audio"));
 });
 
 // Selected tab (defaults to first audio file)
@@ -86,11 +82,11 @@ const selectedTab = ref(
   audioFiles.value.length > 0 ? audioFiles.value[0].id : "",
 );
 
-const getFileName = (file: AudioFile): string => {
+const getFileName = (file: Directus_Files): string => {
   return file.title || file.filename_download || "Unknown";
 };
 
-const getAudioUrl = (file: AudioFile): string => {
+const getAudioUrl = (file: Directus_Files): string => {
   return `${props.directusUrl}/assets/${file.id}`;
 };
 </script>

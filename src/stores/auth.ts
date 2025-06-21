@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+
+import { computed, ref } from "vue";
 
 // localStorage utility functions
 const setLocalStorage = (key: string, value: string | null) => {

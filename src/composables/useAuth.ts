@@ -1,11 +1,12 @@
-import { useDirectusApi } from "@/composables/useDirectusApi";
 import { useAuthStore } from "@/stores/auth";
+import axios from "axios";
+
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { useDirectusApi } from "@/composables/useDirectusApi";
 // Native auth composable using Pinia store and direct Directus API calls
-import { isTokenExpired, getTimeUntilExpiry } from "./useJwtUtils";
-import axios from "axios";
+import { getTimeUntilExpiry, isTokenExpired } from "@/composables/useJwtUtils";
 
 // Token refresh timing constants
 const TOKEN_REFRESH_THRESHOLD = 2 * 60 * 1000; // Refresh 2 minutes before expiry

@@ -18,14 +18,14 @@
         </div>
         <div class="flex items-center space-x-2">
           <button
-            @click="reloadPage"
             class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
+            @click="reloadPage"
           >
             Update Now
           </button>
           <button
-            @click="dismissUpdate"
             class="text-blue-200 hover:text-white transition-colors"
+            @click="dismissUpdate"
           >
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
 const updateAvailable = ref(false);
 const showOfflineBanner = ref(false);

@@ -23,9 +23,9 @@
     <!-- Load More Button (fallback) -->
     <div v-if="hasMore" class="mt-8 text-center">
       <Button
-        @click="handleLoadMore"
         :disabled="isLoadingMore"
         variant="outline"
+        @click="handleLoadMore"
       >
         <Plus class="w-4 h-4 mr-2" />
         {{ isLoadingMore ? "Loading..." : "Load More" }}
@@ -40,11 +40,15 @@
 </template>
 
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
-import SongsCard from "./Card.vue";
 import { Plus } from "lucide-vue-next";
+
+import { onMounted, onUnmounted, ref } from "vue";
+
 import type { Gesangbuchlied } from "@/gql/graphql";
-import { ref, onMounted, onUnmounted } from "vue";
+
+import { Button } from "@/components/ui/button";
+
+import SongsCard from "@/components/songs/SongCard.vue";
 
 interface Props {
   lieder: Gesangbuchlied[];

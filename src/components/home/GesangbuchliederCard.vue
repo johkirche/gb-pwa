@@ -56,7 +56,10 @@
 </template>
 
 <script setup>
+import { Music } from "lucide-vue-next";
+
 import { useRouter } from "vue-router";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -65,9 +68,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Music } from "lucide-vue-next";
 
-const props = defineProps({
+defineProps({
   songs: {
     type: Array,
     default: () => [],
@@ -82,7 +84,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["fetchSongs"]);
+defineEmits(["fetchSongs"]);
 
 const router = useRouter();
 </script>

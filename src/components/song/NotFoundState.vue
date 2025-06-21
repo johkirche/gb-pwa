@@ -15,10 +15,12 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowLeft, Music } from "lucide-vue-next";
+
 import { useRouter } from "vue-router";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Music, ArrowLeft } from "lucide-vue-next";
 
 const router = useRouter();
 </script>

@@ -71,16 +71,18 @@
 </template>
 
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Info,
-  ExternalLink,
-  Cloud,
   AlertTriangle,
+  Cloud,
+  ExternalLink,
   FileText,
+  Info,
   Music,
 } from "lucide-vue-next";
+
 import type { Gesangbuchlied } from "@/gql/graphql";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
   lied: Gesangbuchlied;

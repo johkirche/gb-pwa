@@ -23,7 +23,7 @@
             class="border rounded-lg p-4 hover:shadow-md transition-shadow"
           >
             <!-- Image Preview -->
-            <div v-if="file.type.includes('image')" class="mb-3">
+            <div v-if="file.type?.includes('image')" class="mb-3">
               <div
                 class="relative aspect-video w-full overflow-hidden rounded-md bg-gray-100 cursor-pointer group"
                 @click="openImagePreview(file)"
@@ -59,15 +59,15 @@
             <div class="flex items-start space-x-3">
               <div class="flex-shrink-0">
                 <FileText
-                  v-if="file.type.includes('pdf')"
+                  v-if="file.type?.includes('pdf')"
                   class="w-8 h-8 text-red-500"
                 />
                 <Music
-                  v-else-if="file.type.includes('audio')"
+                  v-else-if="file.type?.includes('audio')"
                   class="w-8 h-8 text-purple-500"
                 />
                 <Image
-                  v-else-if="file.type.includes('image')"
+                  v-else-if="file.type?.includes('image')"
                   class="w-8 h-8 text-green-500"
                 />
                 <File v-else class="w-8 h-8 text-gray-500" />
@@ -82,18 +82,18 @@
                 </p>
                 <div class="flex items-center gap-2 mt-1">
                   <Button
-                    v-if="file.type.includes('image')"
-                    @click="openImagePreview(file)"
+                    v-if="file.type?.includes('image')"
                     variant="link"
+                    @click="openImagePreview(file)"
                   >
                     Preview
                     <Eye class="w-3 h-3 ml-1" />
                   </Button>
                   <Button
                     variant="link"
-                    @click="downloadFile(file)"
                     rel="noopener noreferrer"
                     class="text-xs text-primary hover:underline inline-flex items-center"
+                    @click="downloadFile(file)"
                   >
                     Download
                     <Download class="w-3 h-3 ml-1" />
@@ -161,7 +161,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from "vue";
+import {
+  Download,
+  Eye,
+  File,
+  FileText,
+  Files,
+  Image,
+  Music,
+} from "lucide-vue-next";
+
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+
+import type { Directus_Files } from "@/gql/graphql";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -171,41 +184,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+import AudioFilesPlayer from "@/components/song/AudioFilesPlayer.vue";
 import PanZoomImage from "@/components/utils/pan-zoom-image/PanZoomImage.vue";
-import AudioFilesPlayer from "./AudioFilesPlayer.vue";
-import {
-  Files,
-  FileText,
-  Music,
-  Image,
-  File,
-  Download,
-  Eye,
-} from "lucide-vue-next";
 
 const props = defineProps<{
-  files: Array<{
-    id: string;
-    title?: string;
-    filename_download?: string;
-    type: string;
-    filesize?: string | number;
-  }>;
+  files: Array<Directus_Files>;
   directusUrl: string;
 }>();
 
 // Separate audio and non-audio files
 const audioFiles = computed(() => {
-  return props.files.filter((file) => file.type.includes("audio"));
+  return props.files.filter((file) => file.type?.includes("audio"));
 });
 
 const nonAudioFiles = computed(() => {
-  return props.files.filter((file) => !file.type.includes("audio"));
+  return props.files.filter((file) => !file.type?.includes("audio"));
 });
 
 // Image preview modal state
-const fullScreenImage = ref<any>(null);
-const selectedImage = ref<any>(null);
+const fullScreenImage = ref<Directus_Files | null>(null);
+const selectedImage = ref<Directus_Files | null>(null);
 const isImagePreviewOpen = computed({
   get: () => selectedImage.value !== null,
   set: (value: boolean) => {
@@ -239,9 +238,9 @@ const handleImageLoad = (event: Event) => {
   }
 };
 
-const openImagePreview = (file: any) => {
+const openImagePreview = (file: Directus_Files) => {
   console.log("Opening image preview for:", file);
-  console.log("Image URL:", `${file.directusUrl || ""}/assets/${file.id}`);
+  console.log("Image URL:", `${props.directusUrl}/assets/${file.id}`);
   selectedImage.value = file;
 };
 
@@ -273,7 +272,7 @@ const handleFullscreenClose = () => {
   });
 };
 
-const downloadFile = (file: any) => {
+const downloadFile = (file: Directus_Files) => {
   const url = `${props.directusUrl}/assets/${file.id}`;
   const link = document.createElement("a");
   link.href = url;

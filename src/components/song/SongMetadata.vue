@@ -6,9 +6,10 @@
 </template>
 
 <script setup lang="ts">
-import type { Gesangbuchlied, Autor } from "@/gql/graphql";
-import AuthorsCard from "./AuthorsCard.vue";
-import InfoCard from "./InfoCard.vue";
+import type { Autor, Gesangbuchlied } from "@/gql/graphql";
+
+import AuthorsCard from "@/components/song/AuthorsCard.vue";
+import InfoCard from "@/components/song/InfoCard.vue";
 
 interface Props {
   lied: Gesangbuchlied;

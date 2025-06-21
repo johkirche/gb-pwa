@@ -69,9 +69,11 @@
 </template>
 
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, User, Music } from "lucide-vue-next";
+import { Music, User, Users } from "lucide-vue-next";
+
 import type { Autor } from "@/gql/graphql";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
   textAuthors: Autor[];

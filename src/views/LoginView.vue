@@ -101,13 +101,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { AlertCircle, Loader2, Lock, LogIn, Mail } from "lucide-vue-next";
+
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { Loader2, Mail, Lock, AlertCircle, LogIn } from "lucide-vue-next";
-import { useAuth } from "@/composables/useAuth";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -115,7 +115,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+import { useAuth } from "@/composables/useAuth";
 
 const email = ref("");
 const password = ref("");

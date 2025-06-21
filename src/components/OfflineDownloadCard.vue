@@ -99,10 +99,10 @@
       <!-- Action Buttons -->
       <div class="flex space-x-2">
         <Button
-          @click="startDownload"
           :disabled="isDownloading || isPrecachingImages"
           class="flex-1"
           :variant="hasOfflineContent ? 'outline' : 'default'"
+          @click="startDownload"
         >
           <Download class="w-4 h-4 mr-2" />
           {{ hasOfflineContent ? "Update Content" : "Download All Songs" }}
@@ -110,10 +110,10 @@
 
         <Button
           v-if="hasOfflineContent"
-          @click="confirmClearContent"
           variant="outline"
           size="sm"
           :disabled="isDownloading || isPrecachingImages"
+          @click="confirmClearContent"
         >
           <Trash2 class="w-4 h-4" />
         </Button>
@@ -145,8 +145,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { useOfflineDownload } from "@/composables/useOfflineDownload";
+import {
+  AlertCircle,
+  CheckCircle,
+  Download,
+  Info,
+  Trash2,
+} from "lucide-vue-next";
+
+import { onMounted, ref } from "vue";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -155,13 +163,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Download,
-  CheckCircle,
-  Info,
-  Trash2,
-  AlertCircle,
-} from "lucide-vue-next";
+
+import { useOfflineDownload } from "@/composables/useOfflineDownload";
 
 // Use the new IndexedDB-based composable
 const {
@@ -248,7 +251,7 @@ const confirmClearContent = async () => {
       setTimeout(() => {
         successMessage.value = "";
       }, 3000);
-    } catch (error) {
+    } catch {
       errorMessage.value = "Failed to clear offline content.";
     }
   }

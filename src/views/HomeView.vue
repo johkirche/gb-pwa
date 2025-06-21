@@ -23,14 +23,15 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-import { useAuth } from "@/composables/useAuth";
-import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
+import type { Gesangbuchlied } from "@/gql/graphql";
 
 import AppHeader from "@/components/AppHeader.vue";
-import HomeUserInfoCard from "@/components/home/UserInfoCard.vue";
 import OfflineDownloadCard from "@/components/OfflineDownloadCard.vue";
 import HomeGesangbuchliederCard from "@/components/home/GesangbuchliederCard.vue";
-import type { Gesangbuchlied } from "@/gql/graphql";
+import HomeUserInfoCard from "@/components/home/UserInfoCard.vue";
+
+import { useAuth } from "@/composables/useAuth";
+import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
 
 const { user, userName, logout } = useAuth();
 

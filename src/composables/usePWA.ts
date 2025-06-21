@@ -1,4 +1,4 @@
-import { ref, readonly, onMounted } from "vue";
+import { onMounted, readonly, ref } from "vue";
 
 export const usePWA = () => {
   const isInstalled = ref(false);

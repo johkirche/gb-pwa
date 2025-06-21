@@ -1,11 +1,12 @@
-import { computed, unref, type Ref } from "vue";
-import axios from "axios";
-
-import { query } from "gql-query-builder";
-import { useDirectusApi } from "@/composables/useDirectusApi";
 import { useAuthStore } from "@/stores/auth";
+import axios from "axios";
+import { query } from "gql-query-builder";
+
+import { type Ref, computed, unref } from "vue";
 
 import type { Gesangbuchlied, Gesangbuchlied_Filter } from "@/gql/graphql";
+
+import { useDirectusApi } from "@/composables/useDirectusApi";
 
 export const useGesangbuchlied = () => {
   const directusApi = useDirectusApi();

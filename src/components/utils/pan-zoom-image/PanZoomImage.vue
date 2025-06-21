@@ -9,8 +9,8 @@
       <div class="absolute top-4 right-4 flex gap-2 z-[100000]">
         <Button
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          @click.stop="closeModal"
           aria-label="Close"
+          @click.stop="closeModal"
         >
           <X class="w-6 h-6" />
         </Button>
@@ -21,24 +21,24 @@
         <Button
           size="icon"
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          @click.stop="zoomIn"
           aria-label="Zoom in"
+          @click.stop="zoomIn"
         >
           <Plus class="w-6 h-6" />
         </Button>
         <Button
           size="icon"
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          @click.stop="zoomOut"
           aria-label="Zoom out"
+          @click.stop="zoomOut"
         >
           <Minus class="w-6 h-6" />
         </Button>
         <Button
           size="icon"
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          @click.stop="resetZoom"
           aria-label="Reset zoom"
+          @click.stop="resetZoom"
         >
           <RotateCcw class="w-6 h-6" />
         </Button>
@@ -79,9 +79,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, nextTick, watch } from "vue";
-import { X, Plus, Minus, RotateCcw } from "lucide-vue-next";
-import Panzoom from "@panzoom/panzoom";
+import Panzoom, {
+  type PanzoomEventDetail,
+  type PanzoomObject,
+} from "@panzoom/panzoom";
+import { Minus, Plus, RotateCcw, X } from "lucide-vue-next";
+
+import { nextTick, onUnmounted, ref, watch } from "vue";
+
 import { Button } from "@/components/ui/button";
 
 const props = defineProps<{
@@ -100,7 +105,7 @@ const emit = defineEmits<{
 // Panzoom instance and refs
 const imageContainer = ref<HTMLElement | null>(null);
 const panZoomImage = ref<HTMLElement | null>(null);
-let panzoomInstance: any = null;
+let panzoomInstance: PanzoomObject | null = null;
 const zoomLevel = ref(1);
 
 const closeModal = () => {
@@ -170,8 +175,8 @@ const initializePanzoom = () => {
     });
 
     // Listen to panzoom events to update zoom level display
-    imageElement.addEventListener("panzoomchange", (event: any) => {
-      zoomLevel.value = event.detail.scale;
+    imageElement.addEventListener("panzoomchange", (event: Event) => {
+      zoomLevel.value = (event as CustomEvent<PanzoomEventDetail>).detail.scale;
     });
 
     // Enable mouse wheel zooming

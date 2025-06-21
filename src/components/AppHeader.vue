@@ -50,10 +50,13 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from "vue-router";
-import { useAuth } from "@/composables/useAuth";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft, Home, LogOut } from "lucide-vue-next";
+
+import { useRouter } from "vue-router";
+
+import { Button } from "@/components/ui/button";
+
+import { useAuth } from "@/composables/useAuth";
 
 interface Props {
   pageTitle?: string;

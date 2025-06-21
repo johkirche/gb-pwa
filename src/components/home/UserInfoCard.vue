@@ -37,9 +37,11 @@
 </template>
 
 <script setup>
+import { Mail, Tag, User, UserCheck } from "lucide-vue-next";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import HomeUserInfoField from "./UserInfoField.vue";
-import { User, Tag, Mail, UserCheck } from "lucide-vue-next";
+
+import HomeUserInfoField from "@/components/home/UserInfoField.vue";
 
 defineProps({
   user: {

@@ -52,9 +52,7 @@ export function decodeJwtPayload(token: string): JwtPayload {
     return payload as JwtPayload;
   } catch (error) {
     throw new Error(
-      `Failed to decode JWT payload: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
+      `Failed to decode JWT payload: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }

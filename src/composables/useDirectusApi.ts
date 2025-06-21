@@ -1,11 +1,11 @@
 /**
  * Native Directus API client for authentication
  */
-
-import { useRouter } from "vue-router";
 import type { User } from "@/stores/auth";
 import { useAuthStore } from "@/stores/auth";
 import axios, { type AxiosRequestConfig } from "axios";
+
+import { useRouter } from "vue-router";
 
 export interface LoginRequest {
   email: string;

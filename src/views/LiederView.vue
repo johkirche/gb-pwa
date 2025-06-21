@@ -51,9 +51,9 @@
         v-model:sort-by="sortBy"
         :sort-direction="sortDirection"
         :available-categories="availableCategories"
+        class="mb-4"
         @toggle-sort-direction="toggleSortDirection"
         @clear-filters="clearFilters"
-        class="mb-4"
       />
 
       <!-- Loading State -->
@@ -87,25 +87,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { useRouter } from "vue-router";
 import { InfoIcon } from "lucide-vue-next";
+
+import { computed, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+
+import type { Strophe } from "@/gql";
+import type { Gesangbuchlied } from "@/gql/graphql";
+
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+
+import AppHeader from "@/components/AppHeader.vue";
+import SongsEmptyState from "@/components/songs/EmptyState.vue";
+import SongsErrorState from "@/components/songs/ErrorState.vue";
+import SongsLoadingState from "@/components/songs/LoadingState.vue";
+import SongsSearchFilters from "@/components/songs/SearchFilters.vue";
+import SongsGrid from "@/components/songs/SongGrid.vue";
 
 import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
 import { usePWA } from "@/composables/usePWA";
-
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-
-import AppHeader from "@/components/AppHeader.vue";
-import SongsSearchFilters from "@/components/songs/SearchFilters.vue";
-import SongsLoadingState from "@/components/songs/LoadingState.vue";
-import SongsErrorState from "@/components/songs/ErrorState.vue";
-import SongsGrid from "@/components/songs/Grid.vue";
-import SongsEmptyState from "@/components/songs/EmptyState.vue";
-
-import type { Gesangbuchlied } from "@/gql/graphql";
 
 const router = useRouter();
 
@@ -162,7 +164,7 @@ const filteredLieder = computed(() => {
       // Search in text content
       if (lied.textId?.strophenEinzeln) {
         const textContent = lied.textId.strophenEinzeln
-          .map((strophe: any) => strophe?.strophe || "")
+          .map((strophe: Strophe) => strophe?.strophe || "")
           .join(" ")
           .toLowerCase();
         if (textContent.includes(query)) return true;
@@ -189,8 +191,8 @@ const filteredLieder = computed(() => {
 
   // Sort
   filtered.sort((a, b) => {
-    let valueA: any;
-    let valueB: any;
+    let valueA: string | number | Date | null;
+    let valueB: string | number | Date | null;
 
     switch (sortBy.value) {
       case "title":

@@ -4,7 +4,7 @@
       <div class="flex justify-between items-start">
         <div class="space-y-2">
           <CardTitle class="text-3xl">{{ lied.titel }}</CardTitle>
-          <div class="flex flex-wrap gap-2" v-if="categories.length">
+          <div v-if="categories.length" class="flex flex-wrap gap-2">
             <Badge
               v-for="category in categories"
               :key="category"
@@ -25,11 +25,14 @@
 </template>
 
 <script setup lang="ts">
+import { Tag } from "lucide-vue-next";
+
 import { computed } from "vue";
+
+import type { Gesangbuchlied } from "@/gql/graphql";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tag } from "lucide-vue-next";
-import type { Gesangbuchlied } from "@/gql/graphql";
 
 interface Props {
   lied: Gesangbuchlied;

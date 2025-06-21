@@ -53,8 +53,10 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowLeft, Home, RefreshCw, WifiOff } from "lucide-vue-next";
+
 import { useRouter } from "vue-router";
-import { WifiOff, Home, ArrowLeft, RefreshCw } from "lucide-vue-next";
+
 import { Button } from "@/components/ui/button";
 
 const router = useRouter();

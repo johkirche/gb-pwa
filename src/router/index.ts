@@ -6,36 +6,36 @@ const router = createRouter({
     {
       path: "/",
       name: "index",
-      component: () => import("@/views/index.vue"),
+      component: () => import("@/views/IndexView.vue"),
     },
     {
       path: "/home",
       name: "home",
-      component: () => import("@/views/home.vue"),
+      component: () => import("@/views/HomeView.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/lieder",
       name: "lieder",
-      component: () => import("@/views/lieder.vue"),
+      component: () => import("@/views/LiederView.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/lied/:id?",
       name: "lied",
-      component: () => import("@/views/lied.vue"),
+      component: () => import("@/views/LiedView.vue"),
       props: true,
       meta: { requiresAuth: true },
     },
     {
       path: "/login",
       name: "login",
-      component: () => import("@/views/login.vue"),
+      component: () => import("@/views/LoginView.vue"),
     },
     {
       path: "/offline",
       name: "offline",
-      component: () => import("@/views/offline.vue"),
+      component: () => import("@/views/OfflineView.vue"),
     },
     {
       // Catch all route - redirect to index

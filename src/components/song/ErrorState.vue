@@ -7,10 +7,10 @@
       </div>
       <p class="text-red-600 text-sm mt-2">{{ error }}</p>
       <Button
-        @click="$emit('retry')"
         variant="destructive"
         size="sm"
         class="mt-4"
+        @click="$emit('retry')"
       >
         <RefreshCw class="w-4 h-4 mr-2" />
         Retry
@@ -20,9 +20,10 @@
 </template>
 
 <script setup lang="ts">
+import { AlertCircle, RefreshCw } from "lucide-vue-next";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, RefreshCw } from "lucide-vue-next";
 
 interface Props {
   error: string;

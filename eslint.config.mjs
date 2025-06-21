@@ -1,10 +1,9 @@
 // @ts-check
-
 import eslint from "@eslint/js";
-import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier/flat";
 import pluginVue from "eslint-plugin-vue";
 import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -36,6 +35,7 @@ export default tseslint.config(
       "dev-dist/*",
       "node_modules/*",
       "public/*",
+      "src/components/ui/*",
       "src/gql/*",
       "src/vite-env.d.ts",
     ],

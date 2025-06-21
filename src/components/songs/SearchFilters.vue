@@ -12,8 +12,8 @@
         <Button
           variant="outline"
           size="sm"
-          @click="$emit('toggleSortDirection')"
           class="flex items-center"
+          @click="$emit('toggleSortDirection')"
         >
           <ArrowUpDown class="w-4 h-4 mr-2" />
           {{ sortDirection === "asc" ? "Ascending" : "Descending" }}
@@ -23,8 +23,8 @@
         <Button
           variant="outline"
           size="sm"
-          @click="$emit('clearFilters')"
           class="flex items-center"
+          @click="$emit('clearFilters')"
         >
           <X class="w-4 h-4 mr-2" />
           Clear
@@ -40,9 +40,9 @@
           />
           <Input
             :model-value="searchQuery"
-            @update:model-value="$emit('update:searchQuery', $event as string)"
             placeholder="Search by title, author, or text..."
             class="pl-10"
+            @update:model-value="$emit('update:searchQuery', $event as string)"
           />
         </div>
 
@@ -54,13 +54,13 @@
             <select
               id="category-filter"
               :value="selectedCategory"
+              class="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               @change="
                 $emit(
                   'update:selectedCategory',
                   ($event.target as HTMLSelectElement).value,
                 )
               "
-              class="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">All Categories</option>
               <option
@@ -79,13 +79,13 @@
             <select
               id="sort-by"
               :value="sortBy"
+              class="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               @change="
                 $emit(
                   'update:sortBy',
                   ($event.target as HTMLSelectElement).value,
                 )
               "
-              class="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="title">Title</option>
               <option value="date_updated">Date Updated</option>
@@ -99,11 +99,12 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowUpDown, Search, X } from "lucide-vue-next";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, ArrowUpDown, X } from "lucide-vue-next";
 
 interface Props {
   searchQuery: string;

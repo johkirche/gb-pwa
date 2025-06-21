@@ -65,7 +65,7 @@
         <SongFilesCard
           v-if="hasFiles(lied)"
           :files="getAllFiles(lied)"
-          :directusUrl="directusUrl"
+          :directus-url="directusUrl"
         />
       </div>
     </main>
@@ -73,21 +73,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
-import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
-import { useOfflineDownload } from "@/composables/useOfflineDownload";
+
+import type { Directus_Files, Gesangbuchlied } from "@/gql/graphql";
 
 import AppHeader from "@/components/AppHeader.vue";
-import SongLoadingState from "@/components/song/LoadingState.vue";
 import SongErrorState from "@/components/song/ErrorState.vue";
-import SongNotFoundState from "@/components/song/NotFoundState.vue";
-import SongHeaderInfo from "@/components/song/HeaderInfo.vue";
-import SongMetadata from "@/components/song/Metadata.vue";
-import SongTextDisplay from "@/components/song/TextDisplay.vue";
 import SongFilesCard from "@/components/song/FilesCard.vue";
+import SongHeaderInfo from "@/components/song/HeaderInfo.vue";
+import SongLoadingState from "@/components/song/LoadingState.vue";
+import SongNotFoundState from "@/components/song/NotFoundState.vue";
+import SongMetadata from "@/components/song/SongMetadata.vue";
+import SongTextDisplay from "@/components/song/TextDisplay.vue";
 
-import type { Gesangbuchlied } from "@/gql/graphql";
+import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
+import { useOfflineDownload } from "@/composables/useOfflineDownload";
 
 // Get the song ID from the route
 const route = useRoute();
@@ -198,7 +199,7 @@ const hasFiles = (lied: Gesangbuchlied): boolean => {
 };
 
 const getAllFiles = (lied: Gesangbuchlied) => {
-  const files: any[] = [];
+  const files: Directus_Files[] = [];
 
   // Get melody files
   if (lied.melodieId?.noten) {
