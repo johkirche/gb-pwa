@@ -4,16 +4,12 @@
 
 ### Projekt-Initialisierung
 
-- [ ] TypeScript konfigurieren
-- [ ] ESLint & Prettier Setup
-- [ ] Git Repository initialisieren
-- [ ] Package.json mit benötigten Dependencies
+- [x] TypeScript konfigurieren
+- [x] ESLint & Prettier Setup
 
 ### UI Framework & Styling
 
-- [ ] UI Framework wählen (Vuetify/PrimeVue/TailwindCSS)
 - [ ] Responsive Design System implementieren
-- [ ] Mobile-First CSS Framework konfigurieren
 - [ ] Dark/Light Mode Support (optional)
 
 ### Datenbank & Backend Setup

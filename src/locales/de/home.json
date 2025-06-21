@@ -11,5 +11,44 @@
   "userID": "Benutzer-ID",
   "email": "E-Mail",
   "firstName": "Vorname",
-  "lastName": "Nachname"
+  "lastName": "Nachname",
+  "stats": {
+    "totalSongs": "Lieder insgesamt",
+    "offlineSongs": "Offline verfügbar",
+    "favorites": "Favoriten",
+    "recentlyPlayed": "Kürzlich gespielt"
+  },
+  "search": {
+    "title": "Lieder suchen",
+    "placeholder": "Lied oder Autor suchen...",
+    "button": "Suchen"
+  },
+  "actions": {
+    "browseSongs": "Alle Lieder",
+    "browseSongsDesc": "Durchsuchen Sie die komplette Liedersammlung",
+    "offlineManager": "Offline-Verwaltung",
+    "offlineManagerDesc": "Lieder für die Offline-Nutzung verwalten",
+    "favorites": "Meine Favoriten",
+    "favoritesDesc": "Ihre als Favoriten markierten Lieder"
+  },
+  "categories": {
+    "title": "Kategorien",
+    "description": "Lieder nach Themen und Anlässen durchsuchen"
+  },
+  "recent": {
+    "title": "Zuletzt gespielt",
+    "description": "Ihre kürzlich angehörten Lieder",
+    "offline": "Offline"
+  },
+  "featured": {
+    "title": "Empfohlene Lieder",
+    "description": "Von der Gemeinde ausgewählte besondere Lieder"
+  },
+  "audioFormats": {
+    "title": "Verfügbare Audio-Formate",
+    "description": "Verschiedene Qualitätsstufen für jeden Bedarf",
+    "mp3": "Optimale Balance zwischen Qualität und Dateigröße",
+    "ogg": "Offenes, lizenzfreies Format mit hoher Qualität",
+    "wav": "Höchste Audioqualität für professionelle Nutzung"
+  }
 }

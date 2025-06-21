@@ -1,0 +1,117 @@
+{
+  "title": "Offline & PWA Verwaltung",
+  "description": "Verwalten Sie Ihre Offline-Erfahrung und Progressive Web App Installation",
+
+  "pwaStatus": {
+    "title": "PWA-Installationsstatus",
+    "description": "Überprüfen Sie, ob die App als Progressive Web App auf Ihrem Gerät installiert ist",
+    "installed": "App ist installiert",
+    "installedDescription": "Die App läuft als Progressive Web App mit vollständigen Offline-Funktionen",
+    "installable": "Bereit zur Installation",
+    "installableDescription": "Die App kann auf Ihrem Startbildschirm installiert werden für eine native Erfahrung",
+    "notInstallable": "Installation nicht verfügbar",
+    "notInstallableDescription": "PWA-Installation wird von diesem Browser oder Gerät nicht unterstützt",
+    "installNow": "App installieren",
+    "installing": "Installiere...",
+    "installSuccess": "App erfolgreich installiert! Schauen Sie auf Ihren Startbildschirm.",
+    "installCanceled": "Installation wurde vom Benutzer abgebrochen",
+    "installError": "Installation der App fehlgeschlagen. Bitte versuchen Sie es erneut."
+  },
+
+  "tutorial": {
+    "title": "Installations-Tutorial",
+    "description": "Lernen Sie, wie Sie die App auf verschiedenen Geräten und Browsern installieren",
+    "benefits": "Vorteile",
+    "chrome": "Chrome",
+    "ios": "iOS Safari",
+    "android": "Android",
+
+    "benefitsFast": "Blitzschnell",
+    "benefitsFastDesc": "Sofortiges Laden mit gecachten Inhalten",
+    "benefitsOffline": "Funktioniert offline",
+    "benefitsOfflineDesc": "Zugriff auf alle Funktionen ohne Internet",
+    "benefitsHomeScreen": "Startbildschirm-Zugriff",
+    "benefitsHomeScreenDesc": "Direkt von Ihrem Gerät starten",
+    "benefitsNotifications": "Native Benachrichtigungen",
+    "benefitsNotificationsDesc": "Updates erhalten wie eine native App",
+
+    "chromeStep1": "Suchen Sie nach dem Installations-Symbol in der Adressleiste oder einem Banner am unteren Rand",
+    "chromeStep2": "Klicken Sie auf 'Installieren' oder 'Zum Startbildschirm hinzufügen'",
+    "chromeStep3": "Die App wird zu Ihren Anwendungen und dem Startbildschirm hinzugefügt",
+
+    "iosStep1": "Öffnen Sie die App im Safari-Browser",
+    "iosStep2": "Tippen Sie auf die Teilen-Schaltfläche am unteren Bildschirmrand",
+    "iosStep3": "Scrollen Sie nach unten und tippen Sie auf 'Zum Home-Bildschirm'",
+    "iosStep4": "Bestätigen Sie durch Tippen auf 'Hinzufügen' in der oberen rechten Ecke",
+
+    "androidStep1": "Öffnen Sie die App in Chrome oder einem anderen unterstützten Browser",
+    "androidStep2": "Suchen Sie nach dem 'Zum Startbildschirm hinzufügen'-Banner oder prüfen Sie das Menü",
+    "androidStep3": "Tippen Sie auf 'Installieren' oder 'Zum Startbildschirm hinzufügen' um die Installation abzuschließen"
+  },
+
+  "contentManager": {
+    "title": "Offline-Inhaltsverwaltung",
+    "description": "Lieder für den Offline-Zugriff herunterladen und verwalten",
+    "currentStatus": "Aktueller Status",
+    "downloadProgress": "Download-Fortschritt",
+    "imageCaching": "Bild-Caching",
+    "actions": "Aktionen",
+    "statistics": "Statistiken",
+
+    "songsDownloaded": "{count} Lieder offline verfügbar",
+    "lastUpdated": "Zuletzt aktualisiert",
+    "noOfflineContent": "Keine Offline-Inhalte verfügbar",
+    "downloadAllSongsToAccess": "Lieder herunterladen, um ohne Internetverbindung darauf zugreifen zu können",
+
+    "percentComplete": "{percentage}% abgeschlossen",
+    "imagesCached": "{percentage}% der Bilder gecacht",
+
+    "updateContent": "Inhalte aktualisieren",
+    "downloadAllSongs": "Alle Lieder herunterladen",
+    "clearContent": "Alle Inhalte löschen",
+
+    "totalSongs": "Lieder gesamt",
+    "storageUsed": "MB verwendet",
+    "readyOffline": "Offline bereit",
+
+    "downloadSuccess": "{count} Lieder erfolgreich für die Offline-Nutzung heruntergeladen",
+    "downloadError": "Download fehlgeschlagen. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "confirmClearContent": "Sind Sie sicher, dass Sie alle Offline-Inhalte löschen möchten? Dies gibt Speicherplatz frei, erfordert aber ein erneutes Herunterladen für den Offline-Zugriff.",
+    "offlineContentCleared": "Alle Offline-Inhalte wurden gelöscht",
+    "failedToClearContent": "Löschen der Offline-Inhalte fehlgeschlagen",
+    "unknown": "Unbekannt"
+  },
+
+  "storage": {
+    "title": "Speicher-Informationen",
+    "description": "Detaillierte Informationen über Browser-Speichernutzung und -fähigkeiten anzeigen",
+    "usage": "Speichernutzung",
+    "capabilities": "Browser-Fähigkeiten",
+    "actions": "Aktionen",
+
+    "items": "Elemente",
+    "cache": "Cache",
+    "caches": "Caches",
+    "available": "Verfügbar",
+    "free": "freier Speicher",
+    "total": "Gesamt-Kontingent",
+    "quota": "zugewiesen",
+
+    "usageProgress": "Speichernutzung",
+    "of": "von",
+    "used": "verwendet",
+
+    "serviceWorker": "Service Worker",
+    "indexedDB": "IndexedDB",
+    "cacheAPI": "Cache API",
+    "persistent": "Dauerhafter Speicher",
+
+    "supported": "Unterstützt",
+    "notSupported": "Nicht unterstützt",
+    "granted": "Gewährt",
+    "notGranted": "Nicht gewährt",
+
+    "refresh": "Info aktualisieren",
+    "requestPersistent": "Dauerhaften Speicher anfordern"
+  }
+}

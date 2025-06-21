@@ -1,0 +1,117 @@
+{
+  "title": "Offline & PWA Management",
+  "description": "Manage your offline experience and Progressive Web App installation",
+
+  "pwaStatus": {
+    "title": "PWA Installation Status",
+    "description": "Check if the app is installed as a Progressive Web App on your device",
+    "installed": "App is Installed",
+    "installedDescription": "The app is running as a Progressive Web App with full offline capabilities",
+    "installable": "Ready to Install",
+    "installableDescription": "The app can be installed to your home screen for a native-like experience",
+    "notInstallable": "Installation Not Available",
+    "notInstallableDescription": "PWA installation is not supported on this browser or device",
+    "installNow": "Install App",
+    "installing": "Installing...",
+    "installSuccess": "App installed successfully! Check your home screen.",
+    "installCanceled": "Installation was canceled by the user",
+    "installError": "Failed to install the app. Please try again."
+  },
+
+  "tutorial": {
+    "title": "Installation Tutorial",
+    "description": "Learn how to install the app on different devices and browsers",
+    "benefits": "Benefits",
+    "chrome": "Chrome",
+    "ios": "iOS Safari",
+    "android": "Android",
+
+    "benefitsFast": "Lightning Fast",
+    "benefitsFastDesc": "Instant loading with cached content",
+    "benefitsOffline": "Works Offline",
+    "benefitsOfflineDesc": "Access all features without internet",
+    "benefitsHomeScreen": "Home Screen Access",
+    "benefitsHomeScreenDesc": "Launch directly from your device",
+    "benefitsNotifications": "Native Notifications",
+    "benefitsNotificationsDesc": "Get updates like a native app",
+
+    "chromeStep1": "Look for the install icon in the address bar or a banner at the bottom",
+    "chromeStep2": "Click 'Install' or 'Add to Home Screen'",
+    "chromeStep3": "The app will be added to your applications and home screen",
+
+    "iosStep1": "Open the app in Safari browser",
+    "iosStep2": "Tap the Share button at the bottom of the screen",
+    "iosStep3": "Scroll down and tap 'Add to Home Screen'",
+    "iosStep4": "Confirm by tapping 'Add' in the top right corner",
+
+    "androidStep1": "Open the app in Chrome or another supported browser",
+    "androidStep2": "Look for the 'Add to Home Screen' banner or check the menu",
+    "androidStep3": "Tap 'Install' or 'Add to Home Screen' to complete installation"
+  },
+
+  "contentManager": {
+    "title": "Offline Content Management",
+    "description": "Download and manage songs for offline access",
+    "currentStatus": "Current Status",
+    "downloadProgress": "Download Progress",
+    "imageCaching": "Image Caching",
+    "actions": "Actions",
+    "statistics": "Statistics",
+
+    "songsDownloaded": "{count} songs available offline",
+    "lastUpdated": "Last updated",
+    "noOfflineContent": "No offline content available",
+    "downloadAllSongsToAccess": "Download songs to access them without internet connection",
+
+    "percentComplete": "{percentage}% complete",
+    "imagesCached": "{percentage}% of images cached",
+
+    "updateContent": "Update Content",
+    "downloadAllSongs": "Download All Songs",
+    "clearContent": "Clear All Content",
+
+    "totalSongs": "Total Songs",
+    "storageUsed": "MB Used",
+    "readyOffline": "Ready Offline",
+
+    "downloadSuccess": "Successfully downloaded {count} songs for offline use",
+    "downloadError": "Failed to download content. Please check your connection and try again.",
+    "confirmClearContent": "Are you sure you want to clear all offline content? This will free up storage space but require re-downloading for offline access.",
+    "offlineContentCleared": "All offline content has been cleared",
+    "failedToClearContent": "Failed to clear offline content",
+    "unknown": "Unknown"
+  },
+
+  "storage": {
+    "title": "Storage Information",
+    "description": "View detailed information about browser storage usage and capabilities",
+    "usage": "Storage Usage",
+    "capabilities": "Browser Capabilities",
+    "actions": "Actions",
+
+    "items": "items",
+    "cache": "Cache",
+    "caches": "caches",
+    "available": "Available",
+    "free": "free space",
+    "total": "Total Quota",
+    "quota": "allocated",
+
+    "usageProgress": "Storage Usage",
+    "of": "of",
+    "used": "used",
+
+    "serviceWorker": "Service Worker",
+    "indexedDB": "IndexedDB",
+    "cacheAPI": "Cache API",
+    "persistent": "Persistent Storage",
+
+    "supported": "Supported",
+    "notSupported": "Not Supported",
+    "granted": "Granted",
+    "notGranted": "Not Granted",
+
+    "refresh": "Refresh Info",
+    "requestPersistent": "Request Persistent Storage"
+  }
+}

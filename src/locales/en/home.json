@@ -11,5 +11,44 @@
   "userID": "User ID",
   "email": "Email",
   "firstName": "First Name",
-  "lastName": "Last Name"
+  "lastName": "Last Name",
+  "stats": {
+    "totalSongs": "Total Songs",
+    "offlineSongs": "Available Offline",
+    "favorites": "Favorites",
+    "recentlyPlayed": "Recently Played"
+  },
+  "search": {
+    "title": "Search Songs",
+    "placeholder": "Search for songs or authors...",
+    "button": "Search"
+  },
+  "actions": {
+    "browseSongs": "Browse All Songs",
+    "browseSongsDesc": "Explore the complete song collection",
+    "offlineManager": "Offline Manager",
+    "offlineManagerDesc": "Manage songs for offline usage",
+    "favorites": "My Favorites",
+    "favoritesDesc": "Your bookmarked favorite songs"
+  },
+  "categories": {
+    "title": "Categories",
+    "description": "Browse songs by themes and occasions"
+  },
+  "recent": {
+    "title": "Recently Played",
+    "description": "Your recently listened songs",
+    "offline": "Offline"
+  },
+  "featured": {
+    "title": "Featured Songs",
+    "description": "Special songs selected by the community"
+  },
+  "audioFormats": {
+    "title": "Available Audio Formats",
+    "description": "Different quality levels for every need",
+    "mp3": "Optimal balance between quality and file size",
+    "ogg": "Open, license-free format with high quality",
+    "wav": "Highest audio quality for professional use"
+  }
 }

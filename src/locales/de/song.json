@@ -34,5 +34,24 @@
   "download": "Herunterladen",
   "imagePreview": "Bildvorschau",
   "clickImageFullscreen": "Klicken Sie auf das Bild für Vollbildansicht",
-  "noImageSelected": "Kein Bild ausgewählt"
+  "noImageSelected": "Kein Bild ausgewählt",
+  "audioPlayer": {
+    "playbackSpeed": "Wiedergabegeschwindigkeit",
+    "normal": "Normal",
+    "customSpeed": "Benutzerdefinierte Geschwindigkeit",
+    "speedRange": "Bereich: 0.25x - 4.0x",
+    "resetSpeed": "Auf 1.0x zurücksetzen",
+    "defaultAudioTitle": "Audiodatei",
+    "browserNotSupported": "Ihr Browser unterstützt das Audio-Element nicht.",
+    "playing": "Wiedergabe",
+    "paused": "Pausiert",
+    "apply": "Anwenden",
+    "errors": {
+      "loadingAborted": "Audio-Laden wurde abgebrochen",
+      "networkError": "Netzwerkfehler aufgetreten",
+      "decodingFailed": "Audio-Dekodierung fehlgeschlagen",
+      "formatNotSupported": "Audio-Format nicht unterstützt",
+      "unknownError": "Unbekannter Audio-Fehler"
+    }
+  }
 }

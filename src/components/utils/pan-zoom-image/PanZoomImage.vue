@@ -8,7 +8,7 @@
       <!-- Close button -->
       <div class="absolute top-4 right-4 flex gap-2 z-[100000]">
         <Button
-          class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
+          class="text-black !bg-white !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
           :aria-label="t('utils.panZoom.close')"
           @click.stop="closeModal"
         >
@@ -20,7 +20,7 @@
       <div class="absolute top-4 left-4 flex flex-col gap-2 z-[100000]">
         <Button
           size="icon"
-          class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
+          class="text-black !bg-white !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
           :aria-label="t('utils.panZoom.zoomIn')"
           @click.stop="zoomIn"
         >
@@ -28,7 +28,7 @@
         </Button>
         <Button
           size="icon"
-          class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
+          class="text-black !bg-white !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
           :aria-label="t('utils.panZoom.zoomOut')"
           @click.stop="zoomOut"
         >
@@ -36,7 +36,7 @@
         </Button>
         <Button
           size="icon"
-          class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
+          class="text-black !bg-white !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
           :aria-label="t('utils.panZoom.resetZoom')"
           @click.stop="resetZoom"
         >
@@ -46,14 +46,14 @@
 
       <!-- Zoom level indicator -->
       <div
-        class="absolute bottom-4 left-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm z-[100000]"
+        class="absolute bottom-4 left-4 text-black bg-white bg-opacity-50 px-3 py-1 rounded-full text-sm z-[100000]"
       >
         {{ Math.round(zoomLevel * 100) }}%
       </div>
 
       <!-- Instructions -->
       <div
-        class="absolute bottom-4 right-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm z-[100000]"
+        class="absolute bottom-4 right-4 text-black bg-white bg-opacity-50 px-3 py-1 rounded-full text-sm z-[100000]"
       >
         {{ t("utils.panZoom.instructions") }}
       </div>

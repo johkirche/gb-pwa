@@ -3,7 +3,9 @@
     <!-- File Info -->
     <div class="flex items-center justify-between">
       <div class="flex-1 min-w-0">
-        <h4 class="font-medium truncate">{{ title }}</h4>
+        <h4 class="font-medium truncate">
+          {{ title || t("song.audioPlayer.defaultAudioTitle") }}
+        </h4>
         <p class="text-sm text-muted-foreground">
           {{ formatFileSize(fileSize) }}
         </p>
@@ -13,13 +15,15 @@
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="outline" size="sm" class="text-xs">
-              <span>Playback Speed</span>
+              <span>{{ t("song.audioPlayer.playbackSpeed") }}</span>
               <span>{{ currentRate }}x</span>
               <ChevronDown class="w-3 h-3 ml-1" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Playback Speed</DropdownMenuLabel>
+            <DropdownMenuLabel>{{
+              t("song.audioPlayer.playbackSpeed")
+            }}</DropdownMenuLabel>
             <DropdownMenuSeparator />
 
             <!-- Preset Speeds -->
@@ -31,9 +35,9 @@
                 @click="setPlaybackRate(rate)"
               >
                 {{ rate }}x
-                <DropdownMenuShortcut v-if="rate === 1.0"
-                  >Normal</DropdownMenuShortcut
-                >
+                <DropdownMenuShortcut v-if="rate === 1.0">{{
+                  t("song.audioPlayer.normal")
+                }}</DropdownMenuShortcut>
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
@@ -41,9 +45,9 @@
 
             <!-- Custom Speed -->
             <div class="px-2 py-1.5">
-              <label class="text-xs font-medium text-muted-foreground"
-                >Custom Speed</label
-              >
+              <label class="text-xs font-medium text-muted-foreground">{{
+                t("song.audioPlayer.customSpeed")
+              }}</label>
               <div class="flex items-center space-x-2 mt-1">
                 <Input
                   v-model="customSpeedInput"
@@ -61,18 +65,18 @@
                   class="h-6 px-2 text-xs"
                   @click="applyCustomSpeed"
                 >
-                  Apply
+                  {{ t("song.audioPlayer.apply") }}
                 </Button>
               </div>
               <p class="text-xs text-muted-foreground mt-1">
-                Range: 0.25x - 4.0x
+                {{ t("song.audioPlayer.speedRange") }}
               </p>
             </div>
 
             <DropdownMenuSeparator />
 
             <DropdownMenuItem @click="resetSpeed">
-              Reset to 1.0x
+              {{ t("song.audioPlayer.resetSpeed") }}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -85,7 +89,7 @@
           @click="downloadAudio"
         >
           <Download class="w-3 h-3 mr-1" />
-          Download
+          {{ t("song.download") }}
         </Button>
       </div>
     </div>
@@ -157,14 +161,16 @@
       @error="onError"
     >
       <source :src="audioUrl" />
-      Your browser does not support the audio element.
+      {{ t("song.audioPlayer.browserNotSupported") }}
     </audio>
 
     <!-- Status -->
     <div
       class="flex items-center justify-between text-xs text-muted-foreground"
     >
-      <span>{{ isPlaying ? "Playing" : "Paused" }}</span>
+      <span>{{
+        isPlaying ? t("song.audioPlayer.playing") : t("song.audioPlayer.paused")
+      }}</span>
       <span v-if="error" class="text-destructive">{{ error }}</span>
     </div>
   </div>
@@ -182,6 +188,7 @@ import {
 } from "lucide-vue-next";
 
 import { onMounted, onUnmounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -205,10 +212,13 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: "Audio File",
+  title: undefined,
   fileSize: undefined,
   autoplay: false,
 });
+
+// I18n
+const { t } = useI18n();
 
 // Audio element ref
 const audioRef = ref<HTMLAudioElement | null>(null);
@@ -266,7 +276,7 @@ const onVolumeChange = (value: number[] | undefined) => {
 const downloadAudio = () => {
   const link = document.createElement("a");
   link.href = props.audioUrl;
-  link.download = props.title || "audio-file";
+  link.download = props.title || t("song.audioPlayer.defaultAudioTitle");
   link.target = "_blank";
   document.body.appendChild(link);
   link.click();
@@ -318,13 +328,14 @@ const onError = (event: Event) => {
   const audioElement = event.target as HTMLAudioElement;
   const errorCode = audioElement.error?.code;
   const errorMessages: { [key: number]: string } = {
-    1: "Audio loading was aborted",
-    2: "Network error occurred",
-    3: "Audio decoding failed",
-    4: "Audio format not supported",
+    1: t("song.audioPlayer.errors.loadingAborted"),
+    2: t("song.audioPlayer.errors.networkError"),
+    3: t("song.audioPlayer.errors.decodingFailed"),
+    4: t("song.audioPlayer.errors.formatNotSupported"),
   };
 
-  error.value = errorMessages[errorCode || 0] || "Unknown audio error";
+  error.value =
+    errorMessages[errorCode || 0] || t("song.audioPlayer.errors.unknownError");
   canPlay.value = false;
 };
 

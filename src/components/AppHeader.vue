@@ -7,8 +7,8 @@
           <img
             src="/logo.png"
             alt="Logo"
-            class="w-10 h-10 mr-2"
-            style="filter: invert(1)"
+            class="w-10 h-10 mr-2 invert dark:invert-0 hover:cursor-pointer hover:scale-105 transition-all duration-300"
+            @click="router.push('/home')"
           />
           <h1 class="text-xl font-semibold">
             {{ pageTitle }}
@@ -17,6 +17,17 @@
 
         <!-- Right side navigation -->
         <div class="flex items-center space-x-2">
+          <!-- Dark Mode Toggle -->
+          <Button variant="outline" size="sm" @click="toggleDarkMode">
+            <Sun
+              class="h-[1.2rem] w-[1.2rem] scale-100 transition-all dark:scale-0"
+            />
+            <Moon
+              class="absolute h-[1.2rem] w-[1.2rem] scale-0 transition-all dark:scale-100"
+            />
+            <span class="sr-only">Toggle theme</span>
+          </Button>
+
           <!-- Language Switcher -->
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
@@ -76,7 +87,15 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, Home, LanguagesIcon, LogOut } from "lucide-vue-next";
+import { useColorMode } from "@vueuse/core";
+import {
+  ArrowLeft,
+  Home,
+  LanguagesIcon,
+  LogOut,
+  Moon,
+  Sun,
+} from "lucide-vue-next";
 
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
@@ -118,6 +137,15 @@ const emit = defineEmits<{
 const router = useRouter();
 const { logout } = useAuth();
 const { t, locale } = useI18n();
+
+// Dark mode functionality - initialize with system preference
+const colorMode = useColorMode({
+  initialValue: "auto",
+});
+
+const toggleDarkMode = () => {
+  colorMode.value = colorMode.value === "dark" ? "light" : "dark";
+};
 
 // Language switcher functionality
 const currentLanguageDisplay = computed(() => {

@@ -9,88 +9,92 @@
       back-to="/home"
     />
 
-    <!-- Main Content -->
-    <main class="container mx-auto py-8">
-      <!-- Data Source Control -->
-      <div
-        v-if="shouldShowDataSourceControl"
-        class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4"
-      >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <InfoIcon class="w-4 h-4 text-blue-600" />
-            <p class="text-sm text-blue-800">
-              <span v-if="isUsingCachedData">
-                {{
-                  t("songs.showingOfflineSongs", {
-                    count: gesangbuchlieder.length,
-                  })
-                }}
-              </span>
-              <span v-else>
-                {{
-                  t("songs.showingOnlineSongs", {
-                    count: gesangbuchlieder.length,
-                  })
-                }}
-              </span>
-            </p>
-          </div>
-
-          <div class="flex items-center space-x-3">
+    <ScrollArea class="h-[calc(100vh-65px)]">
+      <!-- Main Content -->
+      <main class="container mx-auto py-8">
+        <!-- Data Source Control -->
+        <div
+          v-if="shouldShowDataSourceControl"
+          class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4"
+        >
+          <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <Label for="data-source-switch" class="text-sm text-blue-800">
-                {{ preferOfflineData ? t("songs.offline") : t("songs.online") }}
-              </Label>
-              <Switch
-                id="data-source-switch"
-                v-model="preferOfflineData"
-                :disabled="isLoading"
-              />
+              <InfoIcon class="w-4 h-4 text-blue-600" />
+              <p class="text-sm text-blue-800">
+                <span v-if="isUsingCachedData">
+                  {{
+                    t("songs.showingOfflineSongs", {
+                      count: gesangbuchlieder.length,
+                    })
+                  }}
+                </span>
+                <span v-else>
+                  {{
+                    t("songs.showingOnlineSongs", {
+                      count: gesangbuchlieder.length,
+                    })
+                  }}
+                </span>
+              </p>
+            </div>
+
+            <div class="flex items-center space-x-3">
+              <div class="flex items-center space-x-2">
+                <Label for="data-source-switch" class="text-sm text-blue-800">
+                  {{
+                    preferOfflineData ? t("songs.offline") : t("songs.online")
+                  }}
+                </Label>
+                <Switch
+                  id="data-source-switch"
+                  v-model="preferOfflineData"
+                  :disabled="isLoading"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Search and Filter Section -->
-      <SongsSearchFilters
-        v-model:search-query="searchQuery"
-        v-model:selected-category="selectedCategory"
-        v-model:sort-by="sortBy"
-        :sort-direction="sortDirection"
-        :available-categories="availableCategories"
-        class="mb-4"
-        @toggle-sort-direction="toggleSortDirection"
-        @clear-filters="clearFilters"
-      />
+        <!-- Search and Filter Section -->
+        <SongsSearchFilters
+          v-model:search-query="searchQuery"
+          v-model:selected-category="selectedCategory"
+          v-model:sort-by="sortBy"
+          :sort-direction="sortDirection"
+          :available-categories="availableCategories"
+          class="mb-4"
+          @toggle-sort-direction="toggleSortDirection"
+          @clear-filters="clearFilters"
+        />
 
-      <!-- Loading State -->
-      <SongsLoadingState v-if="isLoading" />
+        <!-- Loading State -->
+        <SongsLoadingState v-if="isLoading" />
 
-      <!-- Error State -->
-      <SongsErrorState
-        v-else-if="queryError"
-        :message="queryError"
-        @retry="fetchGesangbuchlieder"
-      />
+        <!-- Error State -->
+        <SongsErrorState
+          v-else-if="queryError"
+          :message="queryError"
+          @retry="fetchGesangbuchlieder"
+        />
 
-      <!-- Results Grid -->
-      <SongsGrid
-        v-else-if="filteredLieder.length > 0"
-        :lieder="filteredLieder"
-        :total-count="gesangbuchlieder.length"
-        :has-more="hasMore"
-        :is-loading-more="isLoadingMore"
-        @card-click="navigateToLied"
-        @load-more="loadMore"
-      />
+        <!-- Results Grid -->
+        <SongsGrid
+          v-else-if="filteredLieder.length > 0"
+          :lieder="filteredLieder"
+          :total-count="gesangbuchlieder.length"
+          :has-more="hasMore"
+          :is-loading-more="isLoadingMore"
+          @card-click="navigateToLied"
+          @load-more="loadMore"
+        />
 
-      <!-- No Results -->
-      <SongsEmptyState
-        v-else-if="!isLoading && gesangbuchlieder.length === 0"
-        @load-songs="fetchGesangbuchlieder"
-      />
-    </main>
+        <!-- No Results -->
+        <SongsEmptyState
+          v-else-if="!isLoading && gesangbuchlieder.length === 0"
+          @load-songs="fetchGesangbuchlieder"
+        />
+      </main>
+    </ScrollArea>
   </div>
 </template>
 
@@ -105,6 +109,7 @@ import type { Strophe } from "@/gql";
 import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 
 import AppHeader from "@/components/AppHeader.vue";
