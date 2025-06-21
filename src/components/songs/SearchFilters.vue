@@ -5,7 +5,7 @@
     >
       <CardTitle class="flex items-center">
         <Search class="w-5 h-5 mr-2 text-muted-foreground" />
-        Search & Filter
+        {{ t("songs.searchAndFilter") }}
       </CardTitle>
       <div class="flex flex-wrap items-center gap-2">
         <!-- Sort Direction -->
@@ -16,7 +16,11 @@
           @click="$emit('toggleSortDirection')"
         >
           <ArrowUpDown class="w-4 h-4 mr-2" />
-          {{ sortDirection === "asc" ? "Ascending" : "Descending" }}
+          {{
+            sortDirection === "asc"
+              ? t("songs.ascending")
+              : t("songs.descending")
+          }}
         </Button>
 
         <!-- Clear Filters -->
@@ -27,7 +31,7 @@
           @click="$emit('clearFilters')"
         >
           <X class="w-4 h-4 mr-2" />
-          Clear
+          {{ t("songs.clear") }}
         </Button>
       </div>
     </CardHeader>
@@ -40,7 +44,7 @@
           />
           <Input
             :model-value="searchQuery"
-            placeholder="Search by title, author, or text..."
+            :placeholder="t('songs.searchPlaceholder')"
             class="pl-10"
             @update:model-value="$emit('update:searchQuery', $event as string)"
           />
@@ -50,7 +54,7 @@
         <div class="flex flex-wrap gap-4">
           <!-- Category Filter -->
           <div class="flex items-center space-x-2">
-            <Label for="category-filter">Category:</Label>
+            <Label for="category-filter">{{ t("songs.category") }}</Label>
             <select
               id="category-filter"
               :value="selectedCategory"
@@ -62,7 +66,7 @@
                 )
               "
             >
-              <option value="">All Categories</option>
+              <option value="">{{ t("songs.allCategories") }}</option>
               <option
                 v-for="category in availableCategories"
                 :key="category"
@@ -75,7 +79,7 @@
 
           <!-- Sort Options -->
           <div class="flex items-center space-x-2">
-            <Label for="sort-by">Sort by:</Label>
+            <Label for="sort-by">{{ t("songs.sortBy") }}</Label>
             <select
               id="sort-by"
               :value="sortBy"
@@ -87,9 +91,11 @@
                 )
               "
             >
-              <option value="title">Title</option>
-              <option value="date_updated">Date Updated</option>
-              <option value="liednummer2000">Lied Number</option>
+              <option value="title">{{ t("songs.title") }}</option>
+              <option value="date_updated">{{ t("songs.dateUpdated") }}</option>
+              <option value="liednummer2000">
+                {{ t("songs.liedNumber") }}
+              </option>
             </select>
           </div>
         </div>
@@ -101,10 +107,14 @@
 <script setup lang="ts">
 import { ArrowUpDown, Search, X } from "lucide-vue-next";
 
+import { useI18n } from "vue-i18n";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const { t } = useI18n();
 
 interface Props {
   searchQuery: string;

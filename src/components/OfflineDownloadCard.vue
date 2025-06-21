@@ -3,11 +3,10 @@
     <CardHeader>
       <CardTitle class="flex items-center space-x-2">
         <Download class="w-5 h-5" />
-        <span>Offline Access</span>
+        <span>{{ t("utils.offlineAccess") }}</span>
       </CardTitle>
       <CardDescription>
-        Download all songs for offline access when you don't have internet
-        connection.
+        {{ t("utils.downloadDescription") }}
       </CardDescription>
     </CardHeader>
 
@@ -21,13 +20,16 @@
           <CheckCircle class="w-5 h-5 text-green-600 mt-0.5" />
           <div class="flex-1">
             <p class="text-sm font-medium text-green-800">
-              {{ offlineContentInfo.count }} songs downloaded
+              {{
+                t("utils.songsDownloaded", { count: offlineContentInfo.count })
+              }}
             </p>
             <p class="text-xs text-green-600 mt-1">
-              Last updated: {{ formatDate(offlineContentInfo.lastUpdated) }}
+              {{ t("utils.lastUpdated") }}:
+              {{ formatDate(offlineContentInfo.lastUpdated) }}
             </p>
             <div v-if="storageInfo" class="text-xs text-green-600 mt-1">
-              Storage used: {{ storageInfo.sizeInMB }} MB
+              {{ t("utils.storageUsed") }}: {{ storageInfo.sizeInMB }} MB
             </div>
           </div>
         </div>
@@ -42,10 +44,10 @@
           <Info class="w-5 h-5 text-blue-600 mt-0.5" />
           <div>
             <p class="text-sm font-medium text-blue-800">
-              No offline content downloaded
+              {{ t("utils.noOfflineContent") }}
             </p>
             <p class="text-xs text-blue-600 mt-1">
-              Download all songs to access them without internet connection.
+              {{ t("utils.downloadAllSongsToAccess") }}
             </p>
           </div>
         </div>
@@ -68,7 +70,11 @@
         </div>
 
         <p class="text-xs text-muted-foreground text-center">
-          {{ downloadProgress.percentage }}% complete
+          {{
+            t("utils.percentComplete", {
+              percentage: downloadProgress.percentage,
+            })
+          }}
         </p>
       </div>
 
@@ -92,7 +98,11 @@
         </div>
 
         <p class="text-xs text-blue-600 text-center">
-          {{ imagePrecacheProgress.percentage }}% images cached
+          {{
+            t("utils.imagesCached", {
+              percentage: imagePrecacheProgress.percentage,
+            })
+          }}
         </p>
       </div>
 
@@ -105,7 +115,11 @@
           @click="startDownload"
         >
           <Download class="w-4 h-4 mr-2" />
-          {{ hasOfflineContent ? "Update Content" : "Download All Songs" }}
+          {{
+            hasOfflineContent
+              ? t("utils.updateContent")
+              : t("utils.downloadAllSongs")
+          }}
         </Button>
 
         <Button
@@ -154,6 +168,7 @@ import {
 } from "lucide-vue-next";
 
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -165,6 +180,8 @@ import {
 } from "@/components/ui/card";
 
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
+
+const { t } = useI18n();
 
 // Use the new IndexedDB-based composable
 const {
@@ -200,7 +217,7 @@ const formatDate = (dateString: string) => {
       minute: "2-digit",
     });
   } catch {
-    return "Unknown";
+    return t("utils.unknown");
   }
 };
 
@@ -221,7 +238,7 @@ const startDownload = async () => {
 
     const songCount = await downloadAllContent();
 
-    successMessage.value = `Successfully downloaded ${songCount} songs for offline access!`;
+    successMessage.value = t("utils.downloadSuccess", { count: songCount });
     await updateStorageInfo();
 
     setTimeout(() => {
@@ -230,29 +247,23 @@ const startDownload = async () => {
   } catch (error) {
     console.error("Download failed:", error);
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : "Failed to download content. Please check your connection and try again.";
+      error instanceof Error ? error.message : t("utils.downloadError");
   }
 };
 
 // Clear offline content
 const confirmClearContent = async () => {
-  if (
-    confirm(
-      "Are you sure you want to remove all offline content? You'll need to download it again to access songs offline.",
-    )
-  ) {
+  if (confirm(t("utils.confirmClearContent"))) {
     try {
       await clearOfflineContent();
       storageInfo.value = null;
-      successMessage.value = "Offline content cleared successfully.";
+      successMessage.value = t("utils.offlineContentCleared");
 
       setTimeout(() => {
         successMessage.value = "";
       }, 3000);
     } catch {
-      errorMessage.value = "Failed to clear offline content.";
+      errorMessage.value = t("utils.failedToClearContent");
     }
   }
 };

@@ -1,0 +1,33 @@
+{
+  "networkError": "Diese Funktion benötigt eine Internetverbindung. Bitte überprüfen Sie Ihr Netzwerk und versuchen Sie es erneut.",
+  "unknownError": "Ein unbekannter Fehler ist aufgetreten",
+  "loading": "Lädt...",
+  "offlineAccess": "Offline-Zugang",
+  "downloadDescription": "Laden Sie alle Lieder für den Offline-Zugang herunter, wenn Sie keine Internetverbindung haben.",
+  "songsDownloaded": "{count} Lieder heruntergeladen",
+  "lastUpdated": "Zuletzt aktualisiert",
+  "storageUsed": "Speicher verwendet",
+  "noOfflineContent": "Keine Offline-Inhalte heruntergeladen",
+  "downloadAllSongsToAccess": "Laden Sie alle Lieder herunter, um ohne Internetverbindung darauf zugreifen zu können.",
+  "percentComplete": "{percentage}% abgeschlossen",
+  "imagesCached": "{percentage}% Bilder zwischengespeichert",
+  "updateContent": "Inhalte aktualisieren",
+  "downloadAllSongs": "Alle Lieder herunterladen",
+  "unknown": "Unbekannt",
+  "downloadSuccess": "{count} Lieder erfolgreich für den Offline-Zugang heruntergeladen!",
+  "downloadError": "Inhalt konnte nicht heruntergeladen werden. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  "confirmClearContent": "Sind Sie sicher, dass Sie alle Offline-Inhalte entfernen möchten? Sie müssen sie erneut herunterladen, um offline auf Lieder zugreifen zu können.",
+  "offlineContentCleared": "Offline-Inhalte erfolgreich gelöscht.",
+  "failedToClearContent": "Offline-Inhalte konnten nicht gelöscht werden.",
+  "home": "Startseite",
+  "logout": "Abmelden",
+  "unknownSize": "Unbekannte Größe",
+  "image": "Bild",
+  "panZoom": {
+    "close": "Schließen",
+    "zoomIn": "Hineinzoomen",
+    "zoomOut": "Herauszoomen",
+    "resetZoom": "Zoom zurücksetzen",
+    "instructions": "Scrollen zum Zoomen • Ziehen zum Verschieben"
+  }
+}

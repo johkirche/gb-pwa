@@ -2,10 +2,10 @@
   <div class="min-h-screen bg-background">
     <!-- Navigation Header -->
     <AppHeader
-      page-title="Lied Details"
+      :page-title="t('song.pageTitle')"
       :show-back-button="true"
       :show-home-button="true"
-      back-button-text="Zurück"
+      :back-button-text="t('song.backButton')"
       back-to="/lieder"
     />
 
@@ -44,7 +44,7 @@
               />
             </svg>
             <p class="text-sm text-blue-800">
-              Showing offline version. Connect to internet for latest updates.
+              {{ t("song.offlineVersionMessage") }}
             </p>
           </div>
         </div>
@@ -74,6 +74,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 
 import type { Directus_Files, Gesangbuchlied } from "@/gql/graphql";
@@ -89,6 +90,8 @@ import SongTextDisplay from "@/components/song/TextDisplay.vue";
 
 import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
+
+const { t } = useI18n();
 
 // Get the song ID from the route
 const route = useRoute();
@@ -143,8 +146,7 @@ const fetchLied = async () => {
       console.log("Song not found in IndexedDB, fetching from API");
 
       if (typeof window !== "undefined" && !navigator.onLine) {
-        queryError.value =
-          "This song is not available offline. Please connect to the internet to view it, or download songs for offline access from the home page.";
+        queryError.value = t("song.notAvailableOffline");
         return;
       }
 
@@ -155,7 +157,7 @@ const fetchLied = async () => {
         lied.value = result;
         isUsingCachedData.value = false;
       } else {
-        queryError.value = "Song not found.";
+        queryError.value = t("song.songNotFound");
       }
     }
   } catch (err) {
@@ -163,11 +165,10 @@ const fetchLied = async () => {
 
     // Handle offline errors gracefully
     if (typeof window !== "undefined" && !navigator.onLine) {
-      queryError.value =
-        "This song is not available offline. Please connect to the internet to view it, or download songs for offline access from the home page.";
+      queryError.value = t("song.notAvailableOffline");
     } else {
       queryError.value =
-        err instanceof Error ? err.message : "Unknown error occurred";
+        err instanceof Error ? err.message : t("utils.unknownError");
     }
   } finally {
     isLoading.value = false;

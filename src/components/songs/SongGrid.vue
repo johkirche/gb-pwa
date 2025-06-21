@@ -3,7 +3,9 @@
     <!-- Results Summary -->
     <div class="mb-6">
       <p class="text-sm text-muted-foreground">
-        Showing {{ lieder.length }} of {{ totalCount }} songs
+        {{
+          t("songs.showingResults", { count: lieder.length, total: totalCount })
+        }}
       </p>
     </div>
 
@@ -28,13 +30,15 @@
         @click="handleLoadMore"
       >
         <Plus class="w-4 h-4 mr-2" />
-        {{ isLoadingMore ? "Loading..." : "Load More" }}
+        {{ isLoadingMore ? t("utils.loading") : t("songs.loadMore") }}
       </Button>
     </div>
 
     <!-- Loading indicator for infinite scroll -->
     <div v-if="isLoadingMore" class="mt-4 text-center">
-      <p class="text-sm text-muted-foreground">Loading more songs...</p>
+      <p class="text-sm text-muted-foreground">
+        {{ t("songs.loadingMoreSongs") }}
+      </p>
     </div>
   </div>
 </template>
@@ -43,12 +47,15 @@
 import { Plus } from "lucide-vue-next";
 
 import { onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Button } from "@/components/ui/button";
 
 import SongsCard from "@/components/songs/SongCard.vue";
+
+const { t } = useI18n();
 
 interface Props {
   lieder: Gesangbuchlied[];

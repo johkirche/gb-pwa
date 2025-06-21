@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-background">
     <AppHeader
-      :page-title="`Willkommen, ${userName}!`"
+      :page-title="t('home.welcome', { userName })"
       :show-logout-button="true"
       @logout="handleLogout"
     />
@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
 
@@ -33,6 +34,7 @@ import HomeUserInfoCard from "@/components/home/UserInfoCard.vue";
 import { useAuth } from "@/composables/useAuth";
 import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
 
+const { t } = useI18n();
 const { user, userName, logout } = useAuth();
 
 const handleLogout = async () => {
@@ -68,11 +70,10 @@ const fetchGesangbuchlieder = async () => {
 
     // Handle offline errors gracefully
     if (typeof window !== "undefined" && !navigator.onLine) {
-      queryError.value =
-        "This feature requires an internet connection. Please check your network and try again.";
+      queryError.value = t("utils.networkError");
     } else {
       queryError.value =
-        err instanceof Error ? err.message : "Unknown error occurred";
+        err instanceof Error ? err.message : t("utils.unknownError");
     }
   } finally {
     isLoading.value = false;

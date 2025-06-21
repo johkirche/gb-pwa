@@ -1,0 +1,15 @@
+{
+  "welcome": "Willkommen, {userName}!",
+  "gesangbuchlieder": "Gesangbuchlieder",
+  "browseDescription": "Durchsuchen und suchen Sie alle Lieder im Gesangbuch.",
+  "browseAllSongs": "Alle Lieder durchsuchen",
+  "quickTestFetch": "Schneller Test-Abruf (für Entwicklung):",
+  "testFetchAPI": "Test API-Abruf",
+  "errorLoadingData": "Fehler beim Laden der Daten",
+  "foundSongs": "{count} Lieder gefunden:",
+  "userInformation": "Benutzerinformationen",
+  "userID": "Benutzer-ID",
+  "email": "E-Mail",
+  "firstName": "Vorname",
+  "lastName": "Nachname"
+}

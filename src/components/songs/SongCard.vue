@@ -5,7 +5,7 @@
   >
     <CardHeader class="pb-3">
       <CardTitle class="text-lg group-hover:text-primary transition-colors">
-        {{ lied.titel || "Untitled" }}
+        {{ lied.titel || t("songs.untitled") }}
       </CardTitle>
       <CardDescription v-if="firstCategory" class="flex items-center">
         <Tag class="w-3 h-3 mr-1" />
@@ -18,7 +18,7 @@
         <p
           class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
         >
-          Authors
+          {{ t("songs.authors") }}
         </p>
         <div class="flex flex-wrap gap-1">
           <Badge
@@ -37,7 +37,7 @@
         <p
           class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
         >
-          Preview
+          {{ t("songs.preview") }}
         </p>
         <p class="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
           {{ firstStrophe }}
@@ -49,7 +49,7 @@
         <p
           class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
         >
-          Files
+          {{ t("songs.files") }}
         </p>
         <div class="flex flex-wrap gap-1">
           <Badge
@@ -73,7 +73,7 @@
         <div
           class="flex items-center text-xs text-muted-foreground group-hover:text-primary transition-colors"
         >
-          View Details
+          {{ t("songs.viewDetails") }}
           <ArrowRight class="w-3 h-3 ml-1" />
         </div>
       </div>
@@ -85,6 +85,7 @@
 import { ArrowRight, Calendar, Tag } from "lucide-vue-next";
 
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
 
@@ -97,6 +98,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+const { t } = useI18n();
 
 interface Props {
   lied: Gesangbuchlied;
@@ -164,7 +167,7 @@ const fileInfo = computed(() => {
         const type = note.directus_files_id.type;
         if (type.includes("pdf")) fileTypes.add("PDF");
         else if (type.includes("audio")) fileTypes.add("Audio");
-        else if (type.includes("image")) fileTypes.add("Image");
+        else if (type.includes("image")) fileTypes.add(t("utils.image"));
         else fileTypes.add("File");
       }
     });
@@ -174,7 +177,7 @@ const fileInfo = computed(() => {
 });
 
 const formattedDate = computed(() => {
-  if (!props.lied.date_updated) return "Unknown";
+  if (!props.lied.date_updated) return t("utils.unknown");
 
   try {
     const date = new Date(props.lied.date_updated);
@@ -184,7 +187,7 @@ const formattedDate = computed(() => {
       day: "numeric",
     });
   } catch {
-    return "Invalid date";
+    return t("songs.invalidDate");
   }
 });
 </script>

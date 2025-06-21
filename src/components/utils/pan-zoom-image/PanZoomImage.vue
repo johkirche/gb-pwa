@@ -9,7 +9,7 @@
       <div class="absolute top-4 right-4 flex gap-2 z-[100000]">
         <Button
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          aria-label="Close"
+          :aria-label="t('utils.panZoom.close')"
           @click.stop="closeModal"
         >
           <X class="w-6 h-6" />
@@ -21,7 +21,7 @@
         <Button
           size="icon"
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          aria-label="Zoom in"
+          :aria-label="t('utils.panZoom.zoomIn')"
           @click.stop="zoomIn"
         >
           <Plus class="w-6 h-6" />
@@ -29,7 +29,7 @@
         <Button
           size="icon"
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          aria-label="Zoom out"
+          :aria-label="t('utils.panZoom.zoomOut')"
           @click.stop="zoomOut"
         >
           <Minus class="w-6 h-6" />
@@ -37,7 +37,7 @@
         <Button
           size="icon"
           class="text-white !bg-black !bg-opacity-50 hover:!bg-opacity-70 rounded-full transition-colors"
-          aria-label="Reset zoom"
+          :aria-label="t('utils.panZoom.resetZoom')"
           @click.stop="resetZoom"
         >
           <RotateCcw class="w-6 h-6" />
@@ -55,7 +55,7 @@
       <div
         class="absolute bottom-4 right-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm z-[100000]"
       >
-        Scroll to zoom • Drag to pan
+        {{ t("utils.panZoom.instructions") }}
       </div>
 
       <!-- Image container -->
@@ -86,6 +86,7 @@ import Panzoom, {
 import { Minus, Plus, RotateCcw, X } from "lucide-vue-next";
 
 import { nextTick, onUnmounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import { Button } from "@/components/ui/button";
 
@@ -101,6 +102,9 @@ const emit = defineEmits<{
   imageError: [event: Event];
   imageLoad: [event: Event];
 }>();
+
+// I18n
+const { t } = useI18n();
 
 // Panzoom instance and refs
 const imageContainer = ref<HTMLElement | null>(null);

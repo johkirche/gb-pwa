@@ -3,14 +3,14 @@
     <CardHeader>
       <CardTitle class="flex items-center">
         <Users class="w-5 h-5 mr-2 text-muted-foreground" />
-        Authors
+        {{ t("song.authors") }}
       </CardTitle>
     </CardHeader>
     <CardContent class="space-y-4">
       <!-- Text Authors -->
       <div v-if="textAuthors.length > 0">
         <h4 class="font-medium text-sm text-muted-foreground mb-2">
-          Text Authors
+          {{ t("song.textAuthors") }}
         </h4>
         <div class="space-y-2">
           <div
@@ -26,7 +26,7 @@
                 class="text-xs text-muted-foreground"
               >
                 {{ author.geburtsjahr || "?" }} -
-                {{ author.sterbejahr || "present" }}
+                {{ author.sterbejahr || t("song.present") }}
               </p>
             </div>
           </div>
@@ -36,7 +36,7 @@
       <!-- Melody Authors -->
       <div v-if="melodyAuthors.length > 0">
         <h4 class="font-medium text-sm text-muted-foreground mb-2">
-          Melody Authors
+          {{ t("song.melodyAuthors") }}
         </h4>
         <div class="space-y-2">
           <div
@@ -52,7 +52,7 @@
                 class="text-xs text-muted-foreground"
               >
                 {{ author.geburtsjahr || "?" }} -
-                {{ author.sterbejahr || "present" }}
+                {{ author.sterbejahr || t("song.present") }}
               </p>
             </div>
           </div>
@@ -61,7 +61,7 @@
 
       <div v-if="textAuthors.length === 0 && melodyAuthors.length === 0">
         <p class="text-muted-foreground text-sm">
-          No author information available
+          {{ t("song.noAuthorInfo") }}
         </p>
       </div>
     </CardContent>
@@ -71,9 +71,13 @@
 <script setup lang="ts">
 import { Music, User, Users } from "lucide-vue-next";
 
+import { useI18n } from "vue-i18n";
+
 import type { Autor } from "@/gql/graphql";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const { t } = useI18n();
 
 interface Props {
   textAuthors: Autor[];
@@ -83,6 +87,9 @@ interface Props {
 defineProps<Props>();
 
 const getAuthorName = (author: Autor): string => {
-  return `${author.vorname || ""} ${author.nachname || ""}`.trim() || "Unknown";
+  return (
+    `${author.vorname || ""} ${author.nachname || ""}`.trim() ||
+    t("utils.unknown")
+  );
 };
 </script>

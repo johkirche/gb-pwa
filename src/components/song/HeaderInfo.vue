@@ -16,8 +16,10 @@
           </div>
         </div>
         <div class="text-right text-sm text-muted-foreground">
-          <p v-if="lied.liednummer2000">Song #{{ lied.liednummer2000 }}</p>
-          <p>Updated: {{ formatDate(lied.date_updated) }}</p>
+          <p v-if="lied.liednummer2000">
+            {{ t("song.songNumber") }}{{ lied.liednummer2000 }}
+          </p>
+          <p>{{ t("song.updated") }}: {{ formatDate(lied.date_updated) }}</p>
         </div>
       </div>
     </CardHeader>
@@ -28,11 +30,14 @@
 import { Tag } from "lucide-vue-next";
 
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+
+const { t } = useI18n();
 
 interface Props {
   lied: Gesangbuchlied;
@@ -51,7 +56,7 @@ const getCategories = (lied: Gesangbuchlied): string[] => {
 };
 
 const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return "Unknown";
+  if (!dateString) return t("utils.unknown");
 
   try {
     const date = new Date(dateString);
@@ -63,7 +68,7 @@ const formatDate = (dateString: string | null | undefined): string => {
       minute: "2-digit",
     });
   } catch {
-    return "Invalid date";
+    return t("utils.unknown");
   }
 };
 </script>

@@ -2,10 +2,10 @@
   <div class="min-h-screen bg-background">
     <!-- Navigation Header -->
     <AppHeader
-      page-title="Lieder"
+      :page-title="t('songs.pageTitle')"
       :show-back-button="true"
       :show-home-button="true"
-      back-button-text="Zurück"
+      :back-button-text="t('songs.backButtonText')"
       back-to="/home"
     />
 
@@ -21,10 +21,18 @@
             <InfoIcon class="w-4 h-4 text-blue-600" />
             <p class="text-sm text-blue-800">
               <span v-if="isUsingCachedData">
-                Showing offline songs ({{ gesangbuchlieder.length }} available).
+                {{
+                  t("songs.showingOfflineSongs", {
+                    count: gesangbuchlieder.length,
+                  })
+                }}
               </span>
               <span v-else>
-                Showing online songs ({{ gesangbuchlieder.length }} loaded).
+                {{
+                  t("songs.showingOnlineSongs", {
+                    count: gesangbuchlieder.length,
+                  })
+                }}
               </span>
             </p>
           </div>
@@ -32,7 +40,7 @@
           <div class="flex items-center space-x-3">
             <div class="flex items-center space-x-2">
               <Label for="data-source-switch" class="text-sm text-blue-800">
-                {{ preferOfflineData ? "Offline" : "Online" }}
+                {{ preferOfflineData ? t("songs.offline") : t("songs.online") }}
               </Label>
               <Switch
                 id="data-source-switch"
@@ -90,6 +98,7 @@
 import { InfoIcon } from "lucide-vue-next";
 
 import { computed, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import type { Strophe } from "@/gql";
@@ -110,6 +119,7 @@ import { useOfflineDownload } from "@/composables/useOfflineDownload";
 import { usePWA } from "@/composables/usePWA";
 
 const router = useRouter();
+const { t } = useI18n();
 
 // Composables
 const { isInstalled: isPWAInstalled } = usePWA();
@@ -261,8 +271,7 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
         return;
       }
 
-      queryError.value =
-        "No offline content available. Please go online to download songs for offline access.";
+      queryError.value = t("songs.noOfflineContentAvailable");
       return;
     }
 
@@ -285,7 +294,7 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
       hasMore.value = result.length === currentLimit.value;
       console.log("isUsingCachedData set to:", isUsingCachedData.value);
     } else {
-      queryError.value = "No songs found.";
+      queryError.value = t("songs.noSongsFound");
     }
   } catch (err) {
     console.error("Error fetching gesangbuchlieder:", err);
@@ -305,11 +314,10 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
 
     // Handle offline errors gracefully
     if (typeof window !== "undefined" && !navigator.onLine) {
-      queryError.value =
-        "No offline content available. Please connect to the internet or download songs for offline access.";
+      queryError.value = t("songs.noOfflineContentAvailableConnect");
     } else {
       queryError.value =
-        err instanceof Error ? err.message : "Unknown error occurred";
+        err instanceof Error ? err.message : t("utils.unknownError");
     }
   } finally {
     isLoading.value = false;

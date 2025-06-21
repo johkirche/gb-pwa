@@ -1,0 +1,33 @@
+{
+  "networkError": "This feature requires an internet connection. Please check your network and try again.",
+  "unknownError": "Unknown error occurred",
+  "loading": "Loading...",
+  "offlineAccess": "Offline Access",
+  "downloadDescription": "Download all songs for offline access when you don't have internet connection.",
+  "songsDownloaded": "{count} songs downloaded",
+  "lastUpdated": "Last updated",
+  "storageUsed": "Storage used",
+  "noOfflineContent": "No offline content downloaded",
+  "downloadAllSongsToAccess": "Download all songs to access them without internet connection.",
+  "percentComplete": "{percentage}% complete",
+  "imagesCached": "{percentage}% images cached",
+  "updateContent": "Update Content",
+  "downloadAllSongs": "Download All Songs",
+  "unknown": "Unknown",
+  "downloadSuccess": "Successfully downloaded {count} songs for offline access!",
+  "downloadError": "Failed to download content. Please check your connection and try again.",
+  "confirmClearContent": "Are you sure you want to remove all offline content? You'll need to download it again to access songs offline.",
+  "offlineContentCleared": "Offline content cleared successfully.",
+  "failedToClearContent": "Failed to clear offline content.",
+  "home": "Home",
+  "logout": "Logout",
+  "unknownSize": "Unknown size",
+  "image": "Image",
+  "panZoom": {
+    "close": "Close",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetZoom": "Reset zoom",
+    "instructions": "Scroll to zoom • Drag to pan"
+  }
+}

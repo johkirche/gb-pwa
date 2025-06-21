@@ -1,4 +1,5 @@
 import App from "./App.vue";
+import i18n from "./plugins/i18n.ts";
 import "./style.css";
 import router from "@/router";
 import { useAuthStore } from "@/stores/auth";
@@ -11,6 +12,7 @@ const pinia = createPinia();
 const app = createApp(App);
 
 app.use(pinia);
+app.use(i18n);
 
 // Hydrate auth store from localStorage before mounting
 const authStore = useAuthStore();

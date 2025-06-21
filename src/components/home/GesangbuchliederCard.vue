@@ -3,10 +3,10 @@
     <CardHeader>
       <CardTitle class="flex items-center">
         <Music class="w-5 h-5 mr-2 text-muted-foreground" />
-        Gesangbuchlieder
+        {{ t("home.gesangbuchlieder") }}
       </CardTitle>
       <CardDescription>
-        Browse and search through all the songs in the Gesangbuch.
+        {{ t("home.browseDescription") }}
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -14,13 +14,13 @@
         <!-- Browse Songs Button -->
         <Button class="w-fit" @click="router.push('/lieder')">
           <Music class="w-4 h-4 mr-2" />
-          Browse All Songs
+          {{ t("home.browseAllSongs") }}
         </Button>
 
         <!-- Quick Fetch for Testing -->
         <div class="border-t pt-4">
           <p class="text-sm text-muted-foreground mb-2">
-            Quick test fetch (for development):
+            {{ t("home.quickTestFetch") }}
           </p>
           <Button
             class="w-fit"
@@ -30,16 +30,16 @@
             @click="$emit('fetchSongs')"
           >
             <Music class="w-4 h-4 mr-2" />
-            {{ isLoading ? "Loading..." : "Test Fetch API" }}
+            {{ isLoading ? t("utils.loading") : t("home.testFetchAPI") }}
           </Button>
 
           <div v-if="queryError" class="text-red-600 text-sm mt-2">
-            Error loading data: {{ queryError }}
+            {{ t("home.errorLoadingData") }}: {{ queryError }}
           </div>
 
           <div v-if="songs.length > 0" class="mt-4">
             <p class="text-sm text-muted-foreground mb-2">
-              Found {{ songs.length }} songs:
+              {{ t("home.foundSongs", { count: songs.length }) }}
             </p>
             <div
               class="max-h-60 overflow-y-auto border rounded-lg p-4 bg-muted/50"
@@ -58,6 +58,7 @@
 <script setup>
 import { Music } from "lucide-vue-next";
 
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+const { t } = useI18n();
 
 defineProps({
   songs: {

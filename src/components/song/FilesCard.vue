@@ -12,7 +12,7 @@
       <CardHeader>
         <CardTitle class="flex items-center">
           <Files class="w-5 h-5 mr-2 text-muted-foreground" />
-          Other Files & Media
+          {{ t("song.otherFilesMedia") }}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -43,7 +43,7 @@
                 >
                   <div class="text-center">
                     <Image class="w-8 h-8 mx-auto mb-2" />
-                    <p class="text-xs">Image failed to load</p>
+                    <p class="text-xs">{{ t("song.imageFailedToLoad") }}</p>
                   </div>
                 </div>
                 <div
@@ -86,7 +86,7 @@
                     variant="link"
                     @click="openImagePreview(file)"
                   >
-                    Preview
+                    {{ t("song.preview") }}
                     <Eye class="w-3 h-3 ml-1" />
                   </Button>
                   <Button
@@ -95,7 +95,7 @@
                     class="text-xs text-primary hover:underline inline-flex items-center"
                     @click="downloadFile(file)"
                   >
-                    Download
+                    {{ t("song.download") }}
                     <Download class="w-3 h-3 ml-1" />
                   </Button>
                 </div>
@@ -118,15 +118,15 @@
           {{
             selectedImage?.title ||
             selectedImage?.filename_download ||
-            "Image Preview"
+            t("song.imagePreview")
           }}
         </DialogTitle>
         <DialogDescription class="text-gray-300">
           {{ selectedImage?.type }} •
           {{ formatFileSize(selectedImage?.filesize) }}
-          <span class="text-gray-400 text-xs block mt-1"
-            >Click image for fullscreen view</span
-          >
+          <span class="text-gray-400 text-xs block mt-1">{{
+            t("song.clickImageFullscreen")
+          }}</span>
         </DialogDescription>
       </DialogHeader>
       <div class="flex-1 flex items-center justify-center p-4 min-h-0">
@@ -141,7 +141,7 @@
           @load="handleDialogImageLoad"
           @click="openFullscreenImage"
         />
-        <div v-else class="text-white">No image selected</div>
+        <div v-else class="text-white">{{ t("song.noImageSelected") }}</div>
       </div>
     </DialogContent>
   </Dialog>
@@ -172,6 +172,7 @@ import {
 } from "lucide-vue-next";
 
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { Directus_Files } from "@/gql/graphql";
 
@@ -187,6 +188,8 @@ import {
 
 import AudioFilesPlayer from "@/components/song/AudioFilesPlayer.vue";
 import PanZoomImage from "@/components/utils/pan-zoom-image/PanZoomImage.vue";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   files: Array<Directus_Files>;
@@ -306,10 +309,10 @@ onMounted(() => {
 });
 
 const formatFileSize = (bytes: string | number | null | undefined): string => {
-  if (!bytes) return "Unknown size";
+  if (!bytes) return t("utils.unknownSize");
 
   const size = typeof bytes === "string" ? parseInt(bytes) : bytes;
-  if (isNaN(size)) return "Unknown size";
+  if (isNaN(size)) return t("utils.unknownSize");
 
   const units = ["B", "KB", "MB", "GB"];
   let unitIndex = 0;

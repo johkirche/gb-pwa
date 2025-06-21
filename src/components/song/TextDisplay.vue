@@ -3,7 +3,7 @@
     <CardHeader>
       <CardTitle class="flex items-center">
         <FileText class="w-5 h-5 mr-2 text-muted-foreground" />
-        Song Text
+        {{ t("song.songText") }}
       </CardTitle>
     </CardHeader>
     <CardContent>
@@ -31,7 +31,7 @@
                 class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg"
               >
                 <p class="text-sm font-medium text-yellow-800 mb-1">
-                  Change Suggestion:
+                  {{ t("song.changeSuggestion") }}:
                 </p>
                 <pre class="whitespace-pre-wrap text-sm text-yellow-700">{{
                   strophe.aenderungsvorschlag
@@ -43,7 +43,9 @@
                 v-if="strophe?.anmerkung"
                 class="bg-blue-50 border border-blue-200 p-3 rounded-lg"
               >
-                <p class="text-sm font-medium text-blue-800 mb-1">Note:</p>
+                <p class="text-sm font-medium text-blue-800 mb-1">
+                  {{ t("song.note") }}:
+                </p>
                 <p class="text-sm text-blue-700">{{ strophe.anmerkung }}</p>
               </div>
             </div>
@@ -57,7 +59,11 @@
 <script setup lang="ts">
 import { FileText } from "lucide-vue-next";
 
+import { useI18n } from "vue-i18n";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const { t } = useI18n();
 
 interface Strophe {
   strophe?: string;
