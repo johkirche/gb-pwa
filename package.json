@@ -39,14 +39,16 @@
     "@vue/tsconfig": "^0.7.0",
     "eslint": "^9.29.0",
     "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-vue": "^10.2.0",
+    "globals": "^16.2.0",
+    "husky": "^9.1.7",
     "prettier": "3.5.3",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",
     "vite": "^6.3.5",
     "vite-plugin-pwa": "^1.0.0",
     "vue-tsc": "^2.2.8",
-    "workbox-window": "7.3.0",
-    "husky": "^9.1.7"
+    "workbox-window": "7.3.0"
   },
   "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c",
   "lint-staged": {
