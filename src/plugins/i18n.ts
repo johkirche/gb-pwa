@@ -26,7 +26,7 @@ const deMessages = createMessagesFromModules(deModules);
 
 const i18n = createI18n({
   legacy: false,
-  locale: localStorage.getItem("locale") || "en",
+  locale: localStorage.getItem("preferred-language") || "en",
   fallbackLocale: "en",
   messages: {
     en: enMessages,
