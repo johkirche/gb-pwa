@@ -3,17 +3,20 @@ import { ref, readonly, onMounted } from "vue";
 export const usePWA = () => {
   const isInstalled = ref(false);
   const isInstallable = ref(false);
-  const deferredPrompt = ref<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const deferredPrompt = ref<any | null>(null); // https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent
 
   // Check if app is running in standalone mode (PWA installed)
   const checkIfInstalled = () => {
     if (typeof window !== "undefined") {
       // Check if running in standalone mode
       const isInStandaloneMode = window.matchMedia(
-        "(display-mode: standalone)"
+        "(display-mode: standalone)",
       ).matches;
       // Check if running as PWA on iOS
-      const isIosPwa = (window.navigator as any).standalone === true;
+      const isIosPwa = !!(
+        "standalone" in window.navigator && window.navigator["standalone"]
+      );
 
       isInstalled.value = isInStandaloneMode || isIosPwa;
     }
@@ -25,6 +28,7 @@ export const usePWA = () => {
       window.addEventListener("beforeinstallprompt", (e) => {
         // Prevent the mini-infobar from appearing on mobile
         e.preventDefault();
+
         // Stash the event so it can be triggered later
         deferredPrompt.value = e;
         isInstallable.value = true;

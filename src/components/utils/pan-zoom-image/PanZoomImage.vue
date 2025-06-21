@@ -118,7 +118,7 @@ const handleBackgroundClick = (event: MouseEvent) => {
 const handleImageError = (event: Event) => {
   console.error(
     "Pan-zoom image failed to load:",
-    (event.target as HTMLImageElement).src
+    (event.target as HTMLImageElement).src,
   );
   emit("imageError", event);
 };
@@ -182,7 +182,7 @@ const initializePanzoom = () => {
           panzoomInstance.zoomWithWheel(event);
         }
       },
-      { passive: false }
+      { passive: false },
     );
 
     // Reset zoom level to match panzoom's initial state
@@ -239,7 +239,7 @@ watch(
       document.removeEventListener("keydown", handleEscape);
       destroyPanzoom();
     }
-  }
+  },
 );
 
 onUnmounted(() => {

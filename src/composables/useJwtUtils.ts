@@ -7,6 +7,7 @@ interface JwtPayload {
   exp: number;
   iat: number;
   sub?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -24,7 +25,7 @@ function base64urlDecode(str: string): string {
 
   try {
     return atob(base64);
-  } catch (error) {
+  } catch {
     throw new Error("Invalid base64 string");
   }
 }
@@ -53,7 +54,7 @@ export function decodeJwtPayload(token: string): JwtPayload {
     throw new Error(
       `Failed to decode JWT payload: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 }
@@ -76,13 +77,13 @@ export function getTokenExpiry(token: string): number {
  */
 export function isTokenExpired(
   token: string,
-  bufferTimeMs: number = 0
+  bufferTimeMs: number = 0,
 ): boolean {
   try {
     const expiryTime = getTokenExpiry(token);
     const currentTime = Date.now();
     return expiryTime <= currentTime + bufferTimeMs;
-  } catch (error) {
+  } catch {
     // If we can't decode the token, consider it expired
     return true;
   }
@@ -96,7 +97,7 @@ export function getTimeUntilExpiry(token: string): number {
     const expiryTime = getTokenExpiry(token);
     const currentTime = Date.now();
     return Math.max(0, expiryTime - currentTime);
-  } catch (error) {
+  } catch {
     return 0;
   }
 }

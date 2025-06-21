@@ -77,7 +77,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const setTokens = (
     newAccessToken: string | null,
-    newRefreshToken: string | null
+    newRefreshToken: string | null,
   ) => {
     accessToken.value = newAccessToken;
     refreshToken.value = newRefreshToken;

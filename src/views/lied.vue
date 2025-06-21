@@ -132,7 +132,7 @@ const fetchLied = async () => {
         } catch (err) {
           console.warn(
             "Failed to fetch fresh data, using cached version:",
-            err
+            err,
           );
           // Continue using the cached version - don't show error
         }
@@ -179,7 +179,7 @@ const getTextAuthors = (lied: Gesangbuchlied) => {
   return lied.textId.autorId
     .map((autorRel) => autorRel?.autor_id)
     .filter((author): author is import("@/gql/graphql").Autor =>
-      Boolean(author)
+      Boolean(author),
     );
 };
 
@@ -189,7 +189,7 @@ const getMelodyAuthors = (lied: Gesangbuchlied) => {
   return lied.melodieId.autorId
     .map((autorRel) => autorRel?.autor_id)
     .filter((author): author is import("@/gql/graphql").Autor =>
-      Boolean(author)
+      Boolean(author),
     );
 };
 

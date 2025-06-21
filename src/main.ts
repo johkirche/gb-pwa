@@ -29,10 +29,10 @@ const updateSW = registerSW({
     console.log("App ready to work offline");
     // You could show a toast notification here
   },
-  onRegistered(r: any) {
+  onRegistered(r: ServiceWorkerRegistration | undefined) {
     console.log("SW registered: ", r);
   },
-  onRegisterError(error: any) {
+  onRegisterError(error: Error) {
     console.log("SW registration error", error);
   },
 });

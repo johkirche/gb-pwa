@@ -83,7 +83,7 @@ const audioFiles = computed(() => {
 
 // Selected tab (defaults to first audio file)
 const selectedTab = ref(
-  audioFiles.value.length > 0 ? audioFiles.value[0].id : ""
+  audioFiles.value.length > 0 ? audioFiles.value[0].id : "",
 );
 
 const getFileName = (file: AudioFile): string => {

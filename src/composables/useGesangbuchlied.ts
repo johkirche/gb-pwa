@@ -1,9 +1,11 @@
-import { query } from "gql-query-builder";
 import { computed, unref, type Ref } from "vue";
-import type { Gesangbuchlied } from "@/gql/graphql";
+import axios from "axios";
+
+import { query } from "gql-query-builder";
 import { useDirectusApi } from "@/composables/useDirectusApi";
 import { useAuthStore } from "@/stores/auth";
-import axios from "axios";
+
+import type { Gesangbuchlied, Gesangbuchlied_Filter } from "@/gql/graphql";
 
 export const useGesangbuchlied = () => {
   const directusApi = useDirectusApi();
@@ -27,7 +29,10 @@ export const useGesangbuchlied = () => {
   };
 
   // Axios instance for GraphQL requests with authentication
-  const makeGraphQLRequest = async <T = any>(queryBuilder: any): Promise<T> => {
+  const makeGraphQLRequest = async <T = unknown>(queryBuilder: {
+    query: string;
+    variables?: Record<string, unknown>;
+  }): Promise<T> => {
     if (!authStore.accessToken) {
       throw new Error("No access token available. Please log in.");
     }
@@ -38,10 +43,10 @@ export const useGesangbuchlied = () => {
       });
 
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If we get a 401 error, try using the directusApi's authenticated request
       // which handles token refresh automatically
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         return await directusApi.authenticatedRequest<T>(graphqlEndpoint, {
           method: "POST",
           data: queryBuilder,
@@ -129,9 +134,9 @@ export const useGesangbuchlied = () => {
   const buildGesangbuchliedQuery = (variables: {
     limit?: number;
     offset?: number;
-    filter?: any;
+    filter?: Gesangbuchlied_Filter | null;
   }) => {
-    const queryVars: any = {};
+    const queryVars: Record<string, { value: unknown; type: string }> = {};
 
     if (variables.limit !== undefined) {
       queryVars.limit = { value: variables.limit, type: "Int" };
@@ -170,7 +175,7 @@ export const useGesangbuchlied = () => {
   const queryGesangbuchlied = async (variables: {
     limit?: number;
     offset?: number;
-    filter?: any;
+    filter?: Gesangbuchlied_Filter | null;
   }): Promise<Gesangbuchlied[]> => {
     const queryBuilder = buildGesangbuchliedQuery({
       limit: variables.limit || 100,
@@ -199,7 +204,7 @@ export const useGesangbuchlied = () => {
    * Uses axios with automatic token refresh via DirectusApi fallback
    */
   const queryGesangbuchliedById = async (
-    id: string | number
+    id: string | number,
   ): Promise<Gesangbuchlied | null> => {
     const queryBuilder = buildGesangbuchliedByIdQuery(id);
 
@@ -224,7 +229,7 @@ export const useGesangbuchlied = () => {
   const fetchGesangbuchlied = async (options?: {
     limit?: number;
     offset?: number;
-    filter?: any;
+    filter?: Gesangbuchlied_Filter | null;
   }): Promise<Gesangbuchlied[]> => {
     const variables = {
       limit: options?.limit || 100,
@@ -240,7 +245,7 @@ export const useGesangbuchlied = () => {
    * Uses direct axios call with proper authentication
    */
   const fetchGesangbuchliedById = async (
-    id: string | number
+    id: string | number,
   ): Promise<Gesangbuchlied | null> => {
     return await queryGesangbuchliedById(id);
   };
@@ -253,7 +258,7 @@ export const useGesangbuchlied = () => {
   const useGesangbuchliedQuery = (options?: {
     limit?: number;
     offset?: number;
-    filter?: any;
+    filter?: Gesangbuchlied_Filter | null;
   }) => {
     // For now, return the async function - you may want to implement proper reactivity later
     return {
@@ -267,7 +272,7 @@ export const useGesangbuchlied = () => {
    * For true reactivity, you might want to use a different approach like composables with refs
    */
   const useGesangbuchliedByIdQuery = (
-    id: Ref<string | number> | string | number
+    id: Ref<string | number> | string | number,
   ) => {
     const idRef = computed(() => unref(id));
 

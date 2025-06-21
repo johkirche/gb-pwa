@@ -1,5 +1,6 @@
 import { ref, readonly, onMounted } from "vue";
 import { useGesangbuchlied } from "./useGesangbuchlied";
+import type { Gesangbuchlied } from "@/gql/graphql";
 
 export interface DownloadProgress {
   current: number;
@@ -10,8 +11,14 @@ export interface DownloadProgress {
 }
 
 export interface OfflineContent {
-  songs: any[];
+  songs: Gesangbuchlied[];
   lastUpdated: string;
+  version: string;
+}
+
+export interface OfflineMeta {
+  count?: number;
+  lastUpdated?: string;
   version: string;
 }
 
@@ -30,8 +37,8 @@ const SONGS_STORE = "songs";
 const META_STORE = "metadata";
 
 interface IndexedDBStore {
-  put(storeName: string, data: any, key?: string): Promise<void>;
-  get(storeName: string, key: string): Promise<any>;
+  put(storeName: string, data: unknown, key?: string): Promise<void>;
+  get(storeName: string, key: string): Promise<unknown>;
   delete(storeName: string, key: string): Promise<void>;
   clear(storeName: string): Promise<void>;
 }
@@ -65,7 +72,7 @@ class IndexedDBManager implements IndexedDBStore {
     });
   }
 
-  async put(storeName: string, data: any, key?: string): Promise<void> {
+  async put(storeName: string, data: unknown, key?: string): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -78,7 +85,7 @@ class IndexedDBManager implements IndexedDBStore {
     });
   }
 
-  async get(storeName: string, key: string): Promise<any> {
+  async get(storeName: string, key: string): Promise<unknown> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -117,7 +124,7 @@ class IndexedDBManager implements IndexedDBStore {
     });
   }
 
-  async getAllFromStore(storeName: string): Promise<any[]> {
+  async getAllFromStore(storeName: string): Promise<unknown[]> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -141,7 +148,7 @@ export const useOfflineDownload = () => {
   });
   const hasOfflineContent = ref(false);
   const offlineContentInfo = ref<{ count: number; lastUpdated: string } | null>(
-    null
+    null,
   );
 
   // Add state for image precaching
@@ -160,7 +167,9 @@ export const useOfflineDownload = () => {
     try {
       if (typeof window === "undefined") return;
 
-      const meta = await dbManager.get(META_STORE, "offline-meta");
+      const meta = (await dbManager.get(META_STORE, "offline-meta")) as
+        | OfflineMeta
+        | undefined;
       if (meta) {
         hasOfflineContent.value = true;
         offlineContentInfo.value = {
@@ -182,13 +191,17 @@ export const useOfflineDownload = () => {
     try {
       if (typeof window === "undefined") return null;
 
-      const songs = await dbManager.getAllFromStore(SONGS_STORE);
-      const meta = await dbManager.get(META_STORE, "offline-meta");
+      const songs = (await dbManager.getAllFromStore(
+        SONGS_STORE,
+      )) as Gesangbuchlied[];
+      const meta = (await dbManager.get(META_STORE, "offline-meta")) as
+        | OfflineMeta
+        | undefined;
 
       if (songs && meta) {
         return {
           songs,
-          lastUpdated: meta.lastUpdated,
+          lastUpdated: meta.lastUpdated || "Unknown",
           version: meta.version,
         };
       }
@@ -227,13 +240,13 @@ export const useOfflineDownload = () => {
     } catch (error) {
       console.error("Error storing offline content:", error);
       throw new Error(
-        "Failed to store offline content. Your device may be out of storage space."
+        "Failed to store offline content. Your device may be out of storage space.",
       );
     }
   };
 
   // Precache images from songs
-  const precacheImages = async (songs: any[]) => {
+  const precacheImages = async (songs: Gesangbuchlied[]) => {
     try {
       if (typeof window === "undefined") return;
 
@@ -252,7 +265,7 @@ export const useOfflineDownload = () => {
         // Check for images in melodieId.noten
         if (song.melodieId?.noten && Array.isArray(song.melodieId.noten)) {
           for (const note of song.melodieId.noten) {
-            if (note.directus_files_id?.id) {
+            if (note?.directus_files_id?.id) {
               // Add the image regardless of type - many musical note files are images (PNG, JPG, etc.)
               const imageUrl = `${directusUrl}/assets/${note.directus_files_id.id}`;
               imageUrls.add(imageUrl);
@@ -266,7 +279,7 @@ export const useOfflineDownload = () => {
           Array.isArray(song.gesangbuchlied_satz_mit_melodie_und_text)
         ) {
           for (const file of song.gesangbuchlied_satz_mit_melodie_und_text) {
-            if (file.directus_files_id?.id) {
+            if (file?.directus_files_id?.id) {
               const imageUrl = `${directusUrl}/assets/${file.directus_files_id.id}`;
               imageUrls.add(imageUrl);
             }
@@ -314,7 +327,7 @@ export const useOfflineDownload = () => {
                 console.log(`Successfully precached image: ${imageUrl}`);
               } else {
                 console.warn(
-                  `Failed to precache image: ${imageUrl}, status: ${response.status}`
+                  `Failed to precache image: ${imageUrl}, status: ${response.status}`,
                 );
               }
             } catch (error) {
@@ -322,10 +335,10 @@ export const useOfflineDownload = () => {
             } finally {
               imagePrecacheProgress.value.current++;
               imagePrecacheProgress.value.percentage = Math.round(
-                (imagePrecacheProgress.value.current / totalImages) * 100
+                (imagePrecacheProgress.value.current / totalImages) * 100,
               );
             }
-          })
+          }),
         );
 
         // Small delay between batches to prevent overwhelming the browser
@@ -365,7 +378,7 @@ export const useOfflineDownload = () => {
 
       // Fetch all songs in batches to avoid overwhelming the API
       const batchSize = 100;
-      let allSongs: any[] = [];
+      let allSongs: Gesangbuchlied[] = [];
       let offset = 0;
       let hasMore = true;
 
@@ -405,7 +418,7 @@ export const useOfflineDownload = () => {
           downloadProgress.value.total =
             allSongs.length + (batch.length === batchSize ? batchSize : 0);
           downloadProgress.value.percentage = Math.round(
-            (allSongs.length / downloadProgress.value.total) * 100
+            (allSongs.length / downloadProgress.value.total) * 100,
           );
 
           // If we got less than the batch size, we're done
@@ -472,10 +485,12 @@ export const useOfflineDownload = () => {
   // Get offline songs (for use when offline)
   const getOfflineSongs = async (
     searchQuery?: string,
-    limit?: number
-  ): Promise<any[]> => {
+    limit?: number,
+  ): Promise<Gesangbuchlied[]> => {
     try {
-      const songs = await dbManager.getAllFromStore(SONGS_STORE);
+      const songs = (await dbManager.getAllFromStore(
+        SONGS_STORE,
+      )) as Gesangbuchlied[];
       if (!songs) return [];
 
       let filteredSongs = songs;
@@ -486,9 +501,17 @@ export const useOfflineDownload = () => {
         filteredSongs = songs.filter(
           (song) =>
             song.titel?.toLowerCase().includes(query) ||
-            song.textId?.strophenEinzeln?.some((strophe: any) =>
-              strophe.strophe?.toLowerCase().includes(query)
-            )
+            song.textId?.strophenEinzeln?.some((strophe: unknown) => {
+              if (
+                strophe &&
+                typeof strophe === "object" &&
+                "strophe" in strophe
+              ) {
+                const stropheText = (strophe as { strophe?: string }).strophe;
+                return stropheText?.toLowerCase().includes(query);
+              }
+              return false;
+            }),
         );
       }
 
@@ -506,10 +529,12 @@ export const useOfflineDownload = () => {
 
   // Get a single song by ID from IndexedDB
   const getOfflineSongById = async (
-    id: string | number
-  ): Promise<any | null> => {
+    id: string | number,
+  ): Promise<Gesangbuchlied | null> => {
     try {
-      const song = await dbManager.get(SONGS_STORE, id.toString());
+      const song = (await dbManager.get(SONGS_STORE, id.toString())) as
+        | Gesangbuchlied
+        | undefined;
       return song || null;
     } catch (error) {
       console.error("Error getting offline song by ID:", error);
@@ -522,7 +547,9 @@ export const useOfflineDownload = () => {
     try {
       if (typeof window === "undefined") return null;
 
-      const songs = await dbManager.getAllFromStore(SONGS_STORE);
+      const songs = (await dbManager.getAllFromStore(
+        SONGS_STORE,
+      )) as Gesangbuchlied[];
       const estimatedSize = JSON.stringify(songs).length;
       const sizeInMB = (estimatedSize / (1024 * 1024)).toFixed(2);
 

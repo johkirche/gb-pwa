@@ -54,7 +54,7 @@ export class DirectusApiClient {
         password: credentials.password,
         mode: credentials.mode || "json",
         otp: credentials.otp,
-      }
+      },
     );
 
     return response.data.data;
@@ -69,7 +69,7 @@ export class DirectusApiClient {
       {
         refresh_token: request.refresh_token,
         mode: request.mode || "json",
-      }
+      },
     );
 
     return response.data.data;
@@ -92,7 +92,7 @@ export class DirectusApiClient {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      }
+      },
     );
 
     return response.data.data;
@@ -115,9 +115,9 @@ export class DirectusApiClient {
           },
         });
         return response.data;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If we get a 401 error, try to refresh the token
-        if (error.response?.status === 401) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
           const authStore = useAuthStore();
 
           if (authStore.refreshToken) {
@@ -131,7 +131,7 @@ export class DirectusApiClient {
               // Update tokens in store
               authStore.setTokens(
                 refreshResponse.access_token,
-                refreshResponse.refresh_token
+                refreshResponse.refresh_token,
               );
 
               // Retry the original request with the new token
@@ -162,10 +162,10 @@ export class DirectusApiClient {
   /**
    * Generic API call with automatic token refresh
    */
-  async authenticatedRequest<T = any>(
+  async authenticatedRequest<T = unknown>(
     url: string,
     options: AxiosRequestConfig = {},
-    accessToken?: string
+    accessToken?: string,
   ): Promise<T> {
     const authStore = useAuthStore();
     const token = accessToken || authStore.accessToken;

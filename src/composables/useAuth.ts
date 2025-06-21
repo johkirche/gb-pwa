@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 
 // Native auth composable using Pinia store and direct Directus API calls
 import { isTokenExpired, getTimeUntilExpiry } from "./useJwtUtils";
+import axios from "axios";
 
 // Token refresh timing constants
 const TOKEN_REFRESH_THRESHOLD = 2 * 60 * 1000; // Refresh 2 minutes before expiry
@@ -47,7 +48,7 @@ export const useAuth = () => {
       // Store tokens
       authStore.setTokens(
         loginResponse.access_token,
-        loginResponse.refresh_token
+        loginResponse.refresh_token,
       );
 
       // Schedule automatic refresh
@@ -55,26 +56,28 @@ export const useAuth = () => {
 
       // Fetch and store user data
       const userData = await directusApi.getCurrentUser(
-        loginResponse.access_token
+        loginResponse.access_token,
       );
       authStore.setUser(userData);
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
       authStore.clearAuth();
 
       let errorMessage = "Login failed";
 
-      // Handle specific error cases
-      if (error.statusCode === 401) {
-        errorMessage = "Invalid email or password";
-      } else if (error.statusCode === 429) {
-        errorMessage = "Too many login attempts. Please try again later.";
-      } else if (error.data?.errors?.[0]?.message) {
-        errorMessage = error.data.errors[0].message;
-      } else if (error.message) {
-        errorMessage = error.message;
+      if (axios.isAxiosError(error)) {
+        // Handle specific error cases
+        if (error.response?.status === 401) {
+          errorMessage = "Invalid email or password";
+        } else if (error.response?.status === 429) {
+          errorMessage = "Too many login attempts. Please try again later.";
+        } else if (error.response?.data?.errors?.[0]?.message) {
+          errorMessage = error.response.data.errors[0].message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
       }
 
       return {
@@ -101,7 +104,7 @@ export const useAuth = () => {
           mode: "json",
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Logout API error:", error);
       // Continue with local logout even if API call fails
     } finally {
@@ -112,7 +115,7 @@ export const useAuth = () => {
       try {
         const router = useRouter();
         await router.push("/login");
-      } catch (error) {
+      } catch {
         // If useRouter fails (not in component context), redirect manually
         if (typeof window !== "undefined") {
           window.location.href = "/login";
@@ -138,11 +141,11 @@ export const useAuth = () => {
           // Validate token by fetching user data
           try {
             const userData = await directusApi.getCurrentUser(
-              authStore.accessToken
+              authStore.accessToken,
             );
             authStore.setUser(userData);
             return true;
-          } catch (error) {
+          } catch {
             // Token might be invalid, try to refresh
             if (authStore.refreshToken) {
               return await refreshAuth();
@@ -159,7 +162,7 @@ export const useAuth = () => {
       // No valid authentication found
       authStore.clearAuth();
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Auth check error:", error);
       authStore.clearAuth();
       return false;
@@ -181,7 +184,7 @@ export const useAuth = () => {
       // Update tokens
       authStore.setTokens(
         refreshResponse.access_token,
-        refreshResponse.refresh_token
+        refreshResponse.refresh_token,
       );
 
       // Schedule next refresh
@@ -189,13 +192,13 @@ export const useAuth = () => {
 
       // Fetch updated user data
       const userData = await directusApi.getCurrentUser(
-        refreshResponse.access_token
+        refreshResponse.access_token,
       );
       authStore.setUser(userData);
 
       console.log("Auth tokens refreshed successfully");
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Token refresh error:", error);
 
       // Clear refresh timer on error
@@ -216,7 +219,7 @@ export const useAuth = () => {
     try {
       const route = useRoute();
       return (route.query?.redirect as string) || defaultPath;
-    } catch (error) {
+    } catch {
       // If useRoute fails (not in component context), return default path
       return defaultPath;
     }

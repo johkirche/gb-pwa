@@ -4,7 +4,6 @@
 
 ### Projekt-Initialisierung
 
-- [ ] Nuxt 3 Projekt aufsetzen
 - [ ] TypeScript konfigurieren
 - [ ] ESLint & Prettier Setup
 - [ ] Git Repository initialisieren

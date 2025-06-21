@@ -57,7 +57,7 @@
               @change="
                 $emit(
                   'update:selectedCategory',
-                  ($event.target as HTMLSelectElement).value
+                  ($event.target as HTMLSelectElement).value,
                 )
               "
               class="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -82,7 +82,7 @@
               @change="
                 $emit(
                   'update:sortBy',
-                  ($event.target as HTMLSelectElement).value
+                  ($event.target as HTMLSelectElement).value,
                 )
               "
               class="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"

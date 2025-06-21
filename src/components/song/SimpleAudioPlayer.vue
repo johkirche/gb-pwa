@@ -363,7 +363,7 @@ watch(
       canPlay.value = false;
       error.value = null;
     }
-  }
+  },
 );
 
 // Add event listeners for play/pause

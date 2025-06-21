@@ -237,7 +237,7 @@ const startDownload = async () => {
 const confirmClearContent = async () => {
   if (
     confirm(
-      "Are you sure you want to remove all offline content? You'll need to download it again to access songs offline."
+      "Are you sure you want to remove all offline content? You'll need to download it again to access songs offline.",
     )
   ) {
     try {

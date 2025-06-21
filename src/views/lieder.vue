@@ -182,7 +182,7 @@ const filteredLieder = computed(() => {
     filtered = filtered.filter((lied) => {
       if (!lied.kategorieId) return false;
       return lied.kategorieId.some(
-        (kat) => kat?.kategorie_id?.name === selectedCategory.value
+        (kat) => kat?.kategorie_id?.name === selectedCategory.value,
       );
     });
   }
@@ -251,7 +251,7 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
       const offlineSongs = await getOfflineSongs();
       if (offlineSongs.length > 0) {
         console.log(
-          `Using offline songs as fallback (${offlineSongs.length} available)`
+          `Using offline songs as fallback (${offlineSongs.length} available)`,
         );
         gesangbuchlieder.value = offlineSongs;
         isUsingCachedData.value = true;
@@ -293,7 +293,7 @@ const fetchGesangbuchlieder = async (forceOnline = false) => {
     const offlineSongs = await getOfflineSongs();
     if (offlineSongs.length > 0) {
       console.log(
-        `Using offline songs as fallback after API error (${offlineSongs.length} available)`
+        `Using offline songs as fallback after API error (${offlineSongs.length} available)`,
       );
       gesangbuchlieder.value = offlineSongs;
       isUsingCachedData.value = true;

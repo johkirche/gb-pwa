@@ -80,7 +80,7 @@ onMounted(() => {
         root: null,
         rootMargin: "100px", // Start loading 100px before the element comes into view
         threshold: 0.1,
-      }
+      },
     );
 
     observer.observe(scrollTrigger.value);
