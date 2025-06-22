@@ -33,7 +33,14 @@
   },
   "categories": {
     "title": "Kategorien",
-    "description": "Lieder nach Themen und Anlässen durchsuchen"
+    "description": "Lieder nach Themen und Anlässen durchsuchen",
+    "sortBy": "Sortieren nach",
+    "sortAlphabetical": "Alphabetisch",
+    "sortByCount": "Nach Anzahl",
+    "sortCustom": "Benutzerdefiniert",
+    "resetOrder": "Reihenfolge zurücksetzen",
+    "enlarge": "Vergrößern",
+    "shrink": "Verkleinern"
   },
   "recent": {
     "title": "Zuletzt gespielt",

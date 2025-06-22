@@ -9,10 +9,10 @@
       <!-- Main Content -->
       <main class="container mx-auto py-8 space-y-8">
         <!-- Quick Stats Row -->
-        <StatsRow :stats="mockStats" />
+        <StatsRow :stats="statsStore.stats" />
 
         <!-- Search Bar -->
-        <SearchSection @search="handleSearch" />
+        <SearchSection />
 
         <!-- Quick Actions -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -48,7 +48,9 @@
 
           <Card
             class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="handleFavorites"
+            @click="
+              router.push({ name: 'songs', query: { favoritesOnly: 'true' } })
+            "
           >
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
@@ -63,10 +65,7 @@
         </div>
 
         <!-- Categories -->
-        <CategoriesSection
-          :categories="mockCategories"
-          @category-click="handleCategoryClick"
-        />
+        <CategoriesSection />
 
         <!-- Recently Played -->
         <RecentlyPlayedSection
@@ -90,7 +89,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { useStatsStore } from "@/stores/stats";
+
+import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
@@ -104,9 +105,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import AppHeader from "@/components/AppHeader.vue";
 import AudioFormatsSection from "@/components/home/AudioFormatsSection.vue";
-import CategoriesSection, {
-  type Category,
-} from "@/components/home/CategoriesSection.vue";
+import CategoriesSection from "@/components/home/CategoriesSection.vue";
 import FeaturedSongsSection from "@/components/home/FeaturedSongsSection.vue";
 import RecentlyPlayedSection, {
   type Song,
@@ -118,25 +117,8 @@ import { useAuth } from "@/composables/useAuth";
 
 const { t } = useI18n();
 const { userName, logout } = useAuth();
+const statsStore = useStatsStore();
 const router = useRouter();
-
-// Mock data for design purposes
-const mockStats = ref({
-  offlineSongs: 23,
-  favorites: 12,
-  recentlyPlayed: 8,
-});
-
-const mockCategories = ref<Category[]>([
-  { id: 1, name: "Advent", icon: "🕯️", count: 45 },
-  { id: 2, name: "Weihnachten", icon: "🎄", count: 62 },
-  { id: 3, name: "Ostern", icon: "🐣", count: 38 },
-  { id: 4, name: "Pfingsten", icon: "🕊️", count: 24 },
-  { id: 5, name: "Lob & Anbetung", icon: "🙏", count: 89 },
-  { id: 6, name: "Gemeinschaft", icon: "👥", count: 56 },
-  { id: 7, name: "Moderne Lieder", icon: "🎸", count: 34 },
-  { id: 8, name: "Klassische Hymnen", icon: "⛪", count: 78 },
-]);
 
 const mockRecentSongs = ref<Song[]>([
   {
@@ -196,24 +178,14 @@ const mockFeaturedSongs = ref<Song[]>([
   },
 ]);
 
-// Mock handler functions
+// Load stats on component mount
+onMounted(async () => {
+  await statsStore.loadStats();
+});
+
+// Handler functions
 const handleLogout = async () => {
   await logout();
-};
-
-const handleSearch = (query: string) => {
-  console.log("Search for:", query);
-  // Navigate to search results
-};
-
-const handleFavorites = () => {
-  console.log("Navigate to favorites");
-  // Navigate to favorites list
-};
-
-const handleCategoryClick = (category: Category) => {
-  console.log("Navigate to category:", category.name);
-  // Navigate to category songs
 };
 
 const handleSongClick = (song: Song) => {

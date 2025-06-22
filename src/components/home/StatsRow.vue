@@ -2,7 +2,9 @@
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     <Card>
       <CardContent class="flex flex-col items-center justify-center p-6">
-        <div class="text-2xl font-bold text-primary">400+</div>
+        <div class="text-2xl font-bold text-primary">
+          {{ statsStore.stats.totalSongs }}+
+        </div>
         <p class="text-sm text-muted-foreground text-center">
           {{ t("home.stats.totalSongs") }}
         </p>
@@ -12,7 +14,7 @@
     <Card>
       <CardContent class="flex flex-col items-center justify-center p-6">
         <div class="text-2xl font-bold text-primary">
-          {{ stats.offlineSongs }}
+          {{ statsStore.stats.offlineSongs }}
         </div>
         <p class="text-sm text-muted-foreground text-center">
           {{ t("home.stats.offlineSongs") }}
@@ -23,7 +25,7 @@
     <Card>
       <CardContent class="flex flex-col items-center justify-center p-6">
         <div class="text-2xl font-bold text-primary">
-          {{ stats.favorites }}
+          {{ favoritesCount }}
         </div>
         <p class="text-sm text-muted-foreground text-center">
           {{ t("home.stats.favorites") }}
@@ -34,7 +36,7 @@
     <Card>
       <CardContent class="flex flex-col items-center justify-center p-6">
         <div class="text-2xl font-bold text-primary">
-          {{ stats.recentlyPlayed }}
+          {{ statsStore.stats.recentlyPlayed }}
         </div>
         <p class="text-sm text-muted-foreground text-center">
           {{ t("home.stats.recentlyPlayed") }}
@@ -45,19 +47,15 @@
 </template>
 
 <script setup lang="ts">
+import { useStatsStore } from "@/stores/stats";
+
 import { useI18n } from "vue-i18n";
 
 import { Card, CardContent } from "@/components/ui/card";
 
+import { useFavorites } from "@/composables/useFavorites";
+
 const { t } = useI18n();
-
-interface Stats {
-  offlineSongs: number;
-  favorites: number;
-  recentlyPlayed: number;
-}
-
-defineProps<{
-  stats: Stats;
-}>();
+const statsStore = useStatsStore();
+const { favoritesCount } = useFavorites();
 </script>

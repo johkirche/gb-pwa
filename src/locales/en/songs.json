@@ -6,12 +6,16 @@
   "offline": "Offline",
   "online": "Online",
   "searchAndFilter": "Search & Filter",
+  "favorites": "Favorites",
   "ascending": "Ascending",
   "descending": "Descending",
   "clear": "Clear",
+  "filters": "Filters",
   "searchPlaceholder": "Search by title, author, or text...",
   "category": "Category:",
   "allCategories": "All Categories",
+  "fileType": "File Type:",
+  "allFileTypes": "All File Types",
   "sortBy": "Sort by:",
   "title": "Title",
   "dateUpdated": "Date Updated",
@@ -32,5 +36,10 @@
   "loadingSongs": "Loading songs...",
   "invalidDate": "Invalid date",
   "noOfflineContentAvailable": "No offline content available. Please go online to download songs for offline access.",
-  "noOfflineContentAvailableConnect": "No offline content available. Please connect to the internet or download songs for offline access."
+  "noOfflineContentAvailableConnect": "No offline content available. Please connect to the internet or download songs for offline access.",
+  "noFavoritesYet": "No Favorites Yet",
+  "noFavoritesDescription": "You haven't added any songs to your favorites yet. Start building your personal collection!",
+  "howToAddFavorites": "How to add favorites:",
+  "favoriteInstructions": "Hover over any song card and click the heart icon to add it to your favorites.",
+  "showAllSongs": "Show All Songs"
 }

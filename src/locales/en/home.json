@@ -33,7 +33,14 @@
   },
   "categories": {
     "title": "Categories",
-    "description": "Browse songs by themes and occasions"
+    "description": "Browse songs by themes and occasions",
+    "sortBy": "Sort by",
+    "sortAlphabetical": "Alphabetical",
+    "sortByCount": "By count",
+    "sortCustom": "Custom order",
+    "resetOrder": "Reset order",
+    "enlarge": "Enlarge",
+    "shrink": "Shrink"
   },
   "recent": {
     "title": "Recently Played",

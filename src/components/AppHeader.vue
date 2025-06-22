@@ -15,8 +15,8 @@
           </h1>
         </div>
 
-        <!-- Right side navigation -->
-        <div class="flex items-center space-x-2">
+        <!-- Desktop navigation (hidden on mobile) -->
+        <div class="hidden md:flex items-center space-x-2">
           <!-- Dark Mode Toggle -->
           <Button variant="outline" size="sm" @click="toggleDarkMode">
             <Sun
@@ -81,6 +81,113 @@
             {{ t("utils.logout") }}
           </Button>
         </div>
+
+        <!-- Mobile menu (visible on mobile only) -->
+        <div class="md:hidden">
+          <Dialog v-model:open="mobileMenuOpen">
+            <DialogTrigger as-child>
+              <Button variant="outline" size="sm">
+                <Menu class="w-4 h-4" />
+                <span class="sr-only">Open menu</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent class="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Menu</DialogTitle>
+              </DialogHeader>
+              <div class="grid gap-4 py-4">
+                <!-- Dark Mode Toggle -->
+                <Button
+                  variant="outline"
+                  class="justify-start"
+                  @click="toggleDarkMode"
+                >
+                  <Sun
+                    class="h-[1.2rem] w-[1.2rem] scale-100 transition-all dark:scale-0 mr-2"
+                  />
+                  <Moon
+                    class="absolute h-[1.2rem] w-[1.2rem] scale-0 transition-all dark:scale-100 mr-2"
+                  />
+                  <span class="ml-6">{{
+                    colorMode === "dark" ? "Light Mode" : "Dark Mode"
+                  }}</span>
+                </Button>
+
+                <!-- Language Switcher -->
+                <div class="space-y-2">
+                  <Button
+                    variant="outline"
+                    class="justify-start w-full"
+                    :class="{ 'bg-accent': locale.value === 'de' }"
+                    @click="switchLanguage('de')"
+                  >
+                    <div
+                      class="mr-2 w-4 h-3 flag flag-germany flex-shrink-0"
+                    ></div>
+                    Deutsch
+                  </Button>
+                  <Button
+                    variant="outline"
+                    class="justify-start w-full"
+                    :class="{ 'bg-accent': locale.value === 'en' }"
+                    @click="switchLanguage('en')"
+                  >
+                    <div
+                      class="mr-2 w-4 h-3 flag flag-england flex-shrink-0"
+                    ></div>
+                    English
+                  </Button>
+                </div>
+
+                <!-- Separator -->
+                <div
+                  v-if="showBackButton || showHomeButton || showLogoutButton"
+                  class="border-t my-2"
+                ></div>
+
+                <!-- Navigation buttons -->
+                <Button
+                  v-if="showBackButton"
+                  variant="outline"
+                  class="justify-start"
+                  @click="
+                    handleBack;
+                    mobileMenuOpen = false;
+                  "
+                >
+                  <ArrowLeft class="w-4 h-4 mr-2" />
+                  {{ backButtonText }}
+                </Button>
+
+                <Button
+                  v-if="showHomeButton"
+                  variant="outline"
+                  class="justify-start"
+                  @click="
+                    router.push('/home');
+                    mobileMenuOpen = false;
+                  "
+                >
+                  <Home class="w-4 h-4 mr-2" />
+                  {{ t("utils.home") }}
+                </Button>
+
+                <Button
+                  v-if="showLogoutButton"
+                  variant="destructive"
+                  class="justify-start"
+                  @click="
+                    handleLogout;
+                    mobileMenuOpen = false;
+                  "
+                >
+                  <LogOut class="w-4 h-4 mr-2" />
+                  {{ t("utils.logout") }}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </div>
   </nav>
@@ -93,15 +200,23 @@ import {
   Home,
   LanguagesIcon,
   LogOut,
+  Menu,
   Moon,
   Sun,
 } from "lucide-vue-next";
 
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -170,6 +285,9 @@ const handleLogout = async () => {
   await logout();
   emit("logout");
 };
+
+// Mobile menu state
+const mobileMenuOpen = ref(false);
 </script>
 
 <style>

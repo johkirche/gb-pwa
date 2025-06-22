@@ -136,6 +136,7 @@ export const useGesangbuchlied = () => {
     limit?: number;
     offset?: number;
     filter?: Gesangbuchlied_Filter | null;
+    sort?: string[] | null;
   }) => {
     const queryVars: Record<string, { value: unknown; type: string }> = {};
 
@@ -149,6 +150,12 @@ export const useGesangbuchlied = () => {
       queryVars.filter = {
         value: variables.filter,
         type: "gesangbuchlied_filter",
+      };
+    }
+    if (variables.sort !== undefined && variables.sort !== null) {
+      queryVars.sort = {
+        value: variables.sort,
+        type: "[String]",
       };
     }
     return query({
@@ -177,11 +184,13 @@ export const useGesangbuchlied = () => {
     limit?: number;
     offset?: number;
     filter?: Gesangbuchlied_Filter | null;
+    sort?: string[] | null;
   }): Promise<Gesangbuchlied[]> => {
     const queryBuilder = buildGesangbuchliedQuery({
       limit: variables.limit || 100,
       offset: variables.offset || 0,
       filter: variables.filter || null,
+      sort: variables.sort || null,
     });
 
     console.log(queryBuilder);
@@ -231,11 +240,13 @@ export const useGesangbuchlied = () => {
     limit?: number;
     offset?: number;
     filter?: Gesangbuchlied_Filter | null;
+    sort?: string[] | null;
   }): Promise<Gesangbuchlied[]> => {
     const variables = {
       limit: options?.limit || 100,
       offset: options?.offset || 0,
       filter: options?.filter || null,
+      sort: options?.sort || null,
     };
 
     return await queryGesangbuchlied(variables);
@@ -282,10 +293,45 @@ export const useGesangbuchlied = () => {
     };
   };
 
+  /**
+   * Direct async query for multiple gesangbuchlied by IDs
+   * Uses axios with automatic token refresh via DirectusApi fallback
+   */
+  const queryGesangbuchliedByIds = async (
+    ids: string[],
+  ): Promise<Gesangbuchlied[]> => {
+    if (ids.length === 0) return [];
+
+    const filter = {
+      id: { _in: ids },
+      status: { _eq: "published" },
+    };
+
+    const queryBuilder = buildGesangbuchliedQuery({
+      filter,
+      limit: ids.length,
+      sort: null,
+    });
+
+    try {
+      const response = await makeGraphQLRequest<{
+        data: {
+          gesangbuchlied: Gesangbuchlied[];
+        };
+      }>(queryBuilder);
+
+      return response.data?.gesangbuchlied || [];
+    } catch (error) {
+      console.error("Error fetching gesangbuchlied by IDs:", error);
+      throw error;
+    }
+  };
+
   return {
     // Direct async methods with axios and automatic token refresh
     queryGesangbuchlied,
     queryGesangbuchliedById,
+    queryGesangbuchliedByIds,
 
     // Methods using direct axios calls
     fetchGesangbuchlied,

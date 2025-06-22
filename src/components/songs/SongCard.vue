@@ -1,10 +1,34 @@
 <template>
   <Card
-    class="hover:shadow-lg transition-all duration-200 cursor-pointer group"
+    class="hover:shadow-lg transition-all duration-200 cursor-pointer group relative"
     @click="$emit('click', lied.id)"
   >
+    <!-- Favorites Button -->
+    <Button
+      variant="ghost"
+      size="sm"
+      :class="[
+        'absolute top-2 right-2 z-10 h-8 w-8 p-0 transition-opacity duration-200',
+        isFavorite(lied.id)
+          ? 'opacity-100'
+          : 'opacity-0 group-hover:opacity-100',
+      ]"
+      @click.stop="() => toggleFavorite(lied.id || '')"
+    >
+      <Heart
+        :class="[
+          'w-4 h-4 transition-colors',
+          isFavorite(lied.id)
+            ? 'fill-red-500 text-red-500'
+            : 'text-muted-foreground hover:text-red-500',
+        ]"
+      />
+    </Button>
+
     <CardHeader class="pb-3">
-      <CardTitle class="text-lg group-hover:text-primary transition-colors">
+      <CardTitle
+        class="text-lg group-hover:text-primary transition-colors pr-10"
+      >
         {{ lied.titel || t("songs.untitled") }}
       </CardTitle>
       <CardDescription v-if="firstCategory" class="flex items-center">
@@ -82,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowRight, Calendar, Tag } from "lucide-vue-next";
+import { ArrowRight, Calendar, Heart, Tag } from "lucide-vue-next";
 
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
@@ -90,6 +114,7 @@ import { useI18n } from "vue-i18n";
 import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -99,7 +124,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { useFavorites } from "@/composables/useFavorites";
+
 const { t } = useI18n();
+const { isFavorite, toggleFavorite } = useFavorites();
 
 interface Props {
   lied: Gesangbuchlied;

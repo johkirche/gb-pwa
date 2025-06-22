@@ -6,12 +6,16 @@
   "offline": "Offline",
   "online": "Online",
   "searchAndFilter": "Suchen & Filtern",
+  "favorites": "Favoriten",
   "ascending": "Aufsteigend",
   "descending": "Absteigend",
   "clear": "Löschen",
+  "filters": "Filter",
   "searchPlaceholder": "Suche nach Titel, Autor oder Text...",
   "category": "Kategorie:",
   "allCategories": "Alle Kategorien",
+  "fileType": "Dateityp:",
+  "allFileTypes": "Alle Dateitypen",
   "sortBy": "Sortieren nach:",
   "title": "Titel",
   "dateUpdated": "Datum aktualisiert",
@@ -32,5 +36,10 @@
   "loadingSongs": "Lade Lieder...",
   "invalidDate": "Ungültiges Datum",
   "noOfflineContentAvailable": "Keine Offline-Inhalte verfügbar. Bitte gehen Sie online, um Lieder für Offline-Zugang herunterzuladen.",
-  "noOfflineContentAvailableConnect": "Keine Offline-Inhalte verfügbar. Bitte verbinden Sie sich mit dem Internet oder laden Sie Lieder für Offline-Zugang herunter."
+  "noOfflineContentAvailableConnect": "Keine Offline-Inhalte verfügbar. Bitte verbinden Sie sich mit dem Internet oder laden Sie Lieder für Offline-Zugang herunter.",
+  "noFavoritesYet": "Noch keine Favoriten",
+  "noFavoritesDescription": "Sie haben noch keine Lieder zu Ihren Favoriten hinzugefügt. Beginnen Sie mit dem Aufbau Ihrer persönlichen Sammlung!",
+  "howToAddFavorites": "So fügen Sie Favoriten hinzu:",
+  "favoriteInstructions": "Bewegen Sie die Maus über eine Liedkarte und klicken Sie auf das Herz-Symbol, um sie zu Ihren Favoriten hinzuzufügen.",
+  "showAllSongs": "Alle Lieder anzeigen"
 }
