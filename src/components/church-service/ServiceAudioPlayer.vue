@@ -28,13 +28,9 @@
 
             <!-- Audio Player -->
             <div v-if="currentAudioUrl" class="space-y-4">
-                <SimpleAudioPlayer 
-                    :key="currentAudioUrl" 
-                    :audio-url="currentAudioUrl" 
-                    :title="currentSongTitle"
-                    :autoplay="true" 
-                    @ended="onAudioEnded" 
-                />
+                <SimpleAudioPlayer
+:key="currentAudioUrl" :audio-url="currentAudioUrl" :title="currentSongTitle"
+                    :autoplay="true" @ended="onAudioEnded" />
             </div>
 
             <!-- No Audio Message -->
