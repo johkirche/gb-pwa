@@ -29,7 +29,9 @@
     "offlineManager": "Offline Manager",
     "offlineManagerDesc": "Manage songs for offline usage",
     "favorites": "My Favorites",
-    "favoritesDesc": "Your bookmarked favorite songs"
+    "favoritesDesc": "Your bookmarked favorite songs",
+    "churchService": "Church Service",
+    "churchServiceDesc": "Prepare songs for church services"
   },
   "categories": {
     "title": "Categories",

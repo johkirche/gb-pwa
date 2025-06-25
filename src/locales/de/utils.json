@@ -29,5 +29,6 @@
     "zoomOut": "Herauszoomen",
     "resetZoom": "Zoom zurücksetzen",
     "instructions": "Scrollen zum Zoomen • Ziehen zum Verschieben"
-  }
+  },
+  "cancel": "Abbrechen"
 }

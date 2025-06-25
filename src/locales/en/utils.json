@@ -29,5 +29,6 @@
     "zoomOut": "Zoom out",
     "resetZoom": "Reset zoom",
     "instructions": "Scroll to zoom • Drag to pan"
-  }
+  },
+  "cancel": "Cancel"
 }

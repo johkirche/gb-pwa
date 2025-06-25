@@ -29,7 +29,9 @@
     "offlineManager": "Offline-Verwaltung",
     "offlineManagerDesc": "Lieder für die Offline-Nutzung verwalten",
     "favorites": "Meine Favoriten",
-    "favoritesDesc": "Ihre als Favoriten markierten Lieder"
+    "favoritesDesc": "Ihre als Favoriten markierten Lieder",
+    "churchService": "Gottesdienst",
+    "churchServiceDesc": "Lieder für Gottesdienste vorbereiten"
   },
   "categories": {
     "title": "Kategorien",

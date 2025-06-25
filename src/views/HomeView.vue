@@ -1,10 +1,6 @@
 <template>
   <div class="min-h-screen bg-background">
-    <AppHeader
-      :page-title="t('home.welcome', { userName })"
-      :show-logout-button="true"
-      @logout="handleLogout"
-    />
+    <AppHeader :page-title="t('home.welcome', { userName })" :show-logout-button="true" @logout="handleLogout" />
     <ScrollArea class="h-[calc(100vh-65px)]">
       <!-- Main Content -->
       <main class="container mx-auto py-8 space-y-8">
@@ -17,9 +13,8 @@
         <!-- Quick Actions -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card
-            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="router.push({ name: 'songs' })"
-          >
+class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'songs' })">
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>🎵</span>
@@ -32,9 +27,8 @@
           </Card>
 
           <Card
-            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="router.push({ name: 'offline' })"
-          >
+class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'offline' })">
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>📱</span>
@@ -47,11 +41,9 @@
           </Card>
 
           <Card
-            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="
-              router.push({ name: 'songs', query: { favoritesOnly: 'true' } })
-            "
-          >
+class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all" @click="
+            router.push({ name: 'songs', query: { favoritesOnly: 'true' } })
+            ">
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>❤️</span>
@@ -62,6 +54,20 @@
               }}</CardDescription>
             </CardHeader>
           </Card>
+
+          <Card
+class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'church-service' })">
+            <CardHeader>
+              <CardTitle class="flex items-center space-x-2">
+                <span>⛪</span>
+                <span>{{ t("home.actions.churchService") }}</span>
+              </CardTitle>
+              <CardDescription>{{
+                t("home.actions.churchServiceDesc")
+              }}</CardDescription>
+            </CardHeader>
+          </Card>
         </div>
 
         <!-- Categories -->
@@ -69,17 +75,13 @@
 
         <!-- Recently Played -->
         <RecentlyPlayedSection
-          :recent-songs="mockRecentSongs"
-          @song-click="handleSongClick"
-          @play-song="handlePlaySong"
-        />
+:recent-songs="mockRecentSongs" @song-click="handleSongClick"
+          @play-song="handlePlaySong" />
 
         <!-- Featured Songs -->
         <FeaturedSongsSection
-          :featured-songs="mockFeaturedSongs"
-          @song-click="handleSongClick"
-          @play-song="handlePlaySong"
-        />
+:featured-songs="mockFeaturedSongs" @song-click="handleSongClick"
+          @play-song="handlePlaySong" />
 
         <!-- Audio Formats Info -->
         <AudioFormatsSection />
