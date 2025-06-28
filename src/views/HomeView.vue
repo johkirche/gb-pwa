@@ -1,6 +1,10 @@
 <template>
   <div class="min-h-screen bg-background">
-    <AppHeader :page-title="t('home.welcome', { userName })" :show-logout-button="true" @logout="handleLogout" />
+    <AppHeader
+      :page-title="t('home.welcome', { userName })"
+      :show-logout-button="true"
+      @logout="handleLogout"
+    />
     <ScrollArea class="h-[calc(100vh-65px)]">
       <!-- Main Content -->
       <main class="container mx-auto py-8 space-y-8">
@@ -11,61 +15,56 @@
         <SearchSection />
 
         <!-- Quick Actions -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card
-class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="router.push({ name: 'songs' })">
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'songs' })"
+          >
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>🎵</span>
                 <span>{{ t("home.actions.browseSongs") }}</span>
               </CardTitle>
-              <CardDescription>{{
-                t("home.actions.browseSongsDesc")
-              }}</CardDescription>
+              <CardDescription>{{ t("home.actions.browseSongsDesc") }}</CardDescription>
             </CardHeader>
           </Card>
 
           <Card
-class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="router.push({ name: 'offline' })">
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'offline' })"
+          >
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>📱</span>
                 <span>{{ t("home.actions.offlineManager") }}</span>
               </CardTitle>
-              <CardDescription>{{
-                t("home.actions.offlineManagerDesc")
-              }}</CardDescription>
+              <CardDescription>{{ t("home.actions.offlineManagerDesc") }}</CardDescription>
             </CardHeader>
           </Card>
 
           <Card
-class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all" @click="
-            router.push({ name: 'songs', query: { favoritesOnly: 'true' } })
-            ">
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'songs', query: { favoritesOnly: 'true' } })"
+          >
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>❤️</span>
                 <span>{{ t("home.actions.favorites") }}</span>
               </CardTitle>
-              <CardDescription>{{
-                t("home.actions.favoritesDesc")
-              }}</CardDescription>
+              <CardDescription>{{ t("home.actions.favoritesDesc") }}</CardDescription>
             </CardHeader>
           </Card>
 
           <Card
-class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="router.push({ name: 'church-service' })">
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'church-service' })"
+          >
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>⛪</span>
                 <span>{{ t("home.actions.churchService") }}</span>
               </CardTitle>
-              <CardDescription>{{
-                t("home.actions.churchServiceDesc")
-              }}</CardDescription>
+              <CardDescription>{{ t("home.actions.churchServiceDesc") }}</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -75,13 +74,17 @@ class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
 
         <!-- Recently Played -->
         <RecentlyPlayedSection
-:recent-songs="mockRecentSongs" @song-click="handleSongClick"
-          @play-song="handlePlaySong" />
+          :recent-songs="mockRecentSongs"
+          @song-click="handleSongClick"
+          @play-song="handlePlaySong"
+        />
 
         <!-- Featured Songs -->
         <FeaturedSongsSection
-:featured-songs="mockFeaturedSongs" @song-click="handleSongClick"
-          @play-song="handlePlaySong" />
+          :featured-songs="mockFeaturedSongs"
+          @song-click="handleSongClick"
+          @play-song="handlePlaySong"
+        />
 
         <!-- Audio Formats Info -->
         <AudioFormatsSection />
@@ -97,21 +100,14 @@ import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import AppHeader from "@/components/AppHeader.vue";
 import AudioFormatsSection from "@/components/home/AudioFormatsSection.vue";
 import CategoriesSection from "@/components/home/CategoriesSection.vue";
 import FeaturedSongsSection from "@/components/home/FeaturedSongsSection.vue";
-import RecentlyPlayedSection, {
-  type Song,
-} from "@/components/home/RecentlyPlayedSection.vue";
+import RecentlyPlayedSection, { type Song } from "@/components/home/RecentlyPlayedSection.vue";
 import SearchSection from "@/components/home/SearchSection.vue";
 import StatsRow from "@/components/home/StatsRow.vue";
 

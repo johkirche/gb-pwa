@@ -41,12 +41,8 @@
             <p class="text-sm text-muted-foreground mb-2">
               {{ t("home.foundSongs", { count: songs.length }) }}
             </p>
-            <div
-              class="max-h-60 overflow-y-auto border rounded-lg p-4 bg-muted/50"
-            >
-              <pre class="text-xs">{{
-                JSON.stringify(songs.slice(0, 2), null, 2)
-              }}</pre>
+            <div class="max-h-60 overflow-y-auto border rounded-lg p-4 bg-muted/50">
+              <pre class="text-xs">{{ JSON.stringify(songs.slice(0, 2), null, 2) }}</pre>
             </div>
           </div>
         </div>
@@ -55,20 +51,14 @@
   </Card>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Music } from "lucide-vue-next";
 
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const { t } = useI18n();
 

@@ -3,17 +3,14 @@ import { computed, ref } from "vue";
 import type { Gesangbuchlied } from "@/gql/graphql";
 
 export interface ChurchServiceSong {
-  song: Gesangbuchlied;
+  song: Gesangbuchlied | null;
   verses: number[];
 }
 
 export interface ChurchService {
   id?: string;
   name?: string;
-  firstSong: Gesangbuchlied | null;
-  firstSongVerses: number[];
-  secondSong: Gesangbuchlied | null;
-  secondSongVerses: number[];
+  songs: ChurchServiceSong[];
   createdAt: string;
 }
 
@@ -55,10 +52,13 @@ class ServiceDBManager {
   async saveService(service: ServiceHistoryItem): Promise<void> {
     if (!this.db) await this.init();
 
+    // Simple JSON serialization to ensure clean, cloneable object
+    const cleanService = JSON.parse(JSON.stringify(service));
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([SERVICES_STORE], "readwrite");
       const store = transaction.objectStore(SERVICES_STORE);
-      const request = store.put(service);
+      const request = store.put(cleanService);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
@@ -78,8 +78,7 @@ class ServiceDBManager {
       request.onsuccess = () => {
         // Sort by createdAt descending (newest first)
         const services = request.result.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
         resolve(services);
       };
@@ -104,20 +103,13 @@ const dbManager = new ServiceDBManager();
 
 export function useChurchService() {
   // Simple toast replacement with console.log for now
-  const toast = (options: {
-    title: string;
-    description: string;
-    variant?: string;
-  }) => {
+  const toast = (options: { title: string; description: string; variant?: string }) => {
     console.log(`${options.title}: ${options.description}`);
   };
 
   // Current service state
   const currentService = ref<ChurchService>({
-    firstSong: null,
-    firstSongVerses: [],
-    secondSong: null,
-    secondSongVerses: [],
+    songs: [],
     createdAt: new Date().toISOString(),
   });
 
@@ -126,27 +118,36 @@ export function useChurchService() {
 
   // Playback state
   const isPlayingService = ref(false);
-  const currentPlayingIndex = ref(0); // 0 = first song, 1 = second song
+  const currentPlayingIndex = ref(0); // Index of currently playing song
 
   // Computed properties
   const canPlayService = computed(() => {
     return (
-      currentService.value.firstSong &&
-      currentService.value.firstSongVerses.length > 0 &&
-      currentService.value.secondSong &&
-      currentService.value.secondSongVerses.length > 0 &&
-      hasAudioFiles(currentService.value.firstSong) &&
-      hasAudioFiles(currentService.value.secondSong)
+      currentService.value.songs.length > 0 &&
+      currentService.value.songs.every(
+        (serviceSong) =>
+          serviceSong.song && serviceSong.verses.length > 0 && hasAudioFiles(serviceSong.song),
+      )
     );
   });
 
   const canSaveService = computed(() => {
     return (
-      currentService.value.firstSong &&
-      currentService.value.firstSongVerses.length > 0 &&
-      currentService.value.secondSong &&
-      currentService.value.secondSongVerses.length > 0
+      currentService.value.songs.length > 0 &&
+      currentService.value.songs.every(
+        (serviceSong) => serviceSong.song && serviceSong.verses.length > 0,
+      )
     );
+  });
+
+  const currentPlayingSong = computed(() => {
+    if (
+      currentPlayingIndex.value >= 0 &&
+      currentPlayingIndex.value < currentService.value.songs.length
+    ) {
+      return currentService.value.songs[currentPlayingIndex.value];
+    }
+    return null;
   });
 
   // Helper functions
@@ -162,22 +163,41 @@ export function useChurchService() {
 
   const getAudioFiles = (song: Gesangbuchlied) => {
     return (
-      song.melodieId?.noten?.filter((note) =>
-        note?.directus_files_id?.type?.includes("audio"),
-      ) || []
+      song.melodieId?.noten?.filter((note) => note?.directus_files_id?.type?.includes("audio")) ||
+      []
     );
   };
 
   // Actions
-  const selectSong = (position: 1 | 2, song: Gesangbuchlied) => {
-    if (position === 1) {
-      currentService.value.firstSong = song;
-      // Auto-select all verses by default
-      currentService.value.firstSongVerses = getAllVerses(song);
-    } else {
-      currentService.value.secondSong = song;
-      // Auto-select all verses by default
-      currentService.value.secondSongVerses = getAllVerses(song);
+  const addSong = (song?: Gesangbuchlied) => {
+    const serviceSong: ChurchServiceSong = {
+      song: song || null,
+      verses: song ? getAllVerses(song) : [],
+    };
+    currentService.value.songs.push(serviceSong);
+  };
+
+  const removeSong = (index: number) => {
+    if (index >= 0 && index < currentService.value.songs.length) {
+      currentService.value.songs.splice(index, 1);
+    }
+  };
+
+  const updateSongVerses = (index: number, verses: number[]) => {
+    if (index >= 0 && index < currentService.value.songs.length) {
+      currentService.value.songs[index].verses = verses;
+    }
+  };
+
+  const reorderSongs = (oldIndex: number, newIndex: number) => {
+    if (
+      oldIndex >= 0 &&
+      oldIndex < currentService.value.songs.length &&
+      newIndex >= 0 &&
+      newIndex < currentService.value.songs.length
+    ) {
+      const song = currentService.value.songs.splice(oldIndex, 1)[0];
+      currentService.value.songs.splice(newIndex, 0, song);
     }
   };
 
@@ -185,10 +205,7 @@ export function useChurchService() {
     // Try to determine number of verses from the song text
     const verses: number[] = [];
 
-    if (
-      song.textId?.strophenEinzeln &&
-      Array.isArray(song.textId.strophenEinzeln)
-    ) {
+    if (song.textId?.strophenEinzeln && Array.isArray(song.textId.strophenEinzeln)) {
       // Count actual verses from strophenEinzeln
       verses.push(...song.textId.strophenEinzeln.map((_, index) => index + 1));
     } else {
@@ -243,10 +260,7 @@ export function useChurchService() {
 
   const clearService = () => {
     currentService.value = {
-      firstSong: null,
-      firstSongVerses: [],
-      secondSong: null,
-      secondSongVerses: [],
+      songs: [],
       createdAt: new Date().toISOString(),
     };
     isPlayingService.value = false;
@@ -255,10 +269,7 @@ export function useChurchService() {
 
   const loadService = (service: ServiceHistoryItem) => {
     currentService.value = {
-      firstSong: service.firstSong,
-      firstSongVerses: service.firstSongVerses,
-      secondSong: service.secondSong,
-      secondSongVerses: service.secondSongVerses,
+      songs: service.songs,
       createdAt: service.createdAt,
     };
 
@@ -296,11 +307,11 @@ export function useChurchService() {
   };
 
   const onSongCompleted = () => {
-    if (currentPlayingIndex.value === 0) {
-      // First song completed, move to second song
-      currentPlayingIndex.value = 1;
+    if (currentPlayingIndex.value < currentService.value.songs.length - 1) {
+      // Move to next song
+      currentPlayingIndex.value++;
     } else {
-      // Second song completed, service is done
+      // All songs completed, service is done
       onServiceCompleted();
     }
   };
@@ -321,13 +332,17 @@ export function useChurchService() {
     serviceHistory,
     isPlayingService,
     currentPlayingIndex,
+    currentPlayingSong,
 
     // Computed
     canPlayService,
     canSaveService,
 
     // Actions
-    selectSong,
+    addSong,
+    removeSong,
+    updateSongVerses,
+    reorderSongs,
     playService,
     saveService,
     clearService,

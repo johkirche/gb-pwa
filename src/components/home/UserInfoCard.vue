@@ -15,11 +15,7 @@
             :value="user.id"
             :monospace="true"
           />
-          <HomeUserInfoField
-            :icon="Mail"
-            :label="t('home.email')"
-            :value="user.email"
-          />
+          <HomeUserInfoField :icon="Mail" :label="t('home.email')" :value="user.email" />
         </div>
         <div class="space-y-4">
           <HomeUserInfoField
@@ -40,7 +36,7 @@
   </Card>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Mail, Tag, User, UserCheck } from "lucide-vue-next";
 
 import { useI18n } from "vue-i18n";

@@ -29,24 +29,7 @@
           </Button>
 
           <!-- Language Switcher -->
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <Button variant="outline" size="sm">
-                <LanguagesIcon class="w-4 h-4 mr-2" />
-                {{ currentLanguageDisplay }}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem @click="switchLanguage('de')">
-                <div class="mr-2 w-4 h-3 flag flag-germany flex-shrink-0"></div>
-                Deutsch
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="switchLanguage('en')">
-                <div class="mr-2 w-4 h-3 flag flag-england flex-shrink-0"></div>
-                English
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <LanguageSwitch variant="dropdown" size="sm" />
 
           <!-- Back button (when not on home page) -->
           <Button
@@ -114,30 +97,7 @@
                 </Button>
 
                 <!-- Language Switcher -->
-                <div class="space-y-2">
-                  <Button
-                    variant="outline"
-                    class="justify-start w-full"
-                    :class="{ 'bg-accent': locale.value === 'de' }"
-                    @click="switchLanguage('de')"
-                  >
-                    <div
-                      class="mr-2 w-4 h-3 flag flag-germany flex-shrink-0"
-                    ></div>
-                    Deutsch
-                  </Button>
-                  <Button
-                    variant="outline"
-                    class="justify-start w-full"
-                    :class="{ 'bg-accent': locale.value === 'en' }"
-                    @click="switchLanguage('en')"
-                  >
-                    <div
-                      class="mr-2 w-4 h-3 flag flag-england flex-shrink-0"
-                    ></div>
-                    English
-                  </Button>
-                </div>
+                <LanguageSwitch variant="toggle" size="default" />
 
                 <!-- Separator -->
                 <div
@@ -198,14 +158,13 @@ import { useColorMode } from "@vueuse/core";
 import {
   ArrowLeft,
   Home,
-  LanguagesIcon,
   LogOut,
   Menu,
   Moon,
   Sun,
 } from "lucide-vue-next";
 
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
@@ -217,12 +176,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import LanguageSwitch from "@/components/ui/LanguageSwitch.vue";
 
 import { useAuth } from "@/composables/useAuth";
 
@@ -251,7 +205,7 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const { logout } = useAuth();
-const { t, locale } = useI18n();
+const { t } = useI18n();
 
 // Dark mode functionality - initialize with system preference
 const colorMode = useColorMode({
@@ -260,17 +214,6 @@ const colorMode = useColorMode({
 
 const toggleDarkMode = () => {
   colorMode.value = colorMode.value === "dark" ? "light" : "dark";
-};
-
-// Language switcher functionality
-const currentLanguageDisplay = computed(() => {
-  return locale.value === "de" ? "DE" : "EN";
-});
-
-const switchLanguage = (lang: string) => {
-  locale.value = lang;
-  // Optionally save to localStorage for persistence
-  localStorage.setItem("preferred-language", lang);
 };
 
 const handleBack = () => {
