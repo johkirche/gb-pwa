@@ -38,6 +38,12 @@ const router = createRouter({
       component: () => import("@/views/OfflineView.vue"),
     },
     {
+      path: "/church-service",
+      name: "church-service",
+      component: () => import("@/views/ChurchServiceView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       // Catch all route - redirect to index
       path: "/:pathMatch(.*)*",
       redirect: "/",

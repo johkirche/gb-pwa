@@ -6,12 +6,19 @@ declare module "*.vue" {
   export default component;
 }
 
-// Not ideal and shouldn't be nessary but :shrug:
+// vue-i18n.d.ts
 declare module "vue-i18n" {
-  import { App } from "vue";
+  import { App, Ref } from "vue";
+
   export function createI18n(options: any): any;
+
   export function useI18n(): {
     t: (key: string, params?: any) => string;
-    locale: { value: string };
+    locale: Ref<string>; // This should be Ref<string>, not { value: string }
+    // Add other properties as needed:
+    // availableLocales: readonly string[];
+    // fallbackLocale: Ref<string>;
+    // messages: Ref<any>;
+    // etc.
   };
 }

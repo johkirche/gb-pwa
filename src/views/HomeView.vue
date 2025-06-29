@@ -15,7 +15,7 @@
         <SearchSection />
 
         <!-- Quick Actions -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card
             class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
             @click="router.push({ name: 'songs' })"
@@ -25,9 +25,7 @@
                 <span>🎵</span>
                 <span>{{ t("home.actions.browseSongs") }}</span>
               </CardTitle>
-              <CardDescription>{{
-                t("home.actions.browseSongsDesc")
-              }}</CardDescription>
+              <CardDescription>{{ t("home.actions.browseSongsDesc") }}</CardDescription>
             </CardHeader>
           </Card>
 
@@ -40,26 +38,33 @@
                 <span>📱</span>
                 <span>{{ t("home.actions.offlineManager") }}</span>
               </CardTitle>
-              <CardDescription>{{
-                t("home.actions.offlineManagerDesc")
-              }}</CardDescription>
+              <CardDescription>{{ t("home.actions.offlineManagerDesc") }}</CardDescription>
             </CardHeader>
           </Card>
 
           <Card
             class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="
-              router.push({ name: 'songs', query: { favoritesOnly: 'true' } })
-            "
+            @click="router.push({ name: 'songs', query: { favoritesOnly: 'true' } })"
           >
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
                 <span>❤️</span>
                 <span>{{ t("home.actions.favorites") }}</span>
               </CardTitle>
-              <CardDescription>{{
-                t("home.actions.favoritesDesc")
-              }}</CardDescription>
+              <CardDescription>{{ t("home.actions.favoritesDesc") }}</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'church-service' })"
+          >
+            <CardHeader>
+              <CardTitle class="flex items-center space-x-2">
+                <span>⛪</span>
+                <span>{{ t("home.actions.churchService") }}</span>
+              </CardTitle>
+              <CardDescription>{{ t("home.actions.churchServiceDesc") }}</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -67,11 +72,11 @@
         <!-- Categories -->
         <CategoriesSection />
 
-        <!-- Recently Played -->
-        <RecentlyPlayedSection
-          :recent-songs="mockRecentSongs"
-          @song-click="handleSongClick"
-          @play-song="handlePlaySong"
+        <!-- Service History -->
+        <ServiceHistory
+          :history="churchServiceStore.serviceHistory"
+          @load-service="handleLoadService"
+          @delete-service="churchServiceStore.deleteService"
         />
 
         <!-- Featured Songs -->
@@ -80,36 +85,26 @@
           @song-click="handleSongClick"
           @play-song="handlePlaySong"
         />
-
-        <!-- Audio Formats Info -->
-        <AudioFormatsSection />
       </main>
     </ScrollArea>
   </div>
 </template>
 
 <script setup lang="ts">
+import { type ServiceHistoryItem, useChurchServiceStore } from "@/stores/churchService";
 import { useStatsStore } from "@/stores/stats";
 
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import AppHeader from "@/components/AppHeader.vue";
-import AudioFormatsSection from "@/components/home/AudioFormatsSection.vue";
+import ServiceHistory from "@/components/church-service/ServiceHistory.vue";
 import CategoriesSection from "@/components/home/CategoriesSection.vue";
-import FeaturedSongsSection from "@/components/home/FeaturedSongsSection.vue";
-import RecentlyPlayedSection, {
-  type Song,
-} from "@/components/home/RecentlyPlayedSection.vue";
+import FeaturedSongsSection, { type Song } from "@/components/home/FeaturedSongsSection.vue";
 import SearchSection from "@/components/home/SearchSection.vue";
 import StatsRow from "@/components/home/StatsRow.vue";
 
@@ -120,36 +115,15 @@ const { userName, logout } = useAuth();
 const statsStore = useStatsStore();
 const router = useRouter();
 
-const mockRecentSongs = ref<Song[]>([
-  {
-    id: 1,
-    title: "Amazing Grace",
-    author: "John Newton",
-    isOffline: true,
-    isFavorite: true,
-  },
-  {
-    id: 2,
-    title: "How Great Thou Art",
-    author: "Carl Boberg",
-    isOffline: false,
-    isFavorite: false,
-  },
-  {
-    id: 3,
-    title: "Großer Gott, wir loben dich",
-    author: "Ignaz Franz",
-    isOffline: true,
-    isFavorite: true,
-  },
-  {
-    id: 4,
-    title: "Von guten Mächten",
-    author: "Dietrich Bonhoeffer",
-    isOffline: false,
-    isFavorite: false,
-  },
-]);
+const churchServiceStore = useChurchServiceStore();
+
+// Handler for loading service from home page
+const handleLoadService = async (service: ServiceHistoryItem) => {
+  // Load the service into the store
+  churchServiceStore.loadService(service);
+  // Navigate to the church service page
+  await router.push({ name: "church-service" });
+};
 
 const mockFeaturedSongs = ref<Song[]>([
   {
@@ -178,9 +152,10 @@ const mockFeaturedSongs = ref<Song[]>([
   },
 ]);
 
-// Load stats on component mount
+// Load stats and service history on component mount
 onMounted(async () => {
   await statsStore.loadStats();
+  await churchServiceStore.loadHistory();
 });
 
 // Handler functions

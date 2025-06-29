@@ -29,7 +29,9 @@
     "offlineManager": "Offline-Verwaltung",
     "offlineManagerDesc": "Lieder für die Offline-Nutzung verwalten",
     "favorites": "Meine Favoriten",
-    "favoritesDesc": "Ihre als Favoriten markierten Lieder"
+    "favoritesDesc": "Ihre als Favoriten markierten Lieder",
+    "churchService": "Gottesdienst",
+    "churchServiceDesc": "Lieder für den Gottesdienst vorbereiten"
   },
   "categories": {
     "title": "Kategorien",
@@ -50,12 +52,5 @@
   "featured": {
     "title": "Empfohlene Lieder",
     "description": "Von der Gemeinde ausgewählte besondere Lieder"
-  },
-  "audioFormats": {
-    "title": "Verfügbare Audio-Formate",
-    "description": "Verschiedene Qualitätsstufen für jeden Bedarf",
-    "mp3": "Optimale Balance zwischen Qualität und Dateigröße",
-    "ogg": "Offenes, lizenzfreies Format mit hoher Qualität",
-    "wav": "Höchste Audioqualität für professionelle Nutzung"
   }
 }

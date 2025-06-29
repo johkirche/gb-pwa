@@ -1,0 +1,14 @@
+{
+  "title": "Bei Ihrem Konto anmelden",
+  "description": "Geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein, um sich bei Ihrem Konto anzumelden.",
+  "checkingAuth": "Authentifizierung wird überprüft...",
+  "checkingAuthDescription": "Bitte warten Sie, während wir Ihren Anmeldestatus überprüfen.",
+  "emailLabel": "E-Mail-Adresse",
+  "emailPlaceholder": "Geben Sie Ihre E-Mail ein",
+  "passwordLabel": "Passwort",
+  "passwordPlaceholder": "Geben Sie Ihr Passwort ein",
+  "signInButton": "Anmelden",
+  "signingInButton": "Anmeldung läuft...",
+  "fillAllFields": "Bitte füllen Sie alle Felder aus",
+  "loginFailed": "Anmeldung fehlgeschlagen"
+}
