@@ -69,6 +69,7 @@
       <img
         :src="locale === 'de' ? 'https://flagcdn.com/de.svg' : 'https://flagcdn.com/us.svg'"
         :alt="locale === 'de' ? 'DE' : 'US'"
+        class="rounded-xs"
         :class="flagSizeClasses"
       />
     </button>

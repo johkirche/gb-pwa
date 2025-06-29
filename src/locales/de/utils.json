@@ -30,5 +30,6 @@
     "resetZoom": "Zoom zurücksetzen",
     "instructions": "Scrollen zum Zoomen • Ziehen zum Verschieben"
   },
-  "cancel": "Abbrechen"
+  "cancel": "Abbrechen",
+  "delete": "Löschen"
 }

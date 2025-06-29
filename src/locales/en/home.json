@@ -52,12 +52,5 @@
   "featured": {
     "title": "Featured Songs",
     "description": "Special songs selected by the community"
-  },
-  "audioFormats": {
-    "title": "Available Audio Formats",
-    "description": "Different quality levels for every need",
-    "mp3": "Optimal balance between quality and file size",
-    "ogg": "Open, license-free format with high quality",
-    "wav": "Highest audio quality for professional use"
   }
 }

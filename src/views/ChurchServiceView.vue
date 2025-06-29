@@ -17,43 +17,43 @@
           <CardContent class="space-y-6">
             <!-- Song List Manager -->
             <SongListManager
-              :songs="currentService.songs"
+              :songs="churchServiceStore.currentService.songs"
               @add-song="handleAddSong"
-              @remove-song="removeSong"
+              @remove-song="churchServiceStore.removeSong"
               @update-song="handleUpdateSong"
-              @update-verses="updateSongVerses"
-              @reorder-songs="reorderSongs"
+              @update-verses="churchServiceStore.updateSongVerses"
+              @reorder-songs="churchServiceStore.reorderSongs"
             />
 
             <!-- Service Controls -->
             <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t">
               <Button
-                :disabled="!canPlayService"
+                :disabled="!churchServiceStore.canPlayService"
                 size="lg"
                 class="flex items-center space-x-2"
-                @click="playService"
+                @click="churchServiceStore.playService"
               >
                 <Play class="w-5 h-5" />
                 <span>{{ t("churchService.playService") }}</span>
               </Button>
 
               <Button
-                :disabled="!canSaveService"
+                :disabled="!churchServiceStore.canSaveService"
                 variant="outline"
                 size="lg"
                 class="flex items-center space-x-2"
-                @click="saveService"
+                @click="churchServiceStore.saveService"
               >
                 <Save class="w-5 h-5" />
                 <span>{{ t("churchService.saveService") }}</span>
               </Button>
 
               <Button
-                v-if="currentService.songs.length > 0"
+                v-if="churchServiceStore.currentService.songs.length > 0"
                 variant="outline"
                 size="lg"
                 class="flex items-center space-x-2"
-                @click="clearService"
+                @click="churchServiceStore.clearService"
               >
                 <X class="w-5 h-5" />
                 <span>{{ t("churchService.clearService") }}</span>
@@ -64,20 +64,20 @@
 
         <!-- Audio Player for Service -->
         <ServiceAudioPlayer
-          v-if="isPlayingService"
-          :service="currentService"
-          :current-song-position="currentPlayingIndex"
-          @song-completed="onSongCompleted"
-          @service-completed="onServiceCompleted"
-          @song-changed="currentPlayingIndex = $event"
-          @service-stopped="onServiceCompleted"
+          v-if="churchServiceStore.isPlayingService"
+          :service="churchServiceStore.currentService"
+          :current-song-position="churchServiceStore.currentPlayingIndex"
+          @song-completed="churchServiceStore.onSongCompleted"
+          @service-completed="churchServiceStore.onServiceCompleted"
+          @song-changed="churchServiceStore.currentPlayingIndex = $event"
+          @service-stopped="churchServiceStore.onServiceCompleted"
         />
 
         <!-- Service History -->
         <ServiceHistory
-          :history="serviceHistory"
-          @load-service="loadService"
-          @delete-service="deleteService"
+          :history="churchServiceStore.serviceHistory"
+          @load-service="churchServiceStore.loadService"
+          @delete-service="churchServiceStore.deleteService"
         />
       </main>
     </ScrollArea>
@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+import { useChurchServiceStore } from "@/stores/churchService";
 import { Play, Save, X } from "lucide-vue-next";
 
 import { onMounted } from "vue";
@@ -101,44 +102,22 @@ import ServiceAudioPlayer from "@/components/church-service/ServiceAudioPlayer.v
 import ServiceHistory from "@/components/church-service/ServiceHistory.vue";
 import SongListManager from "@/components/church-service/SongListManager.vue";
 
-import { useChurchService } from "@/composables/useChurchService";
-
 const { t } = useI18n();
 
-const {
-  currentService,
-  serviceHistory,
-  isPlayingService,
-  currentPlayingIndex,
-  canPlayService,
-  canSaveService,
-  addSong,
-  removeSong,
-  updateSongVerses,
-  reorderSongs,
-  playService,
-  saveService,
-  clearService,
-  loadService,
-  deleteService,
-  loadHistory,
-  onSongCompleted,
-  onServiceCompleted,
-  getAllVerses,
-} = useChurchService();
+const churchServiceStore = useChurchServiceStore();
 
 const handleAddSong = (song?: Gesangbuchlied) => {
-  addSong(song); // This will create a song entry with the selected song or null
+  churchServiceStore.addSong(song); // This will create a song entry with the selected song or null
 };
 
 const handleUpdateSong = (index: number, song: Gesangbuchlied) => {
-  if (index >= 0 && index < currentService.value.songs.length) {
-    currentService.value.songs[index].song = song;
-    currentService.value.songs[index].verses = getAllVerses(song);
+  if (index >= 0 && index < churchServiceStore.currentService.songs.length) {
+    churchServiceStore.currentService.songs[index].song = song;
+    churchServiceStore.currentService.songs[index].verses = churchServiceStore.getAllVerses(song);
   }
 };
 
 onMounted(async () => {
-  await loadHistory();
+  await churchServiceStore.loadHistory();
 });
 </script>

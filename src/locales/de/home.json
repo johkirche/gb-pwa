@@ -52,12 +52,5 @@
   "featured": {
     "title": "Empfohlene Lieder",
     "description": "Von der Gemeinde ausgewählte besondere Lieder"
-  },
-  "audioFormats": {
-    "title": "Verfügbare Audio-Formate",
-    "description": "Verschiedene Qualitätsstufen für jeden Bedarf",
-    "mp3": "Optimale Balance zwischen Qualität und Dateigröße",
-    "ogg": "Offenes, lizenzfreies Format mit hoher Qualität",
-    "wav": "Höchste Audioqualität für professionelle Nutzung"
   }
 }

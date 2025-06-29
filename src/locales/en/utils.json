@@ -30,5 +30,6 @@
     "resetZoom": "Reset zoom",
     "instructions": "Scroll to zoom • Drag to pan"
   },
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "delete": "Delete"
 }

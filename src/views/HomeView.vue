@@ -72,11 +72,11 @@
         <!-- Categories -->
         <CategoriesSection />
 
-        <!-- Recently Played -->
-        <RecentlyPlayedSection
-          :recent-songs="mockRecentSongs"
-          @song-click="handleSongClick"
-          @play-song="handlePlaySong"
+        <!-- Service History -->
+        <ServiceHistory
+          :history="churchServiceStore.serviceHistory"
+          @load-service="handleLoadService"
+          @delete-service="churchServiceStore.deleteService"
         />
 
         <!-- Featured Songs -->
@@ -85,15 +85,13 @@
           @song-click="handleSongClick"
           @play-song="handlePlaySong"
         />
-
-        <!-- Audio Formats Info -->
-        <AudioFormatsSection />
       </main>
     </ScrollArea>
   </div>
 </template>
 
 <script setup lang="ts">
+import { type ServiceHistoryItem, useChurchServiceStore } from "@/stores/churchService";
 import { useStatsStore } from "@/stores/stats";
 
 import { onMounted, ref } from "vue";
@@ -104,10 +102,9 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import AppHeader from "@/components/AppHeader.vue";
-import AudioFormatsSection from "@/components/home/AudioFormatsSection.vue";
+import ServiceHistory from "@/components/church-service/ServiceHistory.vue";
 import CategoriesSection from "@/components/home/CategoriesSection.vue";
-import FeaturedSongsSection from "@/components/home/FeaturedSongsSection.vue";
-import RecentlyPlayedSection, { type Song } from "@/components/home/RecentlyPlayedSection.vue";
+import FeaturedSongsSection, { type Song } from "@/components/home/FeaturedSongsSection.vue";
 import SearchSection from "@/components/home/SearchSection.vue";
 import StatsRow from "@/components/home/StatsRow.vue";
 
@@ -118,36 +115,15 @@ const { userName, logout } = useAuth();
 const statsStore = useStatsStore();
 const router = useRouter();
 
-const mockRecentSongs = ref<Song[]>([
-  {
-    id: 1,
-    title: "Amazing Grace",
-    author: "John Newton",
-    isOffline: true,
-    isFavorite: true,
-  },
-  {
-    id: 2,
-    title: "How Great Thou Art",
-    author: "Carl Boberg",
-    isOffline: false,
-    isFavorite: false,
-  },
-  {
-    id: 3,
-    title: "Großer Gott, wir loben dich",
-    author: "Ignaz Franz",
-    isOffline: true,
-    isFavorite: true,
-  },
-  {
-    id: 4,
-    title: "Von guten Mächten",
-    author: "Dietrich Bonhoeffer",
-    isOffline: false,
-    isFavorite: false,
-  },
-]);
+const churchServiceStore = useChurchServiceStore();
+
+// Handler for loading service from home page
+const handleLoadService = async (service: ServiceHistoryItem) => {
+  // Load the service into the store
+  churchServiceStore.loadService(service);
+  // Navigate to the church service page
+  await router.push({ name: "church-service" });
+};
 
 const mockFeaturedSongs = ref<Song[]>([
   {
@@ -176,9 +152,10 @@ const mockFeaturedSongs = ref<Song[]>([
   },
 ]);
 
-// Load stats on component mount
+// Load stats and service history on component mount
 onMounted(async () => {
   await statsStore.loadStats();
+  await churchServiceStore.loadHistory();
 });
 
 // Handler functions
