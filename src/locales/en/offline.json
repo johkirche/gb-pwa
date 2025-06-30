@@ -52,9 +52,12 @@
   "contentManager": {
     "title": "Offline Content Management",
     "description": "Download and manage songs for offline access",
+    "pwaRequired": "PWA Installation Required",
+    "pwaRequiredDescription": "Offline content management is only available when the app is installed as a Progressive Web App. Please install the app first to access offline features.",
+    "installAppFirst": "Install App First",
     "currentStatus": "Current Status",
     "downloadProgress": "Download Progress",
-    "imageCaching": "Image Caching",
+    "assetCaching": "Asset Caching",
     "actions": "Actions",
     "statistics": "Statistics",
 
@@ -64,7 +67,7 @@
     "downloadAllSongsToAccess": "Download songs to access them without internet connection",
 
     "percentComplete": "{percentage}% complete",
-    "imagesCached": "{percentage}% of images cached",
+    "assetsCached": "{percentage}% of assets cached",
 
     "updateContent": "Update Content",
     "downloadAllSongs": "Download All Songs",

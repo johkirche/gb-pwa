@@ -52,9 +52,12 @@
   "contentManager": {
     "title": "Offline-Inhaltsverwaltung",
     "description": "Lieder für den Offline-Zugriff herunterladen und verwalten",
+    "pwaRequired": "PWA-Installation erforderlich",
+    "pwaRequiredDescription": "Die Offline-Inhaltsverwaltung ist nur verfügbar, wenn die App als Progressive Web App installiert ist. Bitte installieren Sie zuerst die App, um auf Offline-Funktionen zugreifen zu können.",
+    "installAppFirst": "App zuerst installieren",
     "currentStatus": "Aktueller Status",
     "downloadProgress": "Download-Fortschritt",
-    "imageCaching": "Bild-Caching",
+    "assetCaching": "Asset-Caching",
     "actions": "Aktionen",
     "statistics": "Statistiken",
 
@@ -64,7 +67,7 @@
     "downloadAllSongsToAccess": "Lieder herunterladen, um ohne Internetverbindung darauf zugreifen zu können",
 
     "percentComplete": "{percentage}% abgeschlossen",
-    "imagesCached": "{percentage}% der Bilder gecacht",
+    "assetsCached": "{percentage}% der Assets gecacht",
 
     "updateContent": "Inhalte aktualisieren",
     "downloadAllSongs": "Alle Lieder herunterladen",

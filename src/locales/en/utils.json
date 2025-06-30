@@ -10,7 +10,7 @@
   "noOfflineContent": "No offline content downloaded",
   "downloadAllSongsToAccess": "Download all songs to access them without internet connection.",
   "percentComplete": "{percentage}% complete",
-  "imagesCached": "{percentage}% images cached",
+  "assetsCached": "{percentage}% assets cached",
   "updateContent": "Update Content",
   "downloadAllSongs": "Download All Songs",
   "unknown": "Unknown",
