@@ -10,7 +10,7 @@
   "noOfflineContent": "Keine Offline-Inhalte heruntergeladen",
   "downloadAllSongsToAccess": "Laden Sie alle Lieder herunter, um ohne Internetverbindung darauf zugreifen zu können.",
   "percentComplete": "{percentage}% abgeschlossen",
-  "imagesCached": "{percentage}% Bilder zwischengespeichert",
+  "assetsCached": "{percentage}% Assets zwischengespeichert",
   "updateContent": "Inhalte aktualisieren",
   "downloadAllSongs": "Alle Lieder herunterladen",
   "unknown": "Unbekannt",

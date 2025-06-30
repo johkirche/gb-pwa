@@ -24,12 +24,12 @@ export interface OfflineMeta {
   version: string;
 }
 
-// Add interface for image precaching progress
-export interface ImagePrecacheProgress {
+// Add interface for asset precaching progress (images and audio)
+export interface AssetPrecacheProgress {
   current: number;
   total: number;
   percentage: number;
-  currentImage?: string;
+  currentAsset?: string;
 }
 
 // IndexedDB setup
@@ -149,13 +149,11 @@ export const useOfflineDownload = () => {
     isComplete: false,
   });
   const hasOfflineContent = ref(false);
-  const offlineContentInfo = ref<{ count: number; lastUpdated: string } | null>(
-    null,
-  );
+  const offlineContentInfo = ref<{ count: number; lastUpdated: string } | null>(null);
 
-  // Add state for image precaching
-  const isPrecachingImages = ref(false);
-  const imagePrecacheProgress = ref<ImagePrecacheProgress>({
+  // Add state for asset precaching (images and audio)
+  const isPrecachingAssets = ref(false);
+  const assetPrecacheProgress = ref<AssetPrecacheProgress>({
     current: 0,
     total: 0,
     percentage: 0,
@@ -169,9 +167,7 @@ export const useOfflineDownload = () => {
     try {
       if (typeof window === "undefined") return;
 
-      const meta = (await dbManager.get(META_STORE, "offline-meta")) as
-        | OfflineMeta
-        | undefined;
+      const meta = (await dbManager.get(META_STORE, "offline-meta")) as OfflineMeta | undefined;
       if (meta) {
         hasOfflineContent.value = true;
         offlineContentInfo.value = {
@@ -193,12 +189,8 @@ export const useOfflineDownload = () => {
     try {
       if (typeof window === "undefined") return null;
 
-      const songs = (await dbManager.getAllFromStore(
-        SONGS_STORE,
-      )) as Gesangbuchlied[];
-      const meta = (await dbManager.get(META_STORE, "offline-meta")) as
-        | OfflineMeta
-        | undefined;
+      const songs = (await dbManager.getAllFromStore(SONGS_STORE)) as Gesangbuchlied[];
+      const meta = (await dbManager.get(META_STORE, "offline-meta")) as OfflineMeta | undefined;
 
       if (songs && meta) {
         return {
@@ -241,121 +233,129 @@ export const useOfflineDownload = () => {
       };
     } catch (error) {
       console.error("Error storing offline content:", error);
-      throw new Error(
-        "Failed to store offline content. Your device may be out of storage space.",
-      );
+      throw new Error("Failed to store offline content. Your device may be out of storage space.");
     }
   };
 
-  // Precache images from songs
-  const precacheImages = async (songs: Gesangbuchlied[]) => {
+  // Precache images and audio files from songs
+  const precacheAssets = async (songs: Gesangbuchlied[]) => {
     try {
       if (typeof window === "undefined") return;
 
-      isPrecachingImages.value = true;
+      isPrecachingAssets.value = true;
       const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
 
       if (!directusUrl) {
-        console.warn("Directus URL not configured, skipping image precaching");
+        console.warn("Directus URL not configured, skipping asset precaching");
         return;
       }
 
-      // Collect all unique image URLs from songs
-      const imageUrls = new Set<string>();
+      // Collect all unique asset URLs from songs (images and audio)
+      const assetUrls = new Set<string>();
 
       for (const song of songs) {
-        // Check for images in melodieId.noten
+        // Check for files in melodieId.noten (images and audio)
         if (song.melodieId?.noten && Array.isArray(song.melodieId.noten)) {
           for (const note of song.melodieId.noten) {
             if (note?.directus_files_id?.id) {
-              // Add the image regardless of type - many musical note files are images (PNG, JPG, etc.)
-              const imageUrl = `${directusUrl}/assets/${note.directus_files_id.id}`;
-              imageUrls.add(imageUrl);
+              // Add all file types - images (PNG, JPG, etc.) and audio files
+              const assetUrl = `${directusUrl}/assets/${note.directus_files_id.id}`;
+              assetUrls.add(assetUrl);
             }
           }
         }
 
-        // Check for other potential image fields (like gesangbuchlied_satz_mit_melodie_und_text)
+        // Check for files in gesangbuchlied_satz_mit_melodie_und_text (images and audio)
         if (
           song.gesangbuchlied_satz_mit_melodie_und_text &&
           Array.isArray(song.gesangbuchlied_satz_mit_melodie_und_text)
         ) {
           for (const file of song.gesangbuchlied_satz_mit_melodie_und_text) {
             if (file?.directus_files_id?.id) {
-              const imageUrl = `${directusUrl}/assets/${file.directus_files_id.id}`;
-              imageUrls.add(imageUrl);
+              const assetUrl = `${directusUrl}/assets/${file.directus_files_id.id}`;
+              assetUrls.add(assetUrl);
             }
           }
         }
+
+        // Check for audio files in other potential fields
+        // Add other audio file fields here if they exist in your schema
+        // For example, if there are dedicated audio fields:
+        // if (song.audioFiles && Array.isArray(song.audioFiles)) {
+        //   for (const audioFile of song.audioFiles) {
+        //     if (audioFile?.directus_files_id?.id) {
+        //       const audioUrl = `${directusUrl}/assets/${audioFile.directus_files_id.id}`;
+        //       assetUrls.add(audioUrl);
+        //     }
+        //   }
+        // }
       }
 
-      const uniqueImageUrls = Array.from(imageUrls);
-      const totalImages = uniqueImageUrls.length;
+      const uniqueAssetUrls = Array.from(assetUrls);
+      const totalAssets = uniqueAssetUrls.length;
 
-      if (totalImages === 0) {
-        console.log("No images found to precache");
+      if (totalAssets === 0) {
+        console.log("No assets found to precache");
         return;
       }
 
-      imagePrecacheProgress.value = {
+      assetPrecacheProgress.value = {
         current: 0,
-        total: totalImages,
+        total: totalAssets,
         percentage: 0,
-        currentImage: "Starting image precaching...",
+        currentAsset: "Starting asset precaching...",
       };
 
-      console.log(`Starting to precache ${totalImages} images`);
+      console.log(`Starting to precache ${totalAssets} assets (images and audio)`);
 
-      // Precache images in batches to avoid overwhelming the browser
+      // Precache assets in batches to avoid overwhelming the browser
       const batchSize = 5;
-      for (let i = 0; i < uniqueImageUrls.length; i += batchSize) {
-        const batch = uniqueImageUrls.slice(i, i + batchSize);
+      for (let i = 0; i < uniqueAssetUrls.length; i += batchSize) {
+        const batch = uniqueAssetUrls.slice(i, i + batchSize);
 
         await Promise.allSettled(
-          batch.map(async (imageUrl) => {
+          batch.map(async (assetUrl) => {
             try {
-              imagePrecacheProgress.value.currentImage = `Precaching image ${
-                imagePrecacheProgress.value.current + 1
-              }/${totalImages}`;
+              assetPrecacheProgress.value.currentAsset = `Precaching asset ${
+                assetPrecacheProgress.value.current + 1
+              }/${totalAssets}`;
 
               // Make a fetch request to trigger caching by the service worker
-              const response = await fetch(imageUrl, {
+              const response = await fetch(assetUrl, {
                 method: "GET",
                 mode: "cors",
                 cache: "force-cache", // Prefer cached version if available
               });
 
               if (response.ok) {
-                console.log(`Successfully precached image: ${imageUrl}`);
+                console.log(`Successfully precached asset: ${assetUrl}`);
               } else {
-                console.warn(
-                  `Failed to precache image: ${imageUrl}, status: ${response.status}`,
-                );
+                console.warn(`Failed to precache asset: ${assetUrl}, status: ${response.status}`);
               }
             } catch (error) {
-              console.warn(`Error precaching image ${imageUrl}:`, error);
+              console.warn(`Error precaching asset ${assetUrl}:`, error);
             } finally {
-              imagePrecacheProgress.value.current++;
-              imagePrecacheProgress.value.percentage = Math.round(
-                (imagePrecacheProgress.value.current / totalImages) * 100,
+              assetPrecacheProgress.value.current++;
+              assetPrecacheProgress.value.percentage = Math.round(
+                (assetPrecacheProgress.value.current / totalAssets) * 100,
               );
             }
           }),
         );
 
         // Small delay between batches to prevent overwhelming the browser
-        if (i + batchSize < uniqueImageUrls.length) {
+        if (i + batchSize < uniqueAssetUrls.length) {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 
-      imagePrecacheProgress.value.currentImage = `Completed precaching ${totalImages} images`;
-      console.log(`Completed precaching ${totalImages} images`);
+      assetPrecacheProgress.value.currentAsset = `Completed precaching ${totalAssets} assets`;
+      console.log(`Completed precaching ${totalAssets} assets (images and audio)`);
     } catch (error) {
-      console.error("Error precaching images:", error);
-      imagePrecacheProgress.value.currentImage = "Image precaching failed";
+      console.error("Error precaching assets:", error);
+      assetPrecacheProgress.value.currentAsset = "Asset precaching failed";
     } finally {
-      isPrecachingImages.value = false;
+      isPrecachingAssets.value = false;
     }
   };
 
@@ -452,12 +452,12 @@ export const useOfflineDownload = () => {
       downloadProgress.value.isComplete = true;
       downloadProgress.value.currentItem = `Downloaded ${allSongs.length} songs successfully!`;
 
-      // Start image precaching after songs are downloaded
-      downloadProgress.value.currentItem = "Starting image precaching...";
-      await precacheImages(allSongs);
+      // Start asset precaching after songs are downloaded
+      downloadProgress.value.currentItem = "Starting asset precaching...";
+      await precacheAssets(allSongs);
 
       // Final completion message
-      downloadProgress.value.currentItem = `Download complete! ${allSongs.length} songs and images cached.`;
+      downloadProgress.value.currentItem = `Download complete! ${allSongs.length} songs and assets cached.`;
 
       return allSongs.length;
     } catch (error) {
@@ -490,9 +490,7 @@ export const useOfflineDownload = () => {
     limit?: number,
   ): Promise<Gesangbuchlied[]> => {
     try {
-      const songs = (await dbManager.getAllFromStore(
-        SONGS_STORE,
-      )) as Gesangbuchlied[];
+      const songs = (await dbManager.getAllFromStore(SONGS_STORE)) as Gesangbuchlied[];
       if (!songs) return [];
 
       let filteredSongs = songs;
@@ -504,11 +502,7 @@ export const useOfflineDownload = () => {
           (song) =>
             song.titel?.toLowerCase().includes(query) ||
             song.textId?.strophenEinzeln?.some((strophe: unknown) => {
-              if (
-                strophe &&
-                typeof strophe === "object" &&
-                "strophe" in strophe
-              ) {
+              if (strophe && typeof strophe === "object" && "strophe" in strophe) {
                 const stropheText = (strophe as { strophe?: string }).strophe;
                 return stropheText?.toLowerCase().includes(query);
               }
@@ -530,13 +524,9 @@ export const useOfflineDownload = () => {
   };
 
   // Get a single song by ID from IndexedDB
-  const getOfflineSongById = async (
-    id: string | number,
-  ): Promise<Gesangbuchlied | null> => {
+  const getOfflineSongById = async (id: string | number): Promise<Gesangbuchlied | null> => {
     try {
-      const song = (await dbManager.get(SONGS_STORE, id.toString())) as
-        | Gesangbuchlied
-        | undefined;
+      const song = (await dbManager.get(SONGS_STORE, id.toString())) as Gesangbuchlied | undefined;
       return song || null;
     } catch (error) {
       console.error("Error getting offline song by ID:", error);
@@ -549,9 +539,7 @@ export const useOfflineDownload = () => {
     try {
       if (typeof window === "undefined") return null;
 
-      const songs = (await dbManager.getAllFromStore(
-        SONGS_STORE,
-      )) as Gesangbuchlied[];
+      const songs = (await dbManager.getAllFromStore(SONGS_STORE)) as Gesangbuchlied[];
       const estimatedSize = JSON.stringify(songs).length;
       const sizeInMB = (estimatedSize / (1024 * 1024)).toFixed(2);
 
@@ -580,8 +568,8 @@ export const useOfflineDownload = () => {
     downloadProgress: readonly(downloadProgress),
     hasOfflineContent: readonly(hasOfflineContent),
     offlineContentInfo: readonly(offlineContentInfo),
-    isPrecachingImages: readonly(isPrecachingImages),
-    imagePrecacheProgress: readonly(imagePrecacheProgress),
+    isPrecachingAssets: readonly(isPrecachingAssets),
+    assetPrecacheProgress: readonly(assetPrecacheProgress),
 
     // Actions
     downloadAllContent,
@@ -591,6 +579,6 @@ export const useOfflineDownload = () => {
     getOfflineSongById,
     getOfflineContent,
     getStorageInfo,
-    precacheImages,
+    precacheAssets,
   };
 };
