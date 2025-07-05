@@ -15,14 +15,18 @@
         <div class="flex-1">
           <h5 class="font-medium">{{ selectedSong.titel }}</h5>
           <p class="text-sm text-muted-foreground mt-1">
-            {{ getAuthors(selectedSong) }}
+            {{ getAuthorsText(selectedSong) }}
           </p>
           <div class="flex items-center space-x-2 mt-2">
             <Badge v-if="hasAudioFiles(selectedSong)" variant="secondary" class="text-xs">
               🎵 Audio
             </Badge>
-            <Badge v-if="getCategories(selectedSong).length > 0" variant="outline" class="text-xs">
-              {{ getCategories(selectedSong).slice(0, 2).join(", ") }}
+            <Badge
+              v-if="getCategoriesText(selectedSong).length > 0"
+              variant="outline"
+              class="text-xs"
+            >
+              {{ getCategoriesText(selectedSong).slice(0, 2).join(", ") }}
             </Badge>
           </div>
         </div>
@@ -71,14 +75,14 @@
                   <div class="flex-1 min-w-0">
                     <h6 class="font-medium truncate">{{ song.titel }}</h6>
                     <p class="text-sm text-muted-foreground">
-                      {{ getAuthors(song) }}
+                      {{ getAuthorsText(song) }}
                     </p>
                     <div class="flex items-center space-x-2 mt-1">
                       <Badge v-if="hasAudioFiles(song)" variant="secondary" class="text-xs">
                         🎵
                       </Badge>
                       <Badge
-                        v-for="category in getCategories(song).slice(0, 2)"
+                        v-for="category in getCategoriesText(song).slice(0, 2)"
                         :key="category"
                         variant="outline"
                         class="text-xs"
@@ -110,6 +114,17 @@
               <div v-else-if="filteredSongs.length === 0 && searchQuery" class="text-center py-8">
                 <p class="text-sm text-muted-foreground">{{ t("churchService.noSongsFound") }}</p>
               </div>
+
+              <!-- Empty State -->
+              <div v-else-if="filteredSongs.length === 0 && !searchQuery" class="text-center py-8">
+                <p class="text-sm text-muted-foreground">
+                  {{
+                    isUsingCachedData
+                      ? t("churchService.noOfflineSongs")
+                      : t("churchService.noSongsAvailable")
+                  }}
+                </p>
+              </div>
             </div>
           </ScrollArea>
         </div>
@@ -125,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import { useGesangbuchliedStore } from "@/stores/gesangbuchlieder";
 import { Play, Search, X } from "lucide-vue-next";
 
 import { computed, ref, watch } from "vue";
@@ -144,8 +160,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
-
 interface Props {
   selectedSong: Gesangbuchlied | null;
   placeholder: string;
@@ -158,47 +172,40 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { queryGesangbuchlied } = useGesangbuchlied();
+
+// Store
+const store = useGesangbuchliedStore();
+const {
+  lieder,
+  isLoading,
+  isUsingCachedData,
+  fetchLieder,
+  getAuthors,
+  hasAudioFiles,
+  getCategories,
+} = store;
 
 const dialogOpen = ref(false);
 const searchQuery = ref("");
-const gesangbuchlieder = ref<Gesangbuchlied[]>([]);
-const isLoading = ref(false);
 
 const filteredSongs = computed(() => {
-  if (!searchQuery.value) return gesangbuchlieder.value;
+  if (!searchQuery.value) return lieder;
 
   const query = searchQuery.value.toLowerCase();
-  return gesangbuchlieder.value.filter(
+  return lieder.filter(
     (song) =>
       song.titel?.toLowerCase().includes(query) ||
-      getAuthors(song).toLowerCase().includes(query) ||
-      getCategories(song).some((cat) => cat.toLowerCase().includes(query)),
+      getAuthorsText(song).toLowerCase().includes(query) ||
+      getCategoriesText(song).some((cat) => cat.toLowerCase().includes(query)),
   );
 });
 
-const fetchGesangbuchlieder = async () => {
-  if (isLoading.value) return;
-
-  try {
-    isLoading.value = true;
-    const result = await queryGesangbuchlied({
-      limit: 1000, // Load a reasonable amount for selection
-      filter: { status: { _eq: "published" } },
-    });
-    gesangbuchlieder.value = result || [];
-  } catch (error) {
-    console.error("Error fetching songs:", error);
-    gesangbuchlieder.value = [];
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const openSongDialog = () => {
+const openSongDialog = async () => {
   dialogOpen.value = true;
-  if (gesangbuchlieder.value.length === 0) {
-    fetchGesangbuchlieder();
+
+  // Load songs if not already loaded
+  if (lieder.length === 0) {
+    await fetchLieder();
   }
 };
 
@@ -218,33 +225,13 @@ const previewSong = (song: Gesangbuchlied) => {
 };
 
 // Helper functions
-const hasAudioFiles = (song: Gesangbuchlied): boolean => {
-  return !!song.melodieId?.noten?.some((note) => note?.directus_files_id?.type?.includes("audio"));
+const getAuthorsText = (song: Gesangbuchlied): string => {
+  const authors = getAuthors(song);
+  return authors.length > 0 ? authors.join(", ") : t("utils.unknown");
 };
 
-const getAuthors = (song: Gesangbuchlied): string => {
-  const textAuthors =
-    song.textId?.autorId
-      ?.map((author) =>
-        `${author?.autor_id?.vorname || ""} ${author?.autor_id?.nachname || ""}`.trim(),
-      )
-      .filter(Boolean) || [];
-
-  const melodieAuthors =
-    song.melodieId?.autorId
-      ?.map((author) =>
-        `${author?.autor_id?.vorname || ""} ${author?.autor_id?.nachname || ""}`.trim(),
-      )
-      .filter(Boolean) || [];
-
-  const allAuthors = [...new Set([...textAuthors, ...melodieAuthors])];
-  return allAuthors.length > 0 ? allAuthors.join(", ") : t("utils.unknown");
-};
-
-const getCategories = (song: Gesangbuchlied): string[] => {
-  return (
-    (song.kategorieId?.map((kat) => kat?.kategorie_id?.name).filter(Boolean) as string[]) || []
-  );
+const getCategoriesText = (song: Gesangbuchlied): string[] => {
+  return getCategories(song);
 };
 
 // Reset search when dialog closes
