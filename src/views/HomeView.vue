@@ -67,6 +67,19 @@
               <CardDescription>{{ t("home.actions.churchServiceDesc") }}</CardDescription>
             </CardHeader>
           </Card>
+
+          <Card
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'midi-test' })"
+          >
+            <CardHeader>
+              <CardTitle class="flex items-center space-x-2">
+                <span>🎹</span>
+                <span>MIDI Test</span>
+              </CardTitle>
+              <CardDescription>Test MIDI file upload and playback</CardDescription>
+            </CardHeader>
+          </Card>
         </div>
 
         <!-- Categories -->
