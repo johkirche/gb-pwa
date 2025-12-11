@@ -389,7 +389,6 @@ export const useOfflineDownload = () => {
         limit: 1,
         offset: 0,
         filter: {
-          status: { _eq: "published" },
           bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
         },
       });
@@ -404,7 +403,6 @@ export const useOfflineDownload = () => {
           limit: batchSize,
           offset,
           filter: {
-            status: { _eq: "published" },
             bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
           },
         });

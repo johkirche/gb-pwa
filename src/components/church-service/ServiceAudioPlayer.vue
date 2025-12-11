@@ -1,5 +1,5 @@
 <template>
-  <Card class="sticky top-4 z-10">
+  <Card class="z-10">
     <CardHeader>
       <CardTitle class="flex items-center space-x-2">
         <span>🎵</span>

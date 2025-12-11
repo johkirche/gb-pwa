@@ -204,7 +204,11 @@ const getVerseText = (verseNumber: number): string => {
   const verse = props.song.textId.strophenEinzeln[verseNumber - 1];
   if (verse && typeof verse === "object" && "strophe" in verse) {
     const stropheText = (verse as { strophe?: string }).strophe;
-    return stropheText ? stropheText.slice(0, 100) + (stropheText.length > 100 ? "..." : "") : "";
+    // remove \n from stropheText
+    const cleanedStropheText = stropheText?.replace(/¬/g, "");
+    return cleanedStropheText
+      ? cleanedStropheText.slice(0, 100) + (cleanedStropheText.length > 100 ? "..." : "")
+      : "";
   }
 
   return "";

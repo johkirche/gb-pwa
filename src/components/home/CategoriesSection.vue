@@ -4,15 +4,11 @@
       <div class="flex flex-col md:flex-row justify-between gap-2">
         <div>
           <CardTitle class="mb-2">{{ t("home.categories.title") }}</CardTitle>
-          <CardDescription>{{
-            t("home.categories.description")
-          }}</CardDescription>
+          <CardDescription>{{ t("home.categories.description") }}</CardDescription>
         </div>
         <!-- Sort Options and Enlarge Button -->
         <div class="mb-4 flex items-center gap-2">
-          <Label class="text-sm font-medium"
-            >{{ t("home.categories.sortBy") }}:</Label
-          >
+          <Label class="text-sm font-medium">{{ t("home.categories.sortBy") }}:</Label>
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button variant="outline" size="sm" class="gap-2">
@@ -51,21 +47,13 @@
           <Button
             variant="ghost"
             size="sm"
-            :title="
-              isEnlarged
-                ? t('home.categories.shrink')
-                : t('home.categories.enlarge')
-            "
+            :title="isEnlarged ? t('home.categories.shrink') : t('home.categories.enlarge')"
             @click="toggleEnlarge"
           >
             <Maximize2 v-if="!isEnlarged" class="h-4 w-4" />
             <Minimize2 v-else class="h-4 w-4" />
             <span class="sr-only">
-              {{
-                isEnlarged
-                  ? t("home.categories.shrink")
-                  : t("home.categories.enlarge")
-              }}
+              {{ isEnlarged ? t("home.categories.shrink") : t("home.categories.enlarge") }}
             </span>
           </Button>
         </div>
@@ -73,10 +61,7 @@
     </CardHeader>
     <CardContent>
       <ScrollArea
-        :class="[
-          'transition-all duration-300 ease-in-out',
-          isEnlarged ? 'h-[600px]' : 'h-[300px]',
-        ]"
+        :class="['transition-all duration-300 ease-in-out', isEnlarged ? 'h-[600px]' : 'h-[300px]']"
       >
         <!-- Non-draggable grids for alphabetical and count sorting -->
         <div
@@ -92,9 +77,7 @@
           >
             <span class="text-2xl">{{ getCategoryIcon(category.id) }}</span>
             <span class="text-sm text-center">{{ category.name }}</span>
-            <Badge variant="secondary" class="text-xs">{{
-              category.count
-            }}</Badge>
+            <Badge variant="secondary" class="text-xs">{{ category.count }}</Badge>
           </Button>
         </div>
 
@@ -126,9 +109,7 @@
 
               <span class="text-2xl">{{ getCategoryIcon(category.id) }}</span>
               <span class="text-sm text-center">{{ category.name }}</span>
-              <Badge variant="secondary" class="text-xs">{{
-                category.count
-              }}</Badge>
+              <Badge variant="secondary" class="text-xs">{{ category.count }}</Badge>
             </Button>
           </template>
         </VueDraggable>
@@ -140,12 +121,7 @@
 <script setup lang="ts">
 import ScrollArea from "../ui/scroll-area/ScrollArea.vue";
 import { type CategoryWithCount, useStatsStore } from "@/stores/stats";
-import {
-  ChevronDown,
-  GripVertical,
-  Maximize2,
-  Minimize2,
-} from "lucide-vue-next";
+import { ChevronDown, GripVertical, Maximize2, Minimize2 } from "lucide-vue-next";
 
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
@@ -154,13 +130,7 @@ import VueDraggable from "vuedraggable";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -221,10 +191,7 @@ const initializeCustomOrder = () => {
 
 // Save custom order to localStorage
 const saveCustomOrder = () => {
-  localStorage.setItem(
-    "categories-custom-order",
-    JSON.stringify(customOrder.value),
-  );
+  localStorage.setItem("categories-custom-order", JSON.stringify(customOrder.value));
 };
 
 // Computed sorted categories for non-draggable modes
@@ -233,12 +200,14 @@ const sortedCategories = computed(() => {
 
   const categories = [...statsStore.categories].filter((cat) => cat.count > 0);
 
+  if (categories.length === 0) return statsStore.categories;
+
   switch (currentSort.value) {
     case "alphabetical":
-      return categories.sort((a, b) => a.name.localeCompare(b.name));
+      return [...categories].sort((a, b) => a.name.localeCompare(b.name));
 
     case "count":
-      return categories.sort((a, b) => b.count - a.count);
+      return [...categories].sort((a, b) => b.count - a.count);
 
     default:
       return categories;

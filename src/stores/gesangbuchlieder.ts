@@ -194,7 +194,6 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
   // Actions
   const buildApiFilters = () => {
     const baseFilters = {
-      status: { _eq: "published" },
       bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
     };
 
