@@ -44,6 +44,11 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/midi-test",
+      name: "midi-test",
+      component: () => import("@/views/MidiTestView.vue"),
+    },
+    {
       // Catch all route - redirect to index
       path: "/:pathMatch(.*)*",
       redirect: "/",
