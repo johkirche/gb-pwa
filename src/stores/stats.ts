@@ -43,8 +43,7 @@ export const useStatsStore = defineStore("stats", () => {
   const hasCategories = computed(() => categories.value.length > 0);
 
   // Helper functions
-  const getGraphQLEndpoint = () =>
-    `${import.meta.env.VITE_PUBLIC_DIRECTUS_URL}/graphql`;
+  const getGraphQLEndpoint = () => `${import.meta.env.VITE_PUBLIC_DIRECTUS_URL}/graphql`;
 
   const createAuthHeaders = (additionalHeaders?: Record<string, string>) => {
     const authStore = useAuthStore();
@@ -99,9 +98,7 @@ export const useStatsStore = defineStore("stats", () => {
     // Based on the GraphQL validation errors, we know the structure should be nested
     // Let's try the manual GraphQL approach first since we know the correct structure
     try {
-      console.log(
-        "Trying manual GraphQL query with count.id and rangfolge filter...",
-      );
+      console.log("Trying manual GraphQL query with count.id and rangfolge filter...");
 
       const manualQuery = {
         query: `
@@ -115,7 +112,6 @@ export const useStatsStore = defineStore("stats", () => {
         `,
         variables: {
           filter: {
-            status: { _eq: "published" },
             bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
           },
         },
@@ -198,8 +194,7 @@ export const useStatsStore = defineStore("stats", () => {
           };
         }>(manualQuery);
 
-        const result =
-          response.data?.gesangbuchlied_aggregated[0]?.count?.[subfield];
+        const result = response.data?.gesangbuchlied_aggregated[0]?.count?.[subfield];
         if (typeof result === "number" && result > 0) {
           return result;
         }
@@ -212,9 +207,7 @@ export const useStatsStore = defineStore("stats", () => {
     // Try countDistinct with different subfields
     for (const subfield of countSubfields) {
       try {
-        console.log(
-          `Trying manual GraphQL query with countDistinct.${subfield}...`,
-        );
+        console.log(`Trying manual GraphQL query with countDistinct.${subfield}...`);
 
         const manualQuery = {
           query: `
@@ -237,27 +230,19 @@ export const useStatsStore = defineStore("stats", () => {
           };
         }>(manualQuery);
 
-        const result =
-          response.data?.gesangbuchlied_aggregated[0]?.countDistinct?.[
-            subfield
-          ];
+        const result = response.data?.gesangbuchlied_aggregated[0]?.countDistinct?.[subfield];
         if (typeof result === "number" && result > 0) {
           return result;
         }
       } catch (error) {
-        console.error(
-          `Manual GraphQL with countDistinct.${subfield} failed:`,
-          error,
-        );
+        console.error(`Manual GraphQL with countDistinct.${subfield} failed:`, error);
         continue;
       }
     }
 
     // Final fallback: try to get all songs and count them (not efficient but works)
     try {
-      console.log(
-        "All aggregated approaches failed, falling back to fetching all songs...",
-      );
+      console.log("All aggregated approaches failed, falling back to fetching all songs...");
 
       const allSongsQuery = query({
         operation: "gesangbuchlied",
@@ -314,7 +299,6 @@ export const useStatsStore = defineStore("stats", () => {
             filter: {
               gesangbuchlied_id: {
                 bewertungKleinerKreis: { rangfolge: { _eq: 5 } },
-                status: { _eq: "published" },
               },
             },
           },
@@ -329,17 +313,13 @@ export const useStatsStore = defineStore("stats", () => {
           };
         }>(categoryCountQuery);
 
-        const counts =
-          countsResponse.data?.gesangbuchlied_kategorie_aggregated || [];
+        const counts = countsResponse.data?.gesangbuchlied_kategorie_aggregated || [];
 
         // Create a map for easy lookup
         const countMap = new Map<string, number>();
         counts.forEach((item) => {
           if (item.group?.kategorie_id) {
-            countMap.set(
-              item.group.kategorie_id.toString(),
-              item.count?.id || 0,
-            );
+            countMap.set(item.group.kategorie_id.toString(), item.count?.id || 0);
           }
         });
 
@@ -351,16 +331,11 @@ export const useStatsStore = defineStore("stats", () => {
           count: countMap.get(category.id.toString()) || 0,
         }));
       } catch (countError) {
-        console.error(
-          "Failed to get category counts with manual query:",
-          countError,
-        );
+        console.error("Failed to get category counts with manual query:", countError);
 
         // Fallback: try without the nested filter
         try {
-          console.log(
-            "Trying simplified manual GraphQL query for category counts...",
-          );
+          console.log("Trying simplified manual GraphQL query for category counts...");
 
           const simpleCategoryCountQuery = {
             query: `
@@ -387,17 +362,13 @@ export const useStatsStore = defineStore("stats", () => {
             };
           }>(simpleCategoryCountQuery);
 
-          const counts =
-            countsResponse.data?.gesangbuchlied_kategorie_aggregated || [];
+          const counts = countsResponse.data?.gesangbuchlied_kategorie_aggregated || [];
 
           // Create a map for easy lookup
           const countMap = new Map<string, number>();
           counts.forEach((item) => {
             if (item.group?.kategorie_id) {
-              countMap.set(
-                item.group.kategorie_id.toString(),
-                item.count?.id || 0,
-              );
+              countMap.set(item.group.kategorie_id.toString(), item.count?.id || 0);
             }
           });
 
@@ -443,8 +414,7 @@ export const useStatsStore = defineStore("stats", () => {
       };
     } catch (error) {
       console.error("Error loading stats:", error);
-      statsError.value =
-        error instanceof Error ? error.message : "Failed to load stats";
+      statsError.value = error instanceof Error ? error.message : "Failed to load stats";
 
       // Set default values on error
       stats.value = {
@@ -468,8 +438,7 @@ export const useStatsStore = defineStore("stats", () => {
       categories.value = await fetchCategoriesWithCount();
     } catch (error) {
       console.error("Error loading categories:", error);
-      categoriesError.value =
-        error instanceof Error ? error.message : "Failed to load categories";
+      categoriesError.value = error instanceof Error ? error.message : "Failed to load categories";
 
       // Fallback to mock data on error
       categories.value = [

@@ -63,14 +63,7 @@ export const useGesangbuchlied = () => {
 
   const fileFields = ["id", "title", "type", "filename_download", "filesize"];
 
-  const autorFields = [
-    "geburtsjahr",
-    "id",
-    "nachname",
-    "status",
-    "sterbejahr",
-    "vorname",
-  ];
+  const autorFields = ["geburtsjahr", "id", "nachname", "status", "sterbejahr", "vorname"];
 
   // Common fields for gesangbuchlied queries
   const getGesangbuchliedFields = () => [
@@ -213,9 +206,7 @@ export const useGesangbuchlied = () => {
    * Direct async query for single gesangbuchlied by ID
    * Uses axios with automatic token refresh via DirectusApi fallback
    */
-  const queryGesangbuchliedById = async (
-    id: string | number,
-  ): Promise<Gesangbuchlied | null> => {
+  const queryGesangbuchliedById = async (id: string | number): Promise<Gesangbuchlied | null> => {
     const queryBuilder = buildGesangbuchliedByIdQuery(id);
 
     try {
@@ -256,9 +247,7 @@ export const useGesangbuchlied = () => {
    * Fetch a single gesangbuchlied by ID
    * Uses direct axios call with proper authentication
    */
-  const fetchGesangbuchliedById = async (
-    id: string | number,
-  ): Promise<Gesangbuchlied | null> => {
+  const fetchGesangbuchliedById = async (id: string | number): Promise<Gesangbuchlied | null> => {
     return await queryGesangbuchliedById(id);
   };
 
@@ -283,9 +272,7 @@ export const useGesangbuchlied = () => {
    * Note: These are now simple wrappers around the async functions
    * For true reactivity, you might want to use a different approach like composables with refs
    */
-  const useGesangbuchliedByIdQuery = (
-    id: Ref<string | number> | string | number,
-  ) => {
+  const useGesangbuchliedByIdQuery = (id: Ref<string | number> | string | number) => {
     const idRef = computed(() => unref(id));
 
     return {
@@ -297,14 +284,11 @@ export const useGesangbuchlied = () => {
    * Direct async query for multiple gesangbuchlied by IDs
    * Uses axios with automatic token refresh via DirectusApi fallback
    */
-  const queryGesangbuchliedByIds = async (
-    ids: string[],
-  ): Promise<Gesangbuchlied[]> => {
+  const queryGesangbuchliedByIds = async (ids: string[]): Promise<Gesangbuchlied[]> => {
     if (ids.length === 0) return [];
 
     const filter = {
       id: { _in: ids },
-      status: { _eq: "published" },
     };
 
     const queryBuilder = buildGesangbuchliedQuery({

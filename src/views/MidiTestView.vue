@@ -50,7 +50,7 @@
             ref="fileInput"
           />
           <button 
-            @click="$refs.fileInput.click()"
+            @click="fileInput?.click()"
             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2"
           >
             Choose MIDI File
@@ -152,7 +152,8 @@ const selectedFile = ref<File | null>(null)
 const midiData = ref<ParsedMidiData | null>(null)
 const isPlaying = ref(false)
 const playbackProgress = ref(0)
-const playbackTimeouts = ref<NodeJS.Timeout[]>([])
+const playbackTimeouts = ref<ReturnType<typeof setTimeout>[]>([])
+const fileInput = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   webMidiSupported.value = 'navigator' in window && 'requestMIDIAccess' in navigator
@@ -179,14 +180,14 @@ const updateMidiOutputs = () => {
   if (!midiAccess.value) return
   
   midiOutputs.value = []
-  for (const output of midiAccess.value.outputs.values()) {
+  midiAccess.value.outputs.forEach((output: WebMidi.MIDIOutput) => {
     midiOutputs.value.push({
       id: output.id,
       name: output.name || 'Unknown Device',
       manufacturer: output.manufacturer || 'Unknown',
       output: output
     })
-  }
+  })
   
   // Auto-select first output if available
   if (midiOutputs.value.length > 0 && !selectedOutputId.value) {
@@ -467,7 +468,7 @@ const stopMidi = () => {
   playbackProgress.value = 0
   
   // Clear all timeouts
-  playbackTimeouts.value.forEach(timeout => clearTimeout(timeout))
+  playbackTimeouts.value.forEach((timeout: ReturnType<typeof setTimeout>) => clearTimeout(timeout))
   playbackTimeouts.value = []
   
   // Send all notes off to prevent stuck notes

@@ -38,6 +38,8 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 import AppHeader from "@/components/AppHeader.vue";
 import InstallationTutorial from "@/components/offline/InstallationTutorial.vue";
 import OfflineContentManager from "@/components/offline/OfflineContentManager.vue";
