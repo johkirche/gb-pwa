@@ -3,23 +3,22 @@ import vue from "@vitejs/plugin-vue";
 import path from "node:path";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import vueDevTools from "vite-plugin-vue-devtools";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
+    vueDevTools({
+      launchEditor: "cursor",
+    }),
     VitePWA({
       registerType: "autoUpdate",
       devOptions: {
         enabled: false,
       },
-      includeAssets: [
-        "favicon.ico",
-        "apple-touch-icon.png",
-        "mask-icon.svg",
-        "icons/*.webp",
-      ],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg", "icons/*.webp"],
       manifest: {
         name: "Gesangbuch PWA",
         short_name: "Gesangbuch",
@@ -104,11 +103,7 @@ export default defineConfig({
               },
               plugins: [
                 {
-                  cacheKeyWillBeUsed: async ({
-                    request,
-                  }: {
-                    request: Request;
-                  }) => {
+                  cacheKeyWillBeUsed: async ({ request }: { request: Request }) => {
                     // Create cache key from request body for GraphQL
                     const body = await request.clone().text();
                     const url = request.url;
@@ -121,8 +116,7 @@ export default defineConfig({
           // Cache image files (like song files, PDFs)
           {
             urlPattern: ({ url }) =>
-              url.pathname.includes("/assets/") ||
-              url.pathname.includes("/files/"),
+              url.pathname.includes("/assets/") || url.pathname.includes("/files/"),
             handler: "CacheFirst",
             options: {
               cacheName: "assets-cache",
@@ -143,8 +137,7 @@ export default defineConfig({
           // Cache other requests
           {
             urlPattern: ({ request }) =>
-              request.destination === "script" ||
-              request.destination === "style",
+              request.destination === "script" || request.destination === "style",
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "static-resources",
