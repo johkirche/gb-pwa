@@ -13,16 +13,13 @@
             <div
               class="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"
             >
-              <span class="text-sm font-medium text-primary">{{
-                index + 1
-              }}</span>
+              <span class="text-sm font-medium text-primary">{{ index + 1 }}</span>
             </div>
             <div class="flex-1 space-y-2">
               <div class="bg-muted/50 p-4 rounded-lg">
-                <pre
-                  class="whitespace-pre-wrap font-serif text-base leading-relaxed"
-                  >{{ strophe?.strophe }}</pre
-                >
+                <pre class="whitespace-pre-wrap font-serif text-base leading-relaxed">{{
+                  strophe?.strophe?.replace(/¬/g, "")
+                }}</pre>
               </div>
 
               <!-- Change suggestions -->
@@ -43,9 +40,7 @@
                 v-if="strophe?.anmerkung"
                 class="bg-blue-50 border border-blue-200 p-3 rounded-lg"
               >
-                <p class="text-sm font-medium text-blue-800 mb-1">
-                  {{ t("song.note") }}:
-                </p>
+                <p class="text-sm font-medium text-blue-800 mb-1">{{ t("song.note") }}:</p>
                 <p class="text-sm text-blue-700">{{ strophe.anmerkung }}</p>
               </div>
             </div>

@@ -9,9 +9,7 @@
       size="sm"
       :class="[
         'absolute top-2 right-2 z-10 h-8 w-8 p-0 transition-opacity duration-200',
-        isFavorite(lied.id)
-          ? 'opacity-100'
-          : 'opacity-0 group-hover:opacity-100',
+        isFavorite(lied.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
       ]"
       @click.stop="() => toggleFavorite(lied.id || '')"
     >
@@ -26,9 +24,7 @@
     </Button>
 
     <CardHeader class="pb-3">
-      <CardTitle
-        class="text-lg group-hover:text-primary transition-colors pr-10"
-      >
+      <CardTitle class="text-lg group-hover:text-primary transition-colors pr-10">
         {{ lied.titel || t("songs.untitled") }}
       </CardTitle>
       <CardDescription v-if="firstCategory" class="flex items-center">
@@ -39,18 +35,11 @@
     <CardContent class="space-y-3 flex-1">
       <!-- Authors Section -->
       <div v-if="authors.length > 0" class="space-y-1">
-        <p
-          class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
-        >
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           {{ t("songs.authors") }}
         </p>
         <div class="flex flex-wrap gap-1">
-          <Badge
-            v-for="author in authors"
-            :key="author"
-            variant="secondary"
-            class="text-xs"
-          >
+          <Badge v-for="author in authors" :key="author" variant="secondary" class="text-xs">
             {{ author }}
           </Badge>
         </div>
@@ -58,30 +47,21 @@
 
       <!-- Text Preview -->
       <div v-if="firstStrophe" class="space-y-1">
-        <p
-          class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
-        >
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           {{ t("songs.preview") }}
         </p>
         <p class="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-          {{ firstStrophe }}
+          {{ firstStrophe?.replace(/¬/g, "") }}
         </p>
       </div>
 
       <!-- File Attachments -->
       <div v-if="fileInfo.length > 0" class="space-y-1">
-        <p
-          class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
-        >
+        <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           {{ t("songs.files") }}
         </p>
         <div class="flex flex-wrap gap-1">
-          <Badge
-            v-for="fileType in fileInfo"
-            :key="fileType"
-            variant="outline"
-            class="text-xs"
-          >
+          <Badge v-for="fileType in fileInfo" :key="fileType" variant="outline" class="text-xs">
             {{ fileType }}
           </Badge>
         </div>
@@ -176,10 +156,7 @@ const firstCategory = computed(() => {
 });
 
 const firstStrophe = computed(() => {
-  if (
-    props.lied.textId?.strophenEinzeln &&
-    props.lied.textId.strophenEinzeln.length > 0
-  ) {
+  if (props.lied.textId?.strophenEinzeln && props.lied.textId.strophenEinzeln.length > 0) {
     return props.lied.textId.strophenEinzeln[0]?.strophe || null;
   }
   return null;
