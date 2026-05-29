@@ -10,7 +10,7 @@ import { getTimeUntilExpiry, isTokenExpired } from "@/composables/useJwtUtils";
 
 // Token refresh timing constants
 const TOKEN_REFRESH_THRESHOLD = 2 * 60 * 1000; // Refresh 2 minutes before expiry
-let refreshTimer: number | null = null;
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useAuth = () => {
   const authStore = useAuthStore();
