@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold">{{ t("churchService.serviceSetup") }}</h3>
+      <h3 class="text-lg font-semibold">{{ t("churchService.mainSongs") }}</h3>
       <Button @click="openSongDialog" class="flex items-center space-x-2">
         <Plus class="w-4 h-4" />
         <span>{{ t("churchService.addSong") }}</span>
@@ -43,41 +43,56 @@
           <div :key="`song-${index}`" class="border rounded-lg p-4 bg-card relative">
             <!-- Song Info Display -->
             <div v-if="serviceSong.song" class="space-y-4">
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="flex items-center space-x-2 mb-1">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
                     <div
-                      class="drag-handle cursor-move text-gray-400 hover:text-gray-600"
+                      class="drag-handle cursor-move text-gray-400 hover:text-gray-600 flex-shrink-0"
                       v-if="songs.length > 1"
                     >
                       <GripVertical class="h-5 w-5" />
                     </div>
-                    <Badge variant="outline" class="text-sm">
+                    <Badge variant="outline" class="text-sm flex-shrink-0">
                       {{ index + 1 }}
                     </Badge>
-                    <h5 class="font-medium">{{ serviceSong.song.titel }}</h5>
+                    <span
+                      v-if="getLiedNumber(serviceSong.song) !== null"
+                      class="inline-flex items-center px-2 py-0.5 rounded bg-primary text-primary-foreground text-sm font-bold tabular-nums leading-tight flex-shrink-0"
+                    >
+                      {{ getLiedNumber(serviceSong.song) }}
+                    </span>
+                    <h5 class="font-medium truncate">{{ serviceSong.song.titel }}</h5>
                   </div>
-                  <p class="text-sm text-muted-foreground mb-2">
+                  <p class="text-sm text-muted-foreground mb-2 truncate">
                     {{ getAuthors(serviceSong.song) }}
                   </p>
-                  <div class="flex items-center space-x-2">
+                  <div class="flex flex-wrap items-center gap-2">
                     <Badge
-                      v-if="hasAudioFiles(serviceSong.song)"
+                      v-if="hasMidiTrio(serviceSong.song)"
                       variant="secondary"
-                      class="text-xs"
+                      class="text-xs bg-green-100 text-green-800 hover:bg-green-100"
                     >
-                      🎵 Audio
+                      🎹 MIDI
                     </Badge>
                     <Badge
-                      v-if="getCategories(serviceSong.song).length > 0"
+                      v-else
+                      variant="secondary"
+                      class="text-xs bg-orange-100 text-orange-800 hover:bg-orange-100"
+                    >
+                      <AlertTriangle class="w-3 h-3 mr-1" />
+                      {{ t("churchService.missingMidi") }}
+                    </Badge>
+                    <Badge
+                      v-for="category in getCategories(serviceSong.song).slice(0, 2)"
+                      :key="category"
                       variant="outline"
                       class="text-xs"
                     >
-                      {{ getCategories(serviceSong.song).slice(0, 2).join(", ") }}
+                      {{ category }}
                     </Badge>
                   </div>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center gap-2 flex-shrink-0">
                   <Button variant="outline" size="sm" @click="changeSong(index)">
                     {{ t("churchService.changeSong") }}
                   </Button>
@@ -100,6 +115,15 @@
                   @update:model-value="(verses) => updateVerses(index, verses)"
                 />
               </div>
+
+              <!-- Speed (BPM) / Pitch (transposed tonic) for this song -->
+              <SongPlaybackControls
+                :song="serviceSong.song"
+                :speed="serviceSong.speed"
+                :pitch-semitones="serviceSong.pitchSemitones"
+                @update:speed="(v) => emit('updateSpeed', index, v)"
+                @update:pitch="(v) => emit('updatePitch', index, v)"
+              />
             </div>
           </div>
         </template>
@@ -127,20 +151,22 @@
 </template>
 
 <script setup lang="ts">
+import SongPlaybackControls from "./SongPlaybackControls.vue";
 import SongSelector from "./SongSelector.vue";
 import VerseSelector from "./VerseSelector.vue";
-import { GripVertical, Music, Plus, Trash2 } from "lucide-vue-next";
+import { AlertTriangle, GripVertical, Music, Plus, Trash2 } from "lucide-vue-next";
 
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import VueDraggable from "vuedraggable";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
+import { type GesangbuchliedWithMidi, getLiedNumber } from "@/gql/extra-types";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import type { ChurchServiceSong } from "@/composables/useChurchService";
+import type { ChurchServiceSong } from "@/stores/churchService";
 
 interface Props {
   songs: ChurchServiceSong[];
@@ -153,6 +179,8 @@ const emit = defineEmits<{
   removeSong: [index: number];
   updateSong: [index: number, song: Gesangbuchlied];
   updateVerses: [index: number, verses: number[]];
+  updateSpeed: [index: number, speed: number];
+  updatePitch: [index: number, pitchSemitones: number];
   reorderSongs: [oldIndex: number, newIndex: number];
 }>();
 
@@ -223,8 +251,9 @@ const handleSongSelected = (song: Gesangbuchlied | null) => {
 };
 
 // Helper functions
-const hasAudioFiles = (song: Gesangbuchlied): boolean => {
-  return !!song.melodieId?.noten?.some((note) => note?.directus_files_id?.type?.includes("audio"));
+const hasMidiTrio = (song: Gesangbuchlied): boolean => {
+  const s = song as GesangbuchliedWithMidi;
+  return !!(s.midi_intro && s.midi_main && s.midi_outro);
 };
 
 const getAuthors = (song: Gesangbuchlied): string => {

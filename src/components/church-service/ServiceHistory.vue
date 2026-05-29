@@ -171,7 +171,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import type { ServiceHistoryItem } from "@/composables/useChurchService";
+import type { ServiceHistoryItem } from "@/stores/churchService";
 
 interface Props {
   history: ServiceHistoryItem[];

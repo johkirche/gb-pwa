@@ -1,9 +1,18 @@
 <template>
   <Card>
     <CardHeader>
-      <div class="flex justify-between items-start">
-        <div class="space-y-2">
-          <CardTitle class="text-3xl">{{ lied.titel }}</CardTitle>
+      <div class="flex justify-between items-start gap-3">
+        <div class="space-y-2 flex-1 min-w-0">
+          <div class="flex items-baseline gap-3 flex-wrap">
+            <span
+              v-if="liedNumber !== null"
+              class="inline-flex items-center px-3 py-1 rounded-md bg-primary text-primary-foreground text-2xl font-bold tabular-nums leading-none flex-shrink-0"
+              :title="numberTooltip"
+            >
+              {{ liedNumber }}
+            </span>
+            <CardTitle class="text-3xl">{{ lied.titel }}</CardTitle>
+          </div>
           <div v-if="categories.length" class="flex flex-wrap gap-2">
             <Badge
               v-for="category in categories"
@@ -15,9 +24,9 @@
             </Badge>
           </div>
         </div>
-        <div class="text-right text-sm text-muted-foreground">
-          <p v-if="lied.liednummer2000">
-            {{ t("song.songNumber") }}{{ lied.liednummer2000 }}
+        <div class="text-right text-sm text-muted-foreground flex-shrink-0">
+          <p v-if="lied.liednummer2000 && liedExt.liednummer2026">
+            {{ t("song.songNumber2000") }} {{ lied.liednummer2000 }}
           </p>
           <p>{{ t("song.updated") }}: {{ formatDate(lied.date_updated) }}</p>
         </div>
@@ -33,6 +42,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
+import { type GesangbuchliedWithMidi, getLiedNumber } from "@/gql/extra-types";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +56,18 @@ interface Props {
 const props = defineProps<Props>();
 
 const categories = computed(() => getCategories(props.lied));
+const liedExt = computed(() => props.lied as GesangbuchliedWithMidi);
+const liedNumber = computed(() => getLiedNumber(props.lied));
+const numberTooltip = computed(() => {
+  // Show which edition the prominent number comes from, plus the legacy number
+  // if both exist — keeps the prominent slot uncluttered without losing info.
+  const parts: string[] = [];
+  if (liedExt.value.liednummer2026)
+    parts.push(`${t("song.songNumber2026")} ${liedExt.value.liednummer2026}`);
+  if (props.lied.liednummer2000)
+    parts.push(`${t("song.songNumber2000")} ${props.lied.liednummer2000}`);
+  return parts.join(" · ");
+});
 
 const getCategories = (lied: Gesangbuchlied): string[] => {
   if (!lied.kategorieId) return [];

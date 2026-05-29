@@ -178,6 +178,10 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
           valueA = a.liednummer2000 || 0;
           valueB = b.liednummer2000 || 0;
           break;
+        case "liednummer2026":
+          valueA = (a as { liednummer2026?: number | null }).liednummer2026 || 0;
+          valueB = (b as { liednummer2026?: number | null }).liednummer2026 || 0;
+          break;
         default:
           valueA = a.titel || "";
           valueB = b.titel || "";
@@ -321,6 +325,7 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
         title: "titel",
         date_updated: "date_updated",
         liednummer2000: "liednummer2000",
+        liednummer2026: "liednummer2026",
       };
       const dbSortField = sortFieldMap[filters.value.sortBy] || filters.value.sortBy;
       const sortField = filters.value.sortDirection === "desc" ? `-${dbSortField}` : dbSortField;
@@ -383,6 +388,7 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
         title: "titel",
         date_updated: "date_updated",
         liednummer2000: "liednummer2000",
+        liednummer2026: "liednummer2026",
       };
       const dbSortField = sortFieldMap[filters.value.sortBy] || filters.value.sortBy;
       const sortField = filters.value.sortDirection === "desc" ? `-${dbSortField}` : dbSortField;

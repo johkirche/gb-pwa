@@ -10,6 +10,8 @@
   "errorLoadingSong": "Error loading song",
   "retry": "Retry",
   "songNumber": "Song #",
+  "songNumber2026": "GB 2026 #",
+  "songNumber2000": "GB 2000 #",
   "updated": "Updated",
   "authors": "Authors",
   "textAuthors": "Text Authors",
@@ -35,6 +37,37 @@
   "imagePreview": "Image Preview",
   "clickImageFullscreen": "Click image for fullscreen view",
   "noImageSelected": "No image selected",
+  "notation": {
+    "title": "Notation",
+    "description": "Melody from MusicXML",
+    "errors": {
+      "initFailed": "Failed to initialize notation",
+      "renderFailed": "Failed to render notation"
+    }
+  },
+  "midiPlayer": {
+    "title": "MIDI Playback",
+    "description": "Send intro, verses and outro to a connected MIDI device",
+    "device": "MIDI Device",
+    "verses": "Verses",
+    "play": "Play",
+    "stop": "Stop",
+    "accessNeeded": "MIDI device access is required.",
+    "requestAccess": "Allow MIDI access",
+    "accessHint": "Hardware devices appear after granting MIDI access.",
+    "notSupportedHint": "Web MIDI is not supported in this browser — hardware devices aren't available. The browser synthesizer still works.",
+    "builtInSynth": "Browser synthesizer (no device needed)",
+    "noDevices": "No MIDI output device found. Please connect a USB MIDI keyboard.",
+    "loadingFiles": "Loading MIDI files…",
+    "statusIntro": "Intro",
+    "statusVerse": "Verse {current} of {total}",
+    "statusOutro": "Final verse ({current} of {total})",
+    "statusPause": "Pause",
+    "errors": {
+      "notSupported": "Web MIDI API is not supported in this browser. Please use Chrome, Edge or Opera.",
+      "parseFailed": "Could not parse MIDI file"
+    }
+  },
   "audioPlayer": {
     "playbackSpeed": "Playback Speed",
     "normal": "Normal",

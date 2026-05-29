@@ -98,14 +98,12 @@
           class="mt-4 pt-4 border-t border-border"
         >
           <h5 class="text-sm font-medium mb-2">{{ t("churchService.preview") }}:</h5>
-          <ScrollArea class="max-h-32">
-            <div class="text-sm text-muted-foreground space-y-2">
-              <div v-for="verse in sortedSelectedVerses" :key="verse">
-                <span class="font-medium">{{ verse }}.</span>
-                {{ getVerseText(verse) }}
-              </div>
+          <div class="max-h-32 overflow-y-auto pr-1 text-sm text-muted-foreground space-y-2">
+            <div v-for="verse in sortedSelectedVerses" :key="verse">
+              <span class="font-medium">{{ verse }}.</span>
+              {{ getVerseText(verse) }}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
     </Transition>
@@ -122,7 +120,6 @@ import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
   song: Gesangbuchlied;

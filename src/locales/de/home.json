@@ -31,7 +31,9 @@
     "favorites": "Meine Favoriten",
     "favoritesDesc": "Ihre als Favoriten markierten Lieder",
     "churchService": "Gottesdienst",
-    "churchServiceDesc": "Lieder für den Gottesdienst vorbereiten"
+    "churchServiceDesc": "Lieder für den Gottesdienst vorbereiten",
+    "settings": "Einstellungen",
+    "settingsDesc": "MIDI-Gerät und weitere Optionen"
   },
   "categories": {
     "title": "Kategorien",

@@ -8,7 +8,7 @@
     />
 
     <ScrollArea class="h-[calc(100vh-65px)]">
-      <main class="container mx-auto py-8 space-y-8">
+      <main class="container mx-auto py-8 max-w-6xl space-y-8">
         <!-- Header -->
         <div>
           <h1 class="text-2xl font-bold mb-2">

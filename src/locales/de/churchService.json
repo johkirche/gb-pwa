@@ -31,6 +31,7 @@
     "title": "Gottesdienst-Verlauf"
   },
   "loadingSongs": "Lieder werden geladen...",
+  "mainSongs": "Hauptlieder",
   "moveDown": "Nach unten verschieben",
   "moveUp": "Nach oben verschieben",
   "noOfflineSongs": "Keine Offline-Lieder verfügbar",
@@ -38,6 +39,7 @@
   "noSongsAvailable": "Keine Lieder verfügbar",
   "noSongsFound": "Keine Lieder gefunden, die Ihrer Suche entsprechen",
   "noVersesSelected": "Keine Strophen ausgewählt",
+  "optional": "optional",
   "playService": "Gottesdienst abspielen",
   "preview": "Vorschau",
   "progress": "Fortschritt",
@@ -48,6 +50,15 @@
   "secondSong": "Zweites Lied",
   "selectAll": "Alle auswählen",
   "selectFirstSong": "Erstes Lied auswählen",
+  "selectIntroPiece": "Vorspiel auswählen",
+  "selectOutroPiece": "Nachspiel auswählen",
+  "selectPiece": "Stück auswählen",
+  "changePiece": "Stück ändern",
+  "searchAndSelectPiece": "Suchen und wählen Sie ein freies Musikstück",
+  "searchPieces": "Musikstücke suchen…",
+  "loadingPieces": "Musikstücke werden geladen…",
+  "noPiecesFound": "Keine Musikstücke gefunden, die Ihrer Suche entsprechen",
+  "noPiecesAvailable": "Keine Musikstücke verfügbar",
   "selectSecondSong": "Zweites Lied auswählen",
   "selectSong": "Lied auswählen",
   "selectSongPlaceholder": "Lied {number} auswählen",
@@ -59,6 +70,83 @@
   "songNumber": "Lied {number} von {total}",
   "songsCount": "{count} Lieder",
   "title": "Gottesdienst",
+  "noSongSelected": "Kein Lied ausgewählt",
+  "missingMidi": "Kein MIDI",
+  "cannotPlayMissingMidi": "Wiedergabe nicht möglich – diese Lieder haben kein MIDI-Trio: {songs}",
+  "cannotPlayMissingVerses": "Keine Strophen ausgewählt für „{song}“",
   "verse": "Strophe",
-  "verses": "Strophen"
+  "verses": "Strophen",
+  "speed": {
+    "label": "Tempo",
+    "bpm": "{value} BPM",
+    "decrease": "Tempo verringern",
+    "increase": "Tempo erhöhen",
+    "tooltipBpm": "Original: {base} BPM · Doppelklick setzt zurück",
+    "tooltipMultiplier": "Tempo (Faktor) · Doppelklick setzt zurück"
+  },
+  "pitch": {
+    "label": "Tonart",
+    "decrease": "Tiefer transponieren",
+    "increase": "Höher transponieren",
+    "tooltipKey": "Original: {base} · Transponiert: {offset} · Doppelklick setzt zurück",
+    "tooltipSemitones": "Halbtöne · Doppelklick setzt zurück"
+  },
+  "intro": "Vorspiel",
+  "outro": "Nachspiel",
+  "introDescription": "Freies Musikstück, das vor den Hauptliedern gespielt wird.",
+  "outroDescription": "Freies Musikstück, das nach den Hauptliedern gespielt wird.",
+  "entry": {
+    "title": "Gottesdienst vorbereiten",
+    "description": "Stelle den Ablauf zusammen, wähle dein MIDI-Gerät und starte den Gottesdienst – Schritt für Schritt.",
+    "startNew": "Neuen Gottesdienst starten"
+  },
+  "stepper": {
+    "setup": "Aufbau",
+    "device": "Gerät",
+    "run": "Ablauf",
+    "backToStart": "Zum Start",
+    "backToSetup": "Zurück zum Aufbau",
+    "nextDevice": "Weiter: Gerät",
+    "startService": "Gottesdienst starten"
+  },
+  "device": {
+    "title": "MIDI-Gerät auswählen",
+    "description": "Wähle das Keyboard, an das der Gottesdienst ausgespielt werden soll.",
+    "connected": "Gerät verbunden",
+    "notConnected": "Noch kein Gerät ausgewählt. Schließe ein MIDI-Keyboard an und wähle es oben aus.",
+    "summary": "Ablauf-Übersicht"
+  },
+  "run": {
+    "position": "Lied {current} von {total}",
+    "currentlyPlaying": "läuft gerade",
+    "songProgress": "Lied-Fortschritt",
+    "stage": {
+      "intro": "♪ Vorspiel",
+      "introShort": "Vorspiel",
+      "verse": "Strophe {verse}",
+      "outro": "♪ Ausleitung",
+      "outroShort": "Ausleitung",
+      "outroWithVerse": "Strophe {verse} (Ausleitung)",
+      "pause": "Pause",
+      "ready": "Bereit"
+    }
+  },
+  "save": {
+    "title": "Gottesdienst speichern?",
+    "description": "{count} Lieder wurden gespielt. Möchtest du diesen Gottesdienst im Verlauf speichern?",
+    "nameLabel": "Name",
+    "defaultName": "Gottesdienst {date}",
+    "discard": "Verwerfen",
+    "save": "Speichern"
+  },
+  "midiPlayer": {
+    "title": "MIDI-Wiedergabe",
+    "description": "Vorspiel, Strophen und Ausleitung an das angeschlossene MIDI-Keyboard senden",
+    "versesLabel": "Strophen",
+    "loadingFiles": "MIDI-Dateien werden geladen…",
+    "startSong": "Lied starten",
+    "errors": {
+      "missingTrio": "Vorspiel, Standard oder Ausleitung fehlt für dieses Lied"
+    }
+  }
 }

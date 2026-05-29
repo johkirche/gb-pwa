@@ -2,122 +2,83 @@
   <div class="min-h-screen bg-background">
     <AppHeader :page-title="t('churchService.title')" :show-back-button="true" />
     <ScrollArea class="h-[calc(100vh-65px)]">
-      <main class="container mx-auto py-8 space-y-8">
-        <!-- Current Service Setup -->
-        <Card>
-          <CardHeader>
-            <CardTitle class="flex items-center space-x-2">
-              <span>⛪</span>
-              <span>{{ t("churchService.currentService") }}</span>
-            </CardTitle>
-            <CardDescription>
-              {{ t("churchService.createServiceDescription") }}
-            </CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-6">
-            <!-- Song List Manager -->
-            <SongListManager
-              :songs="churchServiceStore.currentService.songs"
-              @add-song="handleAddSong"
-              @remove-song="churchServiceStore.removeSong"
-              @update-song="handleUpdateSong"
-              @update-verses="churchServiceStore.updateSongVerses"
-              @reorder-songs="churchServiceStore.reorderSongs"
-            />
-
-            <!-- Service Controls -->
-            <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t">
-              <Button
-                :disabled="!churchServiceStore.canPlayService"
-                size="lg"
-                class="flex items-center space-x-2"
-                @click="churchServiceStore.playService"
+      <main class="container mx-auto py-8 max-w-6xl space-y-6">
+        <!-- Entry screen (idle): start CTA + history list -->
+        <template v-if="store.wizardStep === 'idle'">
+          <Card>
+            <CardContent class="pt-6 flex flex-col items-center text-center gap-4">
+              <div
+                class="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center"
               >
-                <Play class="w-5 h-5" />
-                <span>{{ t("churchService.playService") }}</span>
+                <Church class="w-7 h-7" />
+              </div>
+              <div class="space-y-1">
+                <h2 class="text-xl font-semibold">{{ t("churchService.entry.title") }}</h2>
+                <p class="text-sm text-muted-foreground">
+                  {{ t("churchService.entry.description") }}
+                </p>
+              </div>
+              <Button size="lg" @click="store.startSetup">
+                <Plus class="w-5 h-5 mr-1" />
+                {{ t("churchService.entry.startNew") }}
               </Button>
+            </CardContent>
+          </Card>
 
-              <Button
-                :disabled="!churchServiceStore.canSaveService"
-                variant="outline"
-                size="lg"
-                class="flex items-center space-x-2"
-                @click="churchServiceStore.saveService"
-              >
-                <Save class="w-5 h-5" />
-                <span>{{ t("churchService.saveService") }}</span>
-              </Button>
+          <ServiceHistory
+            :history="store.serviceHistory"
+            @load-service="store.loadService"
+            @delete-service="store.deleteService"
+          />
+        </template>
 
-              <Button
-                v-if="churchServiceStore.currentService.songs.length > 0"
-                variant="outline"
-                size="lg"
-                class="flex items-center space-x-2"
-                @click="churchServiceStore.clearService"
-              >
-                <X class="w-5 h-5" />
-                <span>{{ t("churchService.clearService") }}</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <!-- Wizard (setup / device / run) -->
+        <template v-else>
+          <ChurchServiceStepper :current="store.wizardStep" @jump="onStepperJump" />
 
-        <!-- Audio Player for Service -->
-        <ServiceAudioPlayer
-          v-if="churchServiceStore.isPlayingService"
-          :service="churchServiceStore.currentService"
-          :current-song-position="churchServiceStore.currentPlayingIndex"
-          @song-completed="churchServiceStore.onSongCompleted"
-          @service-completed="churchServiceStore.onServiceCompleted"
-          @song-changed="churchServiceStore.currentPlayingIndex = $event"
-          @service-stopped="churchServiceStore.onServiceCompleted"
-        />
-
-        <!-- Service History -->
-        <ServiceHistory
-          :history="churchServiceStore.serviceHistory"
-          @load-service="churchServiceStore.loadService"
-          @delete-service="churchServiceStore.deleteService"
-        />
+          <SetupStep v-if="store.wizardStep === 'setup'" @back="store.discardService" />
+          <DeviceStep v-else-if="store.wizardStep === 'device'" />
+          <RunStep v-else-if="store.wizardStep === 'run'" />
+        </template>
       </main>
     </ScrollArea>
+
+    <!-- Post-service save prompt — rendered at root so it overlays regardless of step. -->
+    <SaveServiceDialog />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useChurchServiceStore } from "@/stores/churchService";
-import { Play, Save, X } from "lucide-vue-next";
+import type { WizardStep } from "@/stores/churchService";
+import { Church, Plus } from "lucide-vue-next";
 
 import { onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 
-import type { Gesangbuchlied } from "@/gql/graphql";
-
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import AppHeader from "@/components/AppHeader.vue";
-import ServiceAudioPlayer from "@/components/church-service/ServiceAudioPlayer.vue";
+import ChurchServiceStepper from "@/components/church-service/ChurchServiceStepper.vue";
+import DeviceStep from "@/components/church-service/DeviceStep.vue";
+import RunStep from "@/components/church-service/RunStep.vue";
+import SaveServiceDialog from "@/components/church-service/SaveServiceDialog.vue";
 import ServiceHistory from "@/components/church-service/ServiceHistory.vue";
-import SongListManager from "@/components/church-service/SongListManager.vue";
+import SetupStep from "@/components/church-service/SetupStep.vue";
 
 const { t } = useI18n();
+const store = useChurchServiceStore();
 
-const churchServiceStore = useChurchServiceStore();
-
-const handleAddSong = (song?: Gesangbuchlied) => {
-  churchServiceStore.addSong(song); // This will create a song entry with the selected song or null
-};
-
-const handleUpdateSong = (index: number, song: Gesangbuchlied) => {
-  if (index >= 0 && index < churchServiceStore.currentService.songs.length) {
-    churchServiceStore.currentService.songs[index].song = song;
-    churchServiceStore.currentService.songs[index].verses = churchServiceStore.getAllVerses(song);
-  }
-};
+// Stepper jump: only "done" steps emit. From run → device is not safe (a stop
+// would lose state); we ignore those by only mapping to known back-steps.
+function onStepperJump(step: WizardStep) {
+  if (step === "setup") store.goToSetup();
+  else if (step === "device") store.goToDevice();
+}
 
 onMounted(async () => {
-  await churchServiceStore.loadHistory();
+  await store.loadHistory();
 });
 </script>

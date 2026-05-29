@@ -10,16 +10,12 @@
     />
 
     <!-- Main Content -->
-    <main class="container mx-auto py-8">
+    <main class="container mx-auto py-8 max-w-6xl">
       <!-- Loading State -->
       <SongLoadingState v-if="isLoading" />
 
       <!-- Error State -->
-      <SongErrorState
-        v-else-if="queryError"
-        :error="queryError"
-        @retry="fetchLied"
-      />
+      <SongErrorState v-else-if="queryError" :error="queryError" @retry="fetchLied" />
 
       <!-- Song Not Found -->
       <SongNotFoundState v-else-if="!lied" />
@@ -27,16 +23,9 @@
       <!-- Song Details -->
       <div v-else class="space-y-8">
         <!-- Cached Data Indicator -->
-        <div
-          v-if="isUsingCachedData"
-          class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4"
-        >
+        <div v-if="isUsingCachedData" class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
           <div class="flex items-center space-x-2">
-            <svg
-              class="w-4 h-4 text-blue-600"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
+            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fill-rule="evenodd"
                 d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
@@ -60,6 +49,19 @@
           :has-files="hasFiles(lied)"
         />
 
+        <SongNotationCard
+          v-if="musicXmlFile"
+          :file-url="`${directusUrl}/assets/${musicXmlFile.id}`"
+        />
+
+        <MidiSequencePlayer
+          v-if="midiSet"
+          :intro-url="`${directusUrl}/assets/${midiSet.intro.id}`"
+          :main-url="`${directusUrl}/assets/${midiSet.main.id}`"
+          :outro-url="`${directusUrl}/assets/${midiSet.outro.id}`"
+          :default-verses="strophenCount"
+        />
+
         <SongTextDisplay :strophes="lied.textId?.strophenEinzeln" />
 
         <SongFilesCard
@@ -73,10 +75,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 
+import type { GesangbuchliedWithMidi } from "@/gql/extra-types";
 import type { Directus_Files, Gesangbuchlied } from "@/gql/graphql";
 
 import AppHeader from "@/components/AppHeader.vue";
@@ -84,7 +87,9 @@ import SongErrorState from "@/components/song/ErrorState.vue";
 import SongFilesCard from "@/components/song/FilesCard.vue";
 import SongHeaderInfo from "@/components/song/HeaderInfo.vue";
 import SongLoadingState from "@/components/song/LoadingState.vue";
+import MidiSequencePlayer from "@/components/song/MidiSequencePlayer.vue";
 import SongNotFoundState from "@/components/song/NotFoundState.vue";
+import SongNotationCard from "@/components/song/NotationCard.vue";
 import SongMetadata from "@/components/song/SongMetadata.vue";
 import SongTextDisplay from "@/components/song/TextDisplay.vue";
 
@@ -134,10 +139,7 @@ const fetchLied = async () => {
             isUsingCachedData.value = false;
           }
         } catch (err) {
-          console.warn(
-            "Failed to fetch fresh data, using cached version:",
-            err,
-          );
+          console.warn("Failed to fetch fresh data, using cached version:", err);
           // Continue using the cached version - don't show error
         }
       }
@@ -167,8 +169,7 @@ const fetchLied = async () => {
     if (typeof window !== "undefined" && !navigator.onLine) {
       queryError.value = t("song.notAvailableOffline");
     } else {
-      queryError.value =
-        err instanceof Error ? err.message : t("utils.unknownError");
+      queryError.value = err instanceof Error ? err.message : t("utils.unknownError");
     }
   } finally {
     isLoading.value = false;
@@ -180,9 +181,7 @@ const getTextAuthors = (lied: Gesangbuchlied) => {
 
   return lied.textId.autorId
     .map((autorRel) => autorRel?.autor_id)
-    .filter((author): author is import("@/gql/graphql").Autor =>
-      Boolean(author),
-    );
+    .filter((author): author is import("@/gql/graphql").Autor => Boolean(author));
 };
 
 const getMelodyAuthors = (lied: Gesangbuchlied) => {
@@ -190,9 +189,19 @@ const getMelodyAuthors = (lied: Gesangbuchlied) => {
 
   return lied.melodieId.autorId
     .map((autorRel) => autorRel?.autor_id)
-    .filter((author): author is import("@/gql/graphql").Autor =>
-      Boolean(author),
-    );
+    .filter((author): author is import("@/gql/graphql").Autor => Boolean(author));
+};
+
+const isMusicXmlFile = (file: Directus_Files): boolean => {
+  const name = (file.filename_download || file.title || "").toLowerCase();
+  const mime = (file.type || "").toLowerCase();
+  return (
+    name.endsWith(".mxl") ||
+    name.endsWith(".musicxml") ||
+    mime.includes("musicxml") ||
+    mime === "application/vnd.recordare.musicxml" ||
+    mime === "application/vnd.recordare.musicxml+xml"
+  );
 };
 
 const hasFiles = (lied: Gesangbuchlied): boolean => {
@@ -202,10 +211,10 @@ const hasFiles = (lied: Gesangbuchlied): boolean => {
 const getAllFiles = (lied: Gesangbuchlied) => {
   const files: Directus_Files[] = [];
 
-  // Get melody files
+  // Get melody files (excluding MusicXML — those are rendered in NotationCard).
   if (lied.melodieId?.noten) {
     lied.melodieId.noten.forEach((note) => {
-      if (note?.directus_files_id) {
+      if (note?.directus_files_id && !isMusicXmlFile(note.directus_files_id)) {
         files.push(note.directus_files_id);
       }
     });
@@ -213,6 +222,39 @@ const getAllFiles = (lied: Gesangbuchlied) => {
 
   return files;
 };
+
+// First MusicXML file attached to this song's melody (if any).
+const musicXmlFile = computed<Directus_Files | null>(() => {
+  if (!lied.value?.melodieId?.noten) return null;
+  for (const note of lied.value.melodieId.noten) {
+    const file = note?.directus_files_id;
+    if (file && isMusicXmlFile(file)) return file;
+  }
+  return null;
+});
+
+// MIDI trio (intro + main + outro). All three must be present for the player
+// to make sense — there is no graceful fallback for a missing intro/outro.
+const midiSet = computed<{
+  intro: Directus_Files;
+  main: Directus_Files;
+  outro: Directus_Files;
+} | null>(() => {
+  const l = lied.value as GesangbuchliedWithMidi | null;
+  if (!l) return null;
+  const { midi_intro, midi_main, midi_outro } = l;
+  if (midi_intro && midi_main && midi_outro) {
+    return { intro: midi_intro, main: midi_main, outro: midi_outro };
+  }
+  return null;
+});
+
+// Default verse count = number of verses in the song text.
+const strophenCount = computed<number>(() => {
+  const strophen = lied.value?.textId?.strophenEinzeln;
+  if (Array.isArray(strophen) && strophen.length > 0) return strophen.length;
+  return 4;
+});
 
 // Initialize data on mount
 onMounted(() => {

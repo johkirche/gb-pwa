@@ -11,38 +11,6 @@
     </CardHeader>
 
     <CardContent class="space-y-6">
-      <!-- PWA Installation Required -->
-      <div v-if="!isInstalled" class="space-y-4">
-        <div class="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-          <div class="flex items-start space-x-3">
-            <Info class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-            <div class="flex-1">
-              <p class="text-sm font-medium text-amber-800 dark:text-amber-400">
-                {{ t("offline.contentManager.pwaRequired") }}
-              </p>
-              <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                {{ t("offline.contentManager.pwaRequiredDescription") }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex justify-center">
-          <Button
-            v-if="isInstallable"
-            @click="installPWA"
-            :disabled="isInstalling"
-            size="lg"
-            class="flex items-center space-x-2"
-          >
-            <Download class="w-4 h-4" />
-            <span>{{ t("offline.contentManager.installAppFirst") }}</span>
-          </Button>
-        </div>
-      </div>
-
-      <!-- Offline Content Management (only when PWA is installed) -->
-      <template v-else>
         <!-- Current Status -->
         <div class="space-y-4">
           <h3 class="text-lg font-semibold">
@@ -241,7 +209,6 @@
           </div>
         </div>
       </div>
-      </template>
     </CardContent>
   </Card>
 </template>
@@ -257,12 +224,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
-import { usePWA } from "@/composables/usePWA";
 
 const { t } = useI18n();
-
-// Use the PWA composable
-const { isInstalled, isInstallable, install } = usePWA();
 
 // Use the offline download composable
 const {
@@ -280,11 +243,12 @@ const {
 
 const errorMessage = ref("");
 const successMessage = ref("");
-const isInstalling = ref(false);
 const storageInfo = ref<{
   sizeInBytes: number;
   sizeInMB: string;
   itemCount: number;
+  pieceCount: number;
+  assetCount: number;
 } | null>(null);
 
 // Format date for display
@@ -349,25 +313,6 @@ const confirmClearContent = async () => {
     } catch {
       errorMessage.value = t("offline.contentManager.failedToClearContent");
     }
-  }
-};
-
-// Install PWA
-const installPWA = async () => {
-  try {
-    isInstalling.value = true;
-    const success = await install();
-    if (success) {
-      successMessage.value = t("offline.pwaStatus.installSuccess");
-      setTimeout(() => {
-        successMessage.value = "";
-      }, 5000);
-    }
-  } catch (error) {
-    console.error("PWA installation failed:", error);
-    errorMessage.value = t("offline.pwaStatus.installError");
-  } finally {
-    isInstalling.value = false;
   }
 };
 

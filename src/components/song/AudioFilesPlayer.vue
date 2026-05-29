@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { Music } from "lucide-vue-next";
 
-import { computed, ref } from "vue";
+import { computed, ref, watchEffect } from "vue";
 
 import type { Directus_Files } from "@/gql/graphql";
 
@@ -64,6 +64,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import SimpleAudioPlayer from "@/components/song/SimpleAudioPlayer.vue";
+
+import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
 
 interface Props {
   files: Directus_Files[];
@@ -86,7 +88,28 @@ const getFileName = (file: Directus_Files): string => {
   return file.title || file.filename_download || "Unknown";
 };
 
-const getAudioUrl = (file: Directus_Files): string => {
-  return `${props.directusUrl}/assets/${file.id}`;
-};
+// Resolve every audio file's URL: blob from IDB when cached for offline use,
+// otherwise the direct Directus asset URL. Object URLs are revoked when the
+// effect re-runs (audio file list changed) or the component unmounts.
+const audioUrls = ref<Map<string, string>>(new Map());
+
+watchEffect(async (onCleanup) => {
+  const next = new Map<string, string>();
+  const cleanups: (() => void)[] = [];
+  onCleanup(() => cleanups.forEach((c) => c()));
+
+  for (const file of audioFiles.value) {
+    const blob = await getOfflineAssetBlob(file.id);
+    if (blob) {
+      const objUrl = URL.createObjectURL(blob);
+      next.set(file.id, objUrl);
+      cleanups.push(() => URL.revokeObjectURL(objUrl));
+    } else {
+      next.set(file.id, `${props.directusUrl}/assets/${file.id}`);
+    }
+  }
+  audioUrls.value = next;
+});
+
+const getAudioUrl = (file: Directus_Files): string => audioUrls.value.get(file.id) ?? "";
 </script>

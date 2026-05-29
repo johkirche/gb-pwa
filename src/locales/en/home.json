@@ -31,7 +31,9 @@
     "favorites": "My Favorites",
     "favoritesDesc": "Your bookmarked favorite songs",
     "churchService": "Church Service",
-    "churchServiceDesc": "Prepare songs for church services"
+    "churchServiceDesc": "Prepare songs for church services",
+    "settings": "Settings",
+    "settingsDesc": "MIDI device and other options"
   },
   "categories": {
     "title": "Categories",

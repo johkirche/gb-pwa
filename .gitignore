@@ -26,3 +26,8 @@ dev-dist
 
 .env
 .eslintcache
+
+# Copied from node_modules at build time by the copy-spessasynth-worklet plugin
+public/spessasynth_processor.min.js
+test-input
+.playwright-mcp

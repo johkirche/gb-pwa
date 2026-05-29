@@ -9,13 +9,13 @@
       back-to="/home"
     />
 
-    <ScrollArea class="h-[calc(100vh-65px)]">
+    <div class="h-[calc(100vh-65px)] flex flex-col">
       <!-- Main Content -->
-      <main class="container mx-auto py-8">
+      <main class="container mx-auto py-8 max-w-6xl flex-1 min-h-0 flex flex-col">
         <!-- Data Source Control -->
         <div
           v-if="shouldShowDataSourceControl"
-          class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4"
+          class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex-shrink-0"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -59,7 +59,7 @@
           :sort-direction="filters.sortDirection"
           :available-categories="availableCategories"
           :available-file-types="availableFileTypes"
-          class="mb-4"
+          class="mb-4 flex-shrink-0"
           @toggle-sort-direction="toggleSortDirection"
           @clear-filters="clearFilters"
         />
@@ -90,7 +90,7 @@
         <!-- No Results -->
         <SongsEmptyState v-else-if="!isLoading && lieder.length === 0" @load-songs="fetchLieder" />
       </main>
-    </ScrollArea>
+    </div>
   </div>
 </template>
 
@@ -104,7 +104,6 @@ import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 
 import AppHeader from "@/components/AppHeader.vue";

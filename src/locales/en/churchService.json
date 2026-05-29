@@ -31,6 +31,7 @@
     "title": "Service History"
   },
   "loadingSongs": "Loading songs...",
+  "mainSongs": "Main songs",
   "moveDown": "Move down",
   "moveUp": "Move up",
   "noOfflineSongs": "No offline songs available",
@@ -38,6 +39,7 @@
   "noSongsAvailable": "No songs available",
   "noSongsFound": "No songs found matching your search",
   "noVersesSelected": "No verses selected",
+  "optional": "optional",
   "playService": "Play Service",
   "preview": "Preview",
   "progress": "Progress",
@@ -48,6 +50,15 @@
   "secondSong": "Second Song",
   "selectAll": "Select All",
   "selectFirstSong": "Select first song",
+  "selectIntroPiece": "Select prelude",
+  "selectOutroPiece": "Select postlude",
+  "selectPiece": "Select piece",
+  "changePiece": "Change piece",
+  "searchAndSelectPiece": "Search and select a standalone piece",
+  "searchPieces": "Search pieces…",
+  "loadingPieces": "Loading pieces…",
+  "noPiecesFound": "No pieces found matching your search",
+  "noPiecesAvailable": "No pieces available",
   "selectSecondSong": "Select second song",
   "selectSong": "Select Song",
   "selectSongPlaceholder": "Select song {number}",
@@ -59,6 +70,83 @@
   "songNumber": "Song {number} of {total}",
   "songsCount": "{count} songs",
   "title": "Church Service",
+  "noSongSelected": "No song selected",
+  "missingMidi": "No MIDI",
+  "cannotPlayMissingMidi": "Cannot play – these songs are missing a MIDI trio: {songs}",
+  "cannotPlayMissingVerses": "No verses selected for “{song}”",
   "verse": "Verse",
-  "verses": "Verses"
+  "verses": "Verses",
+  "speed": {
+    "label": "Tempo",
+    "bpm": "{value} BPM",
+    "decrease": "Decrease tempo",
+    "increase": "Increase tempo",
+    "tooltipBpm": "Original: {base} BPM · double-click to reset",
+    "tooltipMultiplier": "Tempo (multiplier) · double-click to reset"
+  },
+  "pitch": {
+    "label": "Key",
+    "decrease": "Transpose down",
+    "increase": "Transpose up",
+    "tooltipKey": "Original: {base} · transposed: {offset} · double-click to reset",
+    "tooltipSemitones": "Semitones · double-click to reset"
+  },
+  "intro": "Prelude",
+  "outro": "Postlude",
+  "introDescription": "Standalone piece played before the main songs.",
+  "outroDescription": "Standalone piece played after the main songs.",
+  "entry": {
+    "title": "Prepare a service",
+    "description": "Build the service order, choose your MIDI device and start the service — step by step.",
+    "startNew": "Start new service"
+  },
+  "stepper": {
+    "setup": "Setup",
+    "device": "Device",
+    "run": "Run",
+    "backToStart": "Back to start",
+    "backToSetup": "Back to setup",
+    "nextDevice": "Next: Device",
+    "startService": "Start service"
+  },
+  "device": {
+    "title": "Select MIDI device",
+    "description": "Pick the keyboard the service will play to.",
+    "connected": "Device connected",
+    "notConnected": "No device selected yet. Plug in a MIDI keyboard and pick it above.",
+    "summary": "Service overview"
+  },
+  "run": {
+    "position": "Song {current} of {total}",
+    "currentlyPlaying": "now playing",
+    "songProgress": "Song progress",
+    "stage": {
+      "intro": "♪ Intro",
+      "introShort": "Intro",
+      "verse": "Verse {verse}",
+      "outro": "♪ Outro",
+      "outroShort": "Outro",
+      "outroWithVerse": "Verse {verse} (outro)",
+      "pause": "Pause",
+      "ready": "Ready"
+    }
+  },
+  "save": {
+    "title": "Save service?",
+    "description": "{count} songs were played. Save this service to history?",
+    "nameLabel": "Name",
+    "defaultName": "Service {date}",
+    "discard": "Discard",
+    "save": "Save"
+  },
+  "midiPlayer": {
+    "title": "MIDI Playback",
+    "description": "Send intro, verses and outro to the connected MIDI keyboard",
+    "versesLabel": "Verses",
+    "loadingFiles": "Loading MIDI files…",
+    "startSong": "Start song",
+    "errors": {
+      "missingTrio": "Intro, main or outro MIDI file is missing for this song"
+    }
+  }
 }

@@ -1,0 +1,40 @@
+{
+  "pageTitle": "Settings",
+  "midi": {
+    "title": "MIDI Device",
+    "description": "Choose the MIDI output device used for playback and church services. The choice is stored in the browser.",
+    "currentlySelected": "Currently selected"
+  },
+  "synth": {
+    "title": "Browser synthesizer",
+    "description": "Settings for the built-in playback when no external MIDI device is connected.",
+    "volume": "Volume",
+    "preset": "Instrument",
+    "presets": {
+      "churchOrgan": "Church organ",
+      "drawbarOrgan": "Drawbar organ",
+      "reedOrgan": "Reed organ",
+      "acousticGrandPiano": "Acoustic grand piano",
+      "harpsichord": "Harpsichord",
+      "stringsEnsemble": "Strings ensemble",
+      "choirAahs": "Choir aahs"
+    },
+    "status": {
+      "idle": "Not initialized yet — will load on first playback.",
+      "loading": "Loading SoundFont …",
+      "spessasynth": "SoundFont synthesizer active.",
+      "oscillator": "No SoundFont available — simple oscillator fallback is active. Upload a SoundFont file in the Directus settings for a better sound."
+    },
+    "loadError": "Failed to load SoundFont",
+    "soundfont": {
+      "label": "SoundFont file",
+      "cached": "Stored for offline use.",
+      "notCached": "Not downloaded yet — will be fetched from the network on first playback.",
+      "unconfigured": "No SoundFont is configured in the Directus settings.",
+      "download": "Download",
+      "redownload": "Re-download",
+      "downloading": "Downloading …",
+      "error": "Download failed"
+    }
+  }
+}

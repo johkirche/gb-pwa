@@ -7,7 +7,7 @@
     />
     <ScrollArea class="h-[calc(100vh-65px)]">
       <!-- Main Content -->
-      <main class="container mx-auto py-8 space-y-8">
+      <main class="container mx-auto py-8 max-w-6xl space-y-8">
         <!-- Quick Stats Row -->
         <StatsRow :stats="statsStore.stats" />
 
@@ -70,6 +70,19 @@
 
           <Card
             class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'playlists' })"
+          >
+            <CardHeader>
+              <CardTitle class="flex items-center space-x-2">
+                <span>📋</span>
+                <span>{{ t("playlist.title") }}</span>
+              </CardTitle>
+              <CardDescription>{{ t("playlist.description") }}</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
             @click="router.push({ name: 'midi-test' })"
           >
             <CardHeader>
@@ -78,6 +91,19 @@
                 <span>MIDI Test</span>
               </CardTitle>
               <CardDescription>Test MIDI file upload and playback</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
+            @click="router.push({ name: 'settings' })"
+          >
+            <CardHeader>
+              <CardTitle class="flex items-center space-x-2">
+                <span>⚙️</span>
+                <span>{{ t("home.actions.settings") }}</span>
+              </CardTitle>
+              <CardDescription>{{ t("home.actions.settingsDesc") }}</CardDescription>
             </CardHeader>
           </Card>
         </div>

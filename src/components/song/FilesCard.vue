@@ -1,11 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Audio Player Section -->
-    <AudioFilesPlayer
-      v-if="audioFiles.length > 0"
-      :files="files"
-      :directus-url="directusUrl"
-    />
+    <AudioFilesPlayer v-if="audioFiles.length > 0" :files="files" :directus-url="directusUrl" />
 
     <!-- Other Files Section -->
     <Card v-if="nonAudioFiles.length > 0">
@@ -29,7 +25,7 @@
                 @click="openImagePreview(file)"
               >
                 <img
-                  :src="`${directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`"
+                  :src="thumbnailUrl(file)"
                   :alt="file.title || file.filename_download || 'Image'"
                   class="w-full h-full object-cover transition-transform group-hover:scale-105"
                   loading="lazy"
@@ -58,18 +54,9 @@
 
             <div class="flex items-start space-x-3">
               <div class="flex-shrink-0">
-                <FileText
-                  v-if="file.type?.includes('pdf')"
-                  class="w-8 h-8 text-red-500"
-                />
-                <Music
-                  v-else-if="file.type?.includes('audio')"
-                  class="w-8 h-8 text-purple-500"
-                />
-                <Image
-                  v-else-if="file.type?.includes('image')"
-                  class="w-8 h-8 text-green-500"
-                />
+                <FileText v-if="file.type?.includes('pdf')" class="w-8 h-8 text-red-500" />
+                <Music v-else-if="file.type?.includes('audio')" class="w-8 h-8 text-purple-500" />
+                <Image v-else-if="file.type?.includes('image')" class="w-8 h-8 text-green-500" />
                 <File v-else class="w-8 h-8 text-gray-500" />
               </div>
               <div class="flex-1 min-w-0">
@@ -109,33 +96,25 @@
   <!-- Image Preview Dialog -->
   <Dialog v-model:open="isImagePreviewOpen">
     <DialogContent
-      class="max-w-4xl w-full h-[95vh] p-0 bg-black border-none flex flex-col text-white"
+      class="max-w-6xl w-full h-[95vh] p-0 bg-black border-none flex flex-col text-white"
     >
       <DialogHeader
         class="flex-shrink-0 bg-black bg-opacity-80 backdrop-blur-sm p-4 border-b border-gray-700 rounded-t-lg"
       >
         <DialogTitle class="text-white">
-          {{
-            selectedImage?.title ||
-            selectedImage?.filename_download ||
-            t("song.imagePreview")
-          }}
+          {{ selectedImage?.title || selectedImage?.filename_download || t("song.imagePreview") }}
         </DialogTitle>
         <DialogDescription class="text-gray-300">
           {{ selectedImage?.type }} •
           {{ formatFileSize(selectedImage?.filesize) }}
-          <span class="text-gray-400 text-xs block mt-1">{{
-            t("song.clickImageFullscreen")
-          }}</span>
+          <span class="text-gray-400 text-xs block mt-1">{{ t("song.clickImageFullscreen") }}</span>
         </DialogDescription>
       </DialogHeader>
       <div class="flex-1 flex items-center justify-center p-4 min-h-0">
         <img
-          v-if="selectedImage"
-          :src="`${directusUrl}/assets/${selectedImage.id}`"
-          :alt="
-            selectedImage.title || selectedImage.filename_download || 'Image'
-          "
+          v-if="selectedImage && selectedImageUrl"
+          :src="selectedImageUrl"
+          :alt="selectedImage.title || selectedImage.filename_download || 'Image'"
           class="max-w-full max-h-full object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
           @error="handleDialogImageError"
           @load="handleDialogImageLoad"
@@ -148,12 +127,8 @@
   <!-- Pan-Zoom Image Modal -->
   <PanZoomImage
     v-model:is-open="isFullscreenOpen"
-    :image-src="
-      fullScreenImage ? `${directusUrl}/assets/${fullScreenImage.id}` : ''
-    "
-    :image-alt="
-      fullScreenImage?.title || fullScreenImage?.filename_download || 'Image'
-    "
+    :image-src="fullScreenImageUrl ?? ''"
+    :image-alt="fullScreenImage?.title || fullScreenImage?.filename_download || 'Image'"
     @close="handleFullscreenClose"
     @image-error="handleDialogImageError"
     @image-load="handleDialogImageLoad"
@@ -161,17 +136,9 @@
 </template>
 
 <script setup lang="ts">
-import {
-  Download,
-  Eye,
-  File,
-  FileText,
-  Files,
-  Image,
-  Music,
-} from "lucide-vue-next";
+import { Download, Eye, File, FileText, Files, Image, Music } from "lucide-vue-next";
 
-import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watchEffect } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { Directus_Files } from "@/gql/graphql";
@@ -188,6 +155,9 @@ import {
 
 import AudioFilesPlayer from "@/components/song/AudioFilesPlayer.vue";
 import PanZoomImage from "@/components/utils/pan-zoom-image/PanZoomImage.vue";
+
+import { useOfflineAsset } from "@/composables/useOfflineAsset";
+import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
 
 const { t } = useI18n();
 
@@ -208,6 +178,38 @@ const nonAudioFiles = computed(() => {
 // Image preview modal state
 const fullScreenImage = ref<Directus_Files | null>(null);
 const selectedImage = ref<Directus_Files | null>(null);
+
+// Asset URLs for the preview dialog + pan-zoom modal. These work offline
+// because `useOfflineAsset` returns a blob URL when the file is cached.
+const selectedImageUrl = useOfflineAsset(() => selectedImage.value?.id ?? null);
+const fullScreenImageUrl = useOfflineAsset(() => fullScreenImage.value?.id ?? null);
+
+// Resolve URLs for every file in the grid. Cached blobs win over the network
+// URL with thumbnail params — the cached version is full-resolution but loads
+// reliably offline; the browser scales it down via CSS for the thumbnail slot.
+const cachedFileUrls = ref<Map<string, string>>(new Map());
+
+watchEffect(async (onCleanup) => {
+  const next = new Map<string, string>();
+  const cleanups: (() => void)[] = [];
+  onCleanup(() => cleanups.forEach((c) => c()));
+
+  for (const file of nonAudioFiles.value) {
+    const blob = await getOfflineAssetBlob(file.id);
+    if (blob) {
+      const objUrl = URL.createObjectURL(blob);
+      next.set(file.id, objUrl);
+      cleanups.push(() => URL.revokeObjectURL(objUrl));
+    }
+  }
+  cachedFileUrls.value = next;
+});
+
+const thumbnailUrl = (file: Directus_Files): string => {
+  const cached = cachedFileUrls.value.get(file.id);
+  if (cached) return cached;
+  return `${props.directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`;
+};
 const isImagePreviewOpen = computed({
   get: () => selectedImage.value !== null,
   set: (value: boolean) => {
@@ -275,8 +277,21 @@ const handleFullscreenClose = () => {
   });
 };
 
-const downloadFile = (file: Directus_Files) => {
-  const url = `${props.directusUrl}/assets/${file.id}`;
+const downloadFile = async (file: Directus_Files) => {
+  // Prefer the cached blob — works offline AND skips an unnecessary network
+  // round trip even when online. Falls back to the network URL otherwise.
+  let url = cachedFileUrls.value.get(file.id);
+  let revokeAfter = false;
+  if (!url) {
+    const blob = await getOfflineAssetBlob(file.id);
+    if (blob) {
+      url = URL.createObjectURL(blob);
+      revokeAfter = true;
+    } else {
+      url = `${props.directusUrl}/assets/${file.id}`;
+    }
+  }
+
   const link = document.createElement("a");
   link.href = url;
   link.download = file.filename_download || file.title || "download";
@@ -284,14 +299,8 @@ const downloadFile = (file: Directus_Files) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  console.log("Downloading file:", url);
-  console.log("File details:", {
-    id: file.id,
-    title: file.title,
-    filename_download: file.filename_download,
-    type: file.type,
-    filesize: file.filesize,
-  });
+
+  if (revokeAfter) URL.revokeObjectURL(url);
 };
 
 // Handle escape key for fullscreen

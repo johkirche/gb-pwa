@@ -75,10 +75,14 @@ export const useGesangbuchlied = () => {
     "externerLink",
     "liedHatAenderung",
     "liednummer2000",
+    "liednummer2026",
     "linkCloud",
     "melodieGeaendert",
     "textGeaendert",
     "rueckfrageAutor",
+    { midi_intro: fileFields },
+    { midi_main: fileFields },
+    { midi_outro: fileFields },
     {
       kategorieId: [
         "id",

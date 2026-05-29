@@ -116,27 +116,26 @@
               class="text-sm font-medium whitespace-nowrap hidden sm:block"
               >{{ t("songs.category") }}</Label
             >
-            <select
-              id="category-filter"
-              :value="selectedCategory"
-              class="w-full sm:w-auto min-w-0 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring truncate"
-              @change="
-                $emit(
-                  'update:selectedCategory',
-                  ($event.target as HTMLSelectElement).value,
-                )
-              "
+            <Select
+              :model-value="selectedCategory || ALL_VALUE"
+              @update:model-value="onCategoryChange"
             >
-              <option value="">{{ t("songs.allCategories") }}</option>
-              <option
-                v-for="category in availableCategories"
-                :key="category"
-                :value="category"
-                class="truncate"
-              >
-                {{ category }}
-              </option>
-            </select>
+              <SelectTrigger id="category-filter" class="w-full sm:w-auto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="ALL_VALUE">
+                  {{ t("songs.allCategories") }}
+                </SelectItem>
+                <SelectItem
+                  v-for="category in availableCategories"
+                  :key="category"
+                  :value="category"
+                >
+                  {{ category }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <!-- File Type Filter -->
@@ -148,27 +147,26 @@
               class="text-sm font-medium whitespace-nowrap hidden sm:block"
               >{{ t("songs.fileType") }}</Label
             >
-            <select
-              id="file-type-filter"
-              :value="selectedFileType"
-              class="w-full sm:w-auto min-w-0 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring truncate"
-              @change="
-                $emit(
-                  'update:selectedFileType',
-                  ($event.target as HTMLSelectElement).value,
-                )
-              "
+            <Select
+              :model-value="selectedFileType || ALL_VALUE"
+              @update:model-value="onFileTypeChange"
             >
-              <option value="">{{ t("songs.allFileTypes") }}</option>
-              <option
-                v-for="fileType in availableFileTypes"
-                :key="fileType"
-                :value="fileType"
-                class="truncate"
-              >
-                {{ fileType }}
-              </option>
-            </select>
+              <SelectTrigger id="file-type-filter" class="w-full sm:w-auto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="ALL_VALUE">
+                  {{ t("songs.allFileTypes") }}
+                </SelectItem>
+                <SelectItem
+                  v-for="fileType in availableFileTypes"
+                  :key="fileType"
+                  :value="fileType"
+                >
+                  {{ fileType }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -196,6 +194,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useFavorites } from "@/composables/useFavorites";
 
@@ -232,6 +237,7 @@ const emit = defineEmits<{
 const sortOptions = [
   { key: "title", icon: Type, labelKey: "songs.title" },
   { key: "date_updated", icon: Calendar, labelKey: "songs.dateUpdated" },
+  { key: "liednummer2026", icon: Hash, labelKey: "songs.liedNumber2026" },
   { key: "liednummer2000", icon: Hash, labelKey: "songs.liedNumber" },
 ];
 
@@ -253,6 +259,21 @@ const cycleSortBy = () => {
   const nextSortBy = sortOptions[nextIndex].key;
   emit("update:sortBy", nextSortBy);
 };
+
+// reka-ui's Select forbids `""` as an item value, so we use a sentinel for the
+// "all" entries and translate it back to an empty string on emit (which the
+// parent treats as "no filter").
+const ALL_VALUE = "__all__";
+
+function onCategoryChange(value: unknown) {
+  if (typeof value !== "string") return;
+  emit("update:selectedCategory", value === ALL_VALUE ? "" : value);
+}
+
+function onFileTypeChange(value: unknown) {
+  if (typeof value !== "string") return;
+  emit("update:selectedFileType", value === ALL_VALUE ? "" : value);
+}
 
 const filterIsActive = computed(() => {
   return (

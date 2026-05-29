@@ -24,9 +24,17 @@
     </Button>
 
     <CardHeader class="pb-3">
-      <CardTitle class="text-lg group-hover:text-primary transition-colors pr-10">
-        {{ lied.titel || t("songs.untitled") }}
-      </CardTitle>
+      <div class="flex items-start gap-2 pr-10">
+        <span
+          v-if="liedNumber !== null"
+          class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-1 rounded-md bg-primary text-primary-foreground text-base font-bold tabular-nums leading-none flex-shrink-0 mt-0.5"
+        >
+          {{ liedNumber }}
+        </span>
+        <CardTitle class="text-lg group-hover:text-primary transition-colors flex-1 min-w-0 break-words">
+          {{ lied.titel || t("songs.untitled") }}
+        </CardTitle>
+      </div>
       <CardDescription v-if="firstCategory" class="flex items-center">
         <Tag class="w-3 h-3 mr-1" />
         {{ firstCategory }}
@@ -92,6 +100,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
+import { getLiedNumber } from "@/gql/extra-types";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,6 +127,8 @@ const props = defineProps<Props>();
 defineEmits<{
   click: [id: string];
 }>();
+
+const liedNumber = computed(() => getLiedNumber(props.lied));
 
 // Computed properties for data extraction
 const authors = computed(() => {

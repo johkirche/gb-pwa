@@ -10,6 +10,8 @@
   "errorLoadingSong": "Fehler beim Laden des Liedes",
   "retry": "Wiederholen",
   "songNumber": "Lied Nr.",
+  "songNumber2026": "GB 2026 Nr.",
+  "songNumber2000": "GB 2000 Nr.",
   "updated": "Aktualisiert",
   "authors": "Autoren",
   "textAuthors": "Text-Autoren",
@@ -35,6 +37,37 @@
   "imagePreview": "Bildvorschau",
   "clickImageFullscreen": "Klicken Sie auf das Bild für Vollbildansicht",
   "noImageSelected": "Kein Bild ausgewählt",
+  "notation": {
+    "title": "Noten",
+    "description": "Melodie aus MusicXML",
+    "errors": {
+      "initFailed": "Notation konnte nicht initialisiert werden",
+      "renderFailed": "Fehler beim Rendern der Noten"
+    }
+  },
+  "midiPlayer": {
+    "title": "MIDI-Wiedergabe",
+    "description": "Vorspiel, Strophen und Ausleitung an ein angeschlossenes MIDI-Gerät senden",
+    "device": "MIDI-Gerät",
+    "verses": "Strophen",
+    "play": "Abspielen",
+    "stop": "Stopp",
+    "accessNeeded": "Zugriff auf MIDI-Geräte wird benötigt.",
+    "requestAccess": "MIDI-Zugriff erlauben",
+    "accessHint": "Hardware-Geräte erscheinen nach erlaubtem MIDI-Zugriff.",
+    "notSupportedHint": "Web-MIDI wird in diesem Browser nicht unterstützt – Hardware-Geräte sind nicht verfügbar. Der Browser-Synthesizer funktioniert trotzdem.",
+    "builtInSynth": "Browser-Synthesizer (kein Gerät nötig)",
+    "noDevices": "Kein MIDI-Ausgabegerät gefunden. Bitte ein USB-MIDI-Keyboard anschließen.",
+    "loadingFiles": "MIDI-Dateien werden geladen…",
+    "statusIntro": "Vorspiel",
+    "statusVerse": "Strophe {current} von {total}",
+    "statusOutro": "Letzte Strophe ({current} von {total})",
+    "statusPause": "Pause",
+    "errors": {
+      "notSupported": "Web MIDI API wird in diesem Browser nicht unterstützt. Bitte Chrome, Edge oder Opera verwenden.",
+      "parseFailed": "MIDI-Datei konnte nicht gelesen werden"
+    }
+  },
   "audioPlayer": {
     "playbackSpeed": "Wiedergabegeschwindigkeit",
     "normal": "Normal",

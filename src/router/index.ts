@@ -49,6 +49,25 @@ const router = createRouter({
       component: () => import("@/views/MidiTestView.vue"),
     },
     {
+      path: "/playlists",
+      name: "playlists",
+      component: () => import("@/views/PlaylistsView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/playlists/:id",
+      name: "playlist-detail",
+      component: () => import("@/views/PlaylistDetailView.vue"),
+      props: true,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/settings",
+      name: "settings",
+      component: () => import("@/views/SettingsView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       // Catch all route - redirect to index
       path: "/:pathMatch(.*)*",
       redirect: "/",
