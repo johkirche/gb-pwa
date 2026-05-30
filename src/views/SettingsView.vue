@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <AppHeader
-      :page-title="t('settings.pageTitle')"
-      :show-back-button="true"
-      :show-home-button="true"
-    />
-
+  <AppLayout>
     <main class="container mx-auto py-8 max-w-6xl space-y-6">
+      <PageHeader :items="breadcrumbs" />
+
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">{{ t("settings.pageTitle") }}</h1>
+      </div>
+
       <!-- MIDI Device + Synth Settings. The selector renders the synth
            controls inline when the in-browser synth is the active output, so
            we don't repeat them in a second card here. -->
@@ -29,21 +29,28 @@
         </CardContent>
       </Card>
     </main>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
 import { Piano } from "lucide-vue-next";
 
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-import AppHeader from "@/components/AppHeader.vue";
+import AppLayout from "@/components/layout/AppLayout.vue";
+import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";
 import MidiDeviceSelector from "@/components/song/MidiDeviceSelector.vue";
 
 import { useMidiDevices } from "@/composables/useMidiPlayer";
 
 const { t } = useI18n();
 const { selectedOutput } = useMidiDevices();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { label: t("nav.home"), to: { name: "home" } },
+  { label: t("settings.pageTitle") },
+]);
 </script>

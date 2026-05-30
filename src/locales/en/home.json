@@ -1,5 +1,18 @@
 {
   "welcome": "Welcome, {userName}!",
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "night": "Welcome back"
+  },
+  "subtitle": "What would you like to sing today?",
+  "quickAccess": "Quick access",
+  "categoriesHeading": "Browse by theme",
+  "recentHeading": "Recent services",
+  "recentViewAll": "View all",
+  "recentEmpty": "No services yet — prepare one to see it here.",
+  "songsCountLabel": "{count} songs",
   "gesangbuchlieder": "Gesangbuchlieder",
   "browseDescription": "Browse and search through all the songs in the Gesangbuch.",
   "browseAllSongs": "Browse All Songs",

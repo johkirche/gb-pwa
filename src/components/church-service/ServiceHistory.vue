@@ -1,16 +1,16 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center space-x-2">
+  <section class="space-y-4">
+    <div>
+      <h2 class="text-base font-semibold flex items-center gap-2">
         <span>{{ icon ?? "📚" }}</span>
         <span>{{ title ?? t("churchService.history.title") }}</span>
-      </CardTitle>
-      <CardDescription>
+      </h2>
+      <p class="text-sm text-muted-foreground mt-0.5">
         {{ description ?? t("churchService.history.description") }}
-      </CardDescription>
-    </CardHeader>
+      </p>
+    </div>
 
-    <CardContent>
+    <div>
       <!-- Empty State -->
       <div v-if="history.length === 0" class="text-center py-8">
         <History class="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -39,7 +39,9 @@
               paddingBottom: '16px', // Add spacing between items
             }"
           >
-            <div class="border rounded-lg p-4 transition-colors relative">
+            <div
+              class="border bg-card rounded-lg p-4 shadow-sm transition-colors relative hover:bg-accent/40"
+            >
               <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center space-x-2 mb-2">
@@ -162,7 +164,7 @@
           </div>
         </div>
       </div>
-    </CardContent>
+    </div>
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:open="deleteDialogOpen">
@@ -186,7 +188,7 @@
         </div>
       </DialogContent>
     </Dialog>
-  </Card>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -201,7 +203,6 @@ import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,

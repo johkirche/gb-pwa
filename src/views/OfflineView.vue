@@ -1,14 +1,8 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <AppHeader
-      :page-title="t('songs.pageTitle')"
-      :show-back-button="true"
-      :back-button-text="t('songs.backButtonText')"
-      back-to="/home"
-    />
+  <AppLayout>
+    <main class="container mx-auto py-8 max-w-6xl space-y-8">
+        <PageHeader :items="breadcrumbs" />
 
-    <ScrollArea class="h-[calc(100vh-65px)]">
-      <main class="container mx-auto py-8 max-w-6xl space-y-8">
         <!-- Header -->
         <div>
           <h1 class="text-2xl font-bold mb-2">
@@ -30,21 +24,25 @@
 
         <!-- Storage Information -->
         <StorageInformation />
-      </main>
-    </ScrollArea>
-  </div>
+    </main>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-
-import AppHeader from "@/components/AppHeader.vue";
+import AppLayout from "@/components/layout/AppLayout.vue";
+import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";
 import InstallationTutorial from "@/components/offline/InstallationTutorial.vue";
 import OfflineContentManager from "@/components/offline/OfflineContentManager.vue";
 import PWAInstallationStatus from "@/components/offline/PWAInstallationStatus.vue";
 import StorageInformation from "@/components/offline/StorageInformation.vue";
 
 const { t } = useI18n();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { label: t("nav.home"), to: { name: "home" } },
+  { label: t("offline.title") },
+]);
 </script>

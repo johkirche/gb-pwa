@@ -1,13 +1,8 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <AppHeader
-      :page-title="playlist?.name ?? t('playlist.title')"
-      :show-back-button="true"
-      :show-home-button="true"
-      back-to="/playlists"
-    />
-
+  <AppLayout>
     <main class="container mx-auto py-8 max-w-6xl space-y-6">
+      <PageHeader :items="breadcrumbs" />
+
       <!-- Not found state: playlists are loaded but this id doesn't exist -->
       <Card v-if="loaded && !playlist">
         <CardContent class="pt-6 text-center space-y-3">
@@ -231,7 +226,7 @@
         </div>
       </DialogContent>
     </Dialog>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
@@ -260,7 +255,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import AppHeader from "@/components/AppHeader.vue";
+import AppLayout from "@/components/layout/AppLayout.vue";
+import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";
 import EmojiPickerPopover from "@/components/EmojiPickerPopover.vue";
 
 const { t } = useI18n();
@@ -279,6 +275,12 @@ const loaded = ref(false);
 const playlistId = computed(() => route.params.id as string);
 
 const playlist = computed(() => store.getPlaylist(playlistId.value) ?? null);
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { label: t("nav.home"), to: { name: "home" } },
+  { label: t("nav.playlists"), to: { name: "playlists" } },
+  { label: playlist.value?.name || t("playlist.title") },
+]);
 
 const songsById = computed(() => {
   const map = new Map<string, Gesangbuchlied>();

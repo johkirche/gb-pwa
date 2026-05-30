@@ -1,74 +1,68 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-8">
     <!-- Intro slot ("Vorspiel") — standalone piece from freie_musikstuecke -->
-    <Card>
-      <CardHeader class="pb-3">
-        <CardTitle class="text-base flex items-center gap-2">
+    <section class="space-y-3">
+      <div>
+        <h3 class="text-sm font-semibold flex items-center gap-2">
           <Sparkles class="w-4 h-4 text-purple-600" />
           {{ t("churchService.intro") }}
           <Badge variant="outline" class="text-[10px] font-normal">
             {{ t("churchService.optional") }}
           </Badge>
-        </CardTitle>
-        <CardDescription class="text-xs">
+        </h3>
+        <p class="text-xs text-muted-foreground mt-1">
           {{ t("churchService.introDescription") }}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <PiecePicker
-          :selected-piece="store.currentService.intro?.piece ?? null"
-          :speed="store.currentService.intro?.speed ?? 1"
-          :pitch-semitones="store.currentService.intro?.pitchSemitones ?? 0"
-          :placeholder="t('churchService.selectIntroPiece')"
-          @piece-selected="store.setIntroPiece"
-          @update:speed="(v) => store.updatePieceSpeed('intro', v)"
-          @update:pitch="(v) => store.updatePiecePitch('intro', v)"
-        />
-      </CardContent>
-    </Card>
+        </p>
+      </div>
+      <PiecePicker
+        :selected-piece="store.currentService.intro?.piece ?? null"
+        :speed="store.currentService.intro?.speed ?? 1"
+        :pitch-semitones="store.currentService.intro?.pitchSemitones ?? 0"
+        :placeholder="t('churchService.selectIntroPiece')"
+        @piece-selected="store.setIntroPiece"
+        @update:speed="(v) => store.updatePieceSpeed('intro', v)"
+        @update:pitch="(v) => store.updatePiecePitch('intro', v)"
+      />
+    </section>
 
     <!-- Main songs -->
-    <Card>
-      <CardContent class="pt-6">
-        <SongListManager
-          :songs="store.currentService.songs"
-          @add-song="handleAddMainSong"
-          @remove-song="store.removeSong"
-          @update-song="handleUpdateMainSong"
-          @update-verses="store.updateSongVerses"
-          @update-speed="store.updateSongSpeed"
-          @update-pitch="store.updateSongPitch"
-          @reorder-songs="store.reorderSongs"
-        />
-      </CardContent>
-    </Card>
+    <section class="border-t border-border pt-8">
+      <SongListManager
+        :songs="store.currentService.songs"
+        @add-song="handleAddMainSong"
+        @remove-song="store.removeSong"
+        @update-song="handleUpdateMainSong"
+        @update-verses="store.updateSongVerses"
+        @update-speed="store.updateSongSpeed"
+        @update-pitch="store.updateSongPitch"
+        @reorder-songs="store.reorderSongs"
+      />
+    </section>
 
     <!-- Outro slot ("Nachspiel") — standalone piece from freie_musikstuecke -->
-    <Card>
-      <CardHeader class="pb-3">
-        <CardTitle class="text-base flex items-center gap-2">
+    <section class="space-y-3 border-t border-border pt-8">
+      <div>
+        <h3 class="text-sm font-semibold flex items-center gap-2">
           <Sunset class="w-4 h-4 text-amber-600" />
           {{ t("churchService.outro") }}
           <Badge variant="outline" class="text-[10px] font-normal">
             {{ t("churchService.optional") }}
           </Badge>
-        </CardTitle>
-        <CardDescription class="text-xs">
+        </h3>
+        <p class="text-xs text-muted-foreground mt-1">
           {{ t("churchService.outroDescription") }}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <PiecePicker
-          :selected-piece="store.currentService.outro?.piece ?? null"
-          :speed="store.currentService.outro?.speed ?? 1"
-          :pitch-semitones="store.currentService.outro?.pitchSemitones ?? 0"
-          :placeholder="t('churchService.selectOutroPiece')"
-          @piece-selected="store.setOutroPiece"
-          @update:speed="(v) => store.updatePieceSpeed('outro', v)"
-          @update:pitch="(v) => store.updatePiecePitch('outro', v)"
-        />
-      </CardContent>
-    </Card>
+        </p>
+      </div>
+      <PiecePicker
+        :selected-piece="store.currentService.outro?.piece ?? null"
+        :speed="store.currentService.outro?.speed ?? 1"
+        :pitch-semitones="store.currentService.outro?.pitchSemitones ?? 0"
+        :placeholder="t('churchService.selectOutroPiece')"
+        @piece-selected="store.setOutroPiece"
+        @update:speed="(v) => store.updatePieceSpeed('outro', v)"
+        @update:pitch="(v) => store.updatePiecePitch('outro', v)"
+      />
+    </section>
 
     <!-- Validation banner -->
     <div
@@ -125,7 +119,6 @@ import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import PiecePicker from "./PiecePicker.vue";
 import SongListManager from "./SongListManager.vue";

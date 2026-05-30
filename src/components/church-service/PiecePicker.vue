@@ -2,15 +2,15 @@
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <h4 class="text-sm font-medium">
-        {{ selectedPiece ? selectedPiece.name : placeholder }}
+        {{ selectedPiece ? "" : placeholder }}
       </h4>
       <Button variant="outline" size="sm" @click="openPickerDialog">
         {{ selectedPiece ? t("churchService.changePiece") : t("churchService.selectPiece") }}
       </Button>
     </div>
 
-    <!-- Selected piece preview -->
-    <div v-if="selectedPiece" class="p-4 bg-muted rounded-lg border">
+    <!-- Selected piece preview — matches the song cards in the list above. -->
+    <div v-if="selectedPiece" class="border bg-card rounded-lg p-4">
       <div class="flex items-start justify-between gap-2">
         <div class="flex-1 min-w-0">
           <h5 class="font-medium break-words">{{ selectedPiece.name }}</h5>
@@ -77,11 +77,7 @@
           </div>
 
           <!-- Pieces list (virtualized) -->
-          <div
-            v-if="filteredPieces.length > 0"
-            ref="scrollElement"
-            class="h-[450px] overflow-auto"
-          >
+          <div v-if="filteredPieces.length > 0" ref="scrollElement" class="h-[450px] overflow-auto">
             <div
               :style="{
                 height: `${pieceVirtualizer.getTotalSize()}px`,
@@ -182,6 +178,7 @@
 </template>
 
 <script setup lang="ts">
+import SongPlaybackControls from "./SongPlaybackControls.vue";
 import { useFreieMusikstueckeStore } from "@/stores/freieMusikstuecke";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { Search, X } from "lucide-vue-next";
@@ -202,8 +199,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-
-import SongPlaybackControls from "./SongPlaybackControls.vue";
 
 interface Props {
   selectedPiece: FreiesMusikstueck | null;

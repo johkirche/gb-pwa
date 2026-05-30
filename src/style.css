@@ -42,75 +42,85 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Warm "sacred" theme: neutral base with a muted amber/gold accent.
+   Base surfaces stay near-neutral (very low chroma, warm hue ~80) so the
+   palette reads calm; the gold (hue ~75) is reserved for primary actions,
+   focus rings and highlights. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --background: oklch(0.994 0.003 85);
+  --foreground: oklch(0.235 0.018 70);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.235 0.018 70);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.235 0.018 70);
+  --primary: oklch(0.705 0.118 73);
+  --primary-foreground: oklch(0.255 0.035 71);
+  --secondary: oklch(0.97 0.008 83);
+  --secondary-foreground: oklch(0.3 0.025 71);
+  --muted: oklch(0.968 0.008 83);
+  --muted-foreground: oklch(0.553 0.028 71);
+  --accent: oklch(0.955 0.025 81);
+  --accent-foreground: oklch(0.34 0.045 70);
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
+  --destructive-foreground: oklch(0.985 0.01 80);
+  --border: oklch(0.917 0.01 80);
+  --input: oklch(0.917 0.01 80);
+  --ring: oklch(0.705 0.118 73);
+  --chart-1: oklch(0.705 0.118 73);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --chart-5: oklch(0.646 0.222 41.116);
+  --radius: 0.65rem;
+  --sidebar: oklch(0.984 0.006 85);
+  --sidebar-foreground: oklch(0.305 0.018 70);
+  --sidebar-primary: oklch(0.705 0.118 73);
+  --sidebar-primary-foreground: oklch(0.255 0.035 71);
+  --sidebar-accent: oklch(0.952 0.025 81);
+  --sidebar-accent-foreground: oklch(0.34 0.045 70);
+  --sidebar-border: oklch(0.917 0.01 80);
+  --sidebar-ring: oklch(0.705 0.118 73);
+  /* Scrollbar thumb: muted-foreground at low alpha so it reads as a quiet
+     overlay over any surface; hover bumps the alpha for affordance. */
+  --scrollbar-thumb: oklch(0.553 0.028 71 / 0.35);
+  --scrollbar-thumb-hover: oklch(0.553 0.028 71 / 0.6);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.129 0.042 264.695);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.129 0.042 264.695);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.984 0.003 247.858);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.279 0.041 260.031);
-  --input: oklch(0.279 0.041 260.031);
-  --ring: oklch(0.446 0.043 257.281);
-  --chart-1: oklch(0.488 0.243 264.376);
+  --background: oklch(0.168 0.008 75);
+  --foreground: oklch(0.955 0.006 85);
+  --card: oklch(0.205 0.009 75);
+  --card-foreground: oklch(0.955 0.006 85);
+  --popover: oklch(0.205 0.009 75);
+  --popover-foreground: oklch(0.955 0.006 85);
+  --primary: oklch(0.78 0.12 76);
+  --primary-foreground: oklch(0.215 0.03 72);
+  --secondary: oklch(0.268 0.012 75);
+  --secondary-foreground: oklch(0.955 0.006 85);
+  --muted: oklch(0.268 0.012 75);
+  --muted-foreground: oklch(0.715 0.018 80);
+  --accent: oklch(0.3 0.018 76);
+  --accent-foreground: oklch(0.955 0.006 85);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0.01 80);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.78 0.12 76);
+  --chart-1: oklch(0.78 0.12 76);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(0.279 0.041 260.031);
-  --sidebar-ring: oklch(0.446 0.043 257.281);
+  --sidebar: oklch(0.195 0.009 75);
+  --sidebar-foreground: oklch(0.92 0.006 85);
+  --sidebar-primary: oklch(0.78 0.12 76);
+  --sidebar-primary-foreground: oklch(0.215 0.03 72);
+  --sidebar-accent: oklch(0.3 0.018 76);
+  --sidebar-accent-foreground: oklch(0.955 0.006 85);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.78 0.12 76);
+  --scrollbar-thumb: oklch(0.715 0.018 80 / 0.3);
+  --scrollbar-thumb-hover: oklch(0.715 0.018 80 / 0.55);
 }
 
 @layer base {
@@ -119,6 +129,43 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Tailwind v4 / shadcn align buttons with the native browser default
+     (cursor: default). Restore the pointer hand for interactive controls so
+     they read as clickable. Disabled controls keep the default cursor. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Global themed scrollbars. Firefox uses the standard properties; WebKit
+     (Chrome/Edge/Safari) uses the pseudo-elements. The transparent border +
+     padding-box clip gives the thumb a "floating" pill look with breathing
+     room from the track edge. Note: styling ::-webkit-scrollbar opts WebKit
+     out of macOS overlay scrollbars, so the bar becomes always-visible. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 

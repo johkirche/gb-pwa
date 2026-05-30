@@ -1,26 +1,23 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <!-- Navigation Header -->
-    <AppHeader
-      :page-title="t('songs.pageTitle')"
-      :show-back-button="true"
-      :show-home-button="true"
-      :back-button-text="t('songs.backButtonText')"
-      back-to="/home"
-    />
-
-    <div class="h-[calc(100vh-65px)] flex flex-col">
+  <AppLayout>
+    <div class="h-full flex flex-col">
       <!-- Main Content -->
       <main class="container mx-auto py-8 max-w-6xl flex-1 min-h-0 flex flex-col">
+        <PageHeader :items="breadcrumbs" class="mb-4 flex-shrink-0" />
+
+        <div class="mb-4 flex-shrink-0">
+          <h1 class="text-2xl font-bold tracking-tight">{{ t("songs.pageTitle") }}</h1>
+        </div>
+
         <!-- Data Source Control -->
         <div
           v-if="shouldShowDataSourceControl"
-          class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex-shrink-0"
+          class="bg-muted border border-border rounded-lg p-3 mb-4 flex-shrink-0"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <InfoIcon class="w-4 h-4 text-blue-600" />
-              <p class="text-sm text-blue-800">
+              <InfoIcon class="w-4 h-4 text-muted-foreground" />
+              <p class="text-sm text-muted-foreground">
                 <span v-if="isUsingCachedData">
                   {{
                     t("songs.showingOfflineSongs", {
@@ -40,7 +37,7 @@
 
             <div class="flex items-center space-x-3">
               <div class="flex items-center space-x-2">
-                <Label for="data-source-switch" class="text-sm text-blue-800">
+                <Label for="data-source-switch" class="text-sm text-muted-foreground">
                   {{ preferOfflineData ? t("songs.offline") : t("songs.online") }}
                 </Label>
                 <Switch id="data-source-switch" v-model="preferOfflineData" :disabled="isLoading" />
@@ -91,7 +88,7 @@
         <SongsEmptyState v-else-if="!isLoading && lieder.length === 0" @load-songs="fetchLieder" />
       </main>
     </div>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
@@ -106,7 +103,8 @@ import { useRoute, useRouter } from "vue-router";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-import AppHeader from "@/components/AppHeader.vue";
+import AppLayout from "@/components/layout/AppLayout.vue";
+import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";
 import SongsEmptyState from "@/components/songs/EmptyState.vue";
 import SongsErrorState from "@/components/songs/ErrorState.vue";
 import FavoritesEmptyState from "@/components/songs/FavoritesEmptyState.vue";
@@ -119,6 +117,11 @@ import { useOfflineDownload } from "@/composables/useOfflineDownload";
 const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { label: t("nav.home"), to: { name: "home" } },
+  { label: t("songs.pageTitle") },
+]);
 
 // Store
 const store = useGesangbuchliedStore();

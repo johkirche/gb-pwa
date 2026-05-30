@@ -1,37 +1,36 @@
 <template>
-  <Card>
-    <CardContent>
-      <div class="flex flex-col">
-        <h2 class="text-lg font-semibold mb-2">
-          {{ t("home.search.title") }}
-        </h2>
-        <div ref="containerRef" class="relative">
-          <div class="flex space-x-2">
-            <Input
-              v-model="searchQuery"
-              :placeholder="t('home.search.placeholder')"
-              class="flex-1"
-              autocomplete="off"
-              role="combobox"
-              aria-autocomplete="list"
-              :aria-expanded="showDropdown"
-              @focus="onFocus"
-              @keydown.down.prevent="onArrowDown"
-              @keydown.up.prevent="onArrowUp"
-              @keydown.enter="onEnter"
-              @keydown.esc="close"
-            />
-            <Button @click="handleSearch">
-              {{ t("home.search.button") }}
-            </Button>
-          </div>
+  <div ref="containerRef" class="relative">
+    <div class="flex items-center gap-2">
+      <div class="relative flex-1">
+        <Search
+          class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
+        />
+        <Input
+          v-model="searchQuery"
+          :placeholder="t('home.search.placeholder')"
+          class="h-13 pl-12 pr-4 text-base rounded-xl bg-card shadow-sm"
+          autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          :aria-expanded="showDropdown"
+          @focus="onFocus"
+          @keydown.down.prevent="onArrowDown"
+          @keydown.up.prevent="onArrowUp"
+          @keydown.enter="onEnter"
+          @keydown.esc="close"
+        />
+      </div>
+      <Button size="lg" class="h-13 px-6 rounded-xl hidden sm:inline-flex" @click="handleSearch">
+        {{ t("home.search.button") }}
+      </Button>
+    </div>
 
-          <!-- Autocomplete suggestions — only when songs are cached offline -->
-          <ul
-            v-if="showDropdown"
-            class="absolute z-50 mt-1 w-full max-h-72 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md py-1"
-            role="listbox"
-          >
+    <!-- Autocomplete suggestions — only when songs are cached offline -->
+    <ul
+      v-if="showDropdown"
+      class="absolute z-50 mt-2 w-full max-h-72 overflow-y-auto rounded-xl border bg-popover text-popover-foreground shadow-lg py-1"
+      role="listbox"
+    >
             <li
               v-for="(song, index) in suggestions"
               :key="song.id"
@@ -55,21 +54,19 @@
               <span class="truncate">{{ song.title }}</span>
             </li>
 
-            <li
-              v-if="songsLoaded && suggestions.length === 0"
-              class="px-3 py-2 text-sm text-muted-foreground"
-            >
-              {{ t("home.search.noResults") }}
-            </li>
-          </ul>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
+      <li
+        v-if="songsLoaded && suggestions.length === 0"
+        class="px-3 py-2 text-sm text-muted-foreground"
+      >
+        {{ t("home.search.noResults") }}
+      </li>
+    </ul>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { onClickOutside } from "@vueuse/core";
+import { Search } from "lucide-vue-next";
 
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -78,7 +75,6 @@ import { useRouter } from "vue-router";
 import { getLiedNumber } from "@/gql/extra-types";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 import { useOfflineDownload } from "@/composables/useOfflineDownload";

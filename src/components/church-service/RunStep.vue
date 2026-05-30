@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Now-playing card: prominent, the eye should land here first. -->
     <Card>
-      <CardContent class="pt-6 space-y-6">
+      <CardContent class="space-y-6">
         <!-- Top line: Lied X von Y · title, with role chip for intro/outro -->
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0 flex-1">
@@ -157,7 +157,7 @@
 
     <!-- Ablauf timeline (rest of the service) -->
     <Card>
-      <CardHeader class="pb-3">
+      <CardHeader>
         <CardTitle class="text-base">
           {{ t("churchService.serviceOrder") }}
         </CardTitle>

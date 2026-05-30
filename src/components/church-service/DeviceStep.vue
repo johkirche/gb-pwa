@@ -1,8 +1,10 @@
 <template>
   <div class="space-y-6">
+    <!-- Device selection — grouped in a card so the synth controls read as one
+         unit rather than loose elements on the page. -->
     <Card>
       <CardHeader>
-        <CardTitle class="flex items-center gap-2">
+        <CardTitle class="text-base flex items-center gap-2">
           <Piano class="w-5 h-5 text-muted-foreground" />
           {{ t("churchService.device.title") }}
         </CardTitle>
@@ -13,30 +15,28 @@
       <CardContent class="space-y-4">
         <MidiDeviceSelector :show-label="false" />
 
-        <div
+        <!-- Slim inline status — the dropdown already names the device, so this
+             is just a quiet ready/not-ready confirmation. -->
+        <p
           v-if="selectedOutput"
-          class="flex items-start gap-2 p-3 rounded-md bg-green-50 border border-green-200 text-sm text-green-900"
+          class="flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-500"
         >
-          <CheckCircle2 class="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-          <div>
-            <p class="font-medium">{{ t("churchService.device.connected") }}</p>
-            <p class="text-xs text-green-800/80">{{ selectedOutput.name }}</p>
-          </div>
-        </div>
-
-        <div
+          <CheckCircle2 class="w-4 h-4 flex-shrink-0" />
+          {{ t("churchService.device.connected") }}
+        </p>
+        <p
           v-else
-          class="flex items-start gap-2 p-3 rounded-md bg-orange-50 border border-orange-200 text-sm text-orange-900"
+          class="flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-500"
         >
-          <AlertTriangle class="w-4 h-4 mt-0.5 flex-shrink-0 text-orange-600" />
-          <p>{{ t("churchService.device.notConnected") }}</p>
-        </div>
+          <AlertTriangle class="w-4 h-4 flex-shrink-0" />
+          {{ t("churchService.device.notConnected") }}
+        </p>
       </CardContent>
     </Card>
 
     <!-- Service summary so the operator sees what's about to play -->
     <Card>
-      <CardHeader class="pb-3">
+      <CardHeader>
         <CardTitle class="text-base">
           {{ t("churchService.device.summary") }}
         </CardTitle>

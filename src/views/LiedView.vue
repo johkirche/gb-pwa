@@ -1,16 +1,9 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <!-- Navigation Header -->
-    <AppHeader
-      :page-title="t('song.pageTitle')"
-      :show-back-button="true"
-      :show-home-button="true"
-      :back-button-text="t('song.backButton')"
-      back-to="/lieder"
-    />
-
+  <AppLayout>
     <!-- Main Content -->
-    <main class="container mx-auto py-8 max-w-6xl">
+    <main class="container mx-auto py-8 max-w-6xl space-y-6">
+      <PageHeader :items="breadcrumbs" />
+
       <!-- Loading State -->
       <SongLoadingState v-if="isLoading" />
 
@@ -71,7 +64,7 @@
         />
       </div>
     </main>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
@@ -82,7 +75,8 @@ import { useRoute } from "vue-router";
 import type { GesangbuchliedWithMidi } from "@/gql/extra-types";
 import type { Directus_Files, Gesangbuchlied } from "@/gql/graphql";
 
-import AppHeader from "@/components/AppHeader.vue";
+import AppLayout from "@/components/layout/AppLayout.vue";
+import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";
 import SongErrorState from "@/components/song/ErrorState.vue";
 import SongFilesCard from "@/components/song/FilesCard.vue";
 import SongHeaderInfo from "@/components/song/HeaderInfo.vue";
@@ -109,6 +103,12 @@ const queryError = ref<string | null>(null);
 const isUsingCachedData = ref(false);
 
 const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { label: t("nav.home"), to: { name: "home" } },
+  { label: t("nav.songs"), to: { name: "songs" } },
+  { label: lied.value?.titel || t("song.pageTitle") },
+]);
 
 // Methods
 const fetchLied = async () => {

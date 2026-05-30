@@ -1,147 +1,129 @@
 <template>
-  <Card>
-    <CardHeader>
-      <div class="flex flex-col md:flex-row justify-between gap-2">
-        <div>
-          <CardTitle class="mb-2">{{ t("home.categories.title") }}</CardTitle>
-          <CardDescription>{{ t("home.categories.description") }}</CardDescription>
-        </div>
-        <!-- Sort Options and Enlarge Button -->
-        <div class="mb-4 flex items-center gap-2">
-          <Label class="text-sm font-medium">{{ t("home.categories.sortBy") }}:</Label>
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <Button variant="outline" size="sm" class="gap-2">
-                <span class="text-xs">{{ getSortLabel(currentSort) }}</span>
-                <ChevronDown class="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem @click="setSortType('alphabetical')">
-                <span class="mr-2">🔤</span>
-                {{ t("home.categories.sortAlphabetical") }}
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="setSortType('count')">
-                <span class="mr-2">🔢</span>
-                {{ t("home.categories.sortByCount") }}
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="setSortType('custom')">
-                <span class="mr-2">🎯</span>
-                {{ t("home.categories.sortCustom") }}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <!-- Reset custom order button -->
-          <Button
-            v-if="currentSort === 'custom'"
-            variant="ghost"
-            size="sm"
-            class="text-xs"
-            @click="resetCustomOrder"
-          >
-            {{ t("home.categories.resetOrder") }}
-          </Button>
-
-          <!-- Enlarge/Shrink button -->
-          <Button
-            variant="ghost"
-            size="sm"
-            :title="isEnlarged ? t('home.categories.shrink') : t('home.categories.enlarge')"
-            @click="toggleEnlarge"
-          >
-            <Maximize2 v-if="!isEnlarged" class="h-4 w-4" />
-            <Minimize2 v-else class="h-4 w-4" />
-            <span class="sr-only">
-              {{ isEnlarged ? t("home.categories.shrink") : t("home.categories.enlarge") }}
-            </span>
-          </Button>
-        </div>
+  <section>
+    <!-- Section header -->
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+      <div>
+        <h2 class="text-lg font-semibold tracking-tight">{{ t("home.categoriesHeading") }}</h2>
+        <p class="text-sm text-muted-foreground mt-0.5">{{ t("home.categories.description") }}</p>
       </div>
-    </CardHeader>
-    <CardContent>
-      <ScrollArea
-        :class="['transition-all duration-300 ease-in-out', isEnlarged ? 'h-[600px]' : 'h-[300px]']"
-      >
-        <!-- Non-draggable grids for alphabetical and count sorting -->
-        <div
-          v-if="currentSort !== 'custom'"
-          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+      <!-- Sort + enlarge controls -->
+      <div class="flex items-center gap-1.5">
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="sm" class="gap-1.5 text-muted-foreground">
+              <ArrowDownUp class="h-3.5 w-3.5" />
+              <span class="text-xs">{{ getSortLabel(currentSort) }}</span>
+              <ChevronDown class="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem @click="setSortType('alphabetical')">
+              <span class="mr-2">🔤</span>
+              {{ t("home.categories.sortAlphabetical") }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="setSortType('count')">
+              <span class="mr-2">🔢</span>
+              {{ t("home.categories.sortByCount") }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="setSortType('custom')">
+              <span class="mr-2">🎯</span>
+              {{ t("home.categories.sortCustom") }}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button
+          v-if="currentSort === 'custom'"
+          variant="ghost"
+          size="sm"
+          class="text-xs text-muted-foreground"
+          @click="resetCustomOrder"
         >
-          <Button
-            v-for="category in sortedCategories"
+          {{ t("home.categories.resetOrder") }}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          class="text-muted-foreground"
+          :title="isEnlarged ? t('home.categories.shrink') : t('home.categories.enlarge')"
+          @click="toggleEnlarge"
+        >
+          <Maximize2 v-if="!isEnlarged" class="h-4 w-4" />
+          <Minimize2 v-else class="h-4 w-4" />
+          <span class="sr-only">
+            {{ isEnlarged ? t("home.categories.shrink") : t("home.categories.enlarge") }}
+          </span>
+        </Button>
+      </div>
+    </div>
+
+    <ScrollArea
+      :class="['transition-all duration-300 ease-in-out', isEnlarged ? 'h-[560px]' : 'h-[268px]']"
+    >
+      <!-- Non-draggable chip cloud for alphabetical and count sorting -->
+      <div v-if="currentSort !== 'custom'" class="flex flex-wrap gap-2 pr-3">
+        <button
+          v-for="category in sortedCategories"
+          :key="category.id"
+          class="group inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent"
+          @click="handleCategoryClick(category)"
+        >
+          <span class="text-base leading-none">{{ getCategoryIcon(category.id) }}</span>
+          <span class="font-medium">{{ category.name }}</span>
+          <span class="tabular-nums text-xs text-muted-foreground">{{ category.count }}</span>
+        </button>
+      </div>
+
+      <!-- Draggable chip cloud for custom sorting -->
+      <VueDraggable
+        v-else
+        v-model="draggableCategories"
+        class="flex flex-wrap gap-2 pr-3"
+        :animation="200"
+        :ghost-class="'opacity-50'"
+        :chosen-class="'scale-105'"
+        handle=".drag-handle"
+        @end="onDragEnd"
+      >
+        <template #item="{ element: category }">
+          <button
             :key="category.id"
-            variant="outline"
-            class="h-auto p-4 flex flex-col items-center space-y-2 transition-all duration-200"
+            class="group inline-flex items-center gap-2 rounded-full border bg-card pl-1.5 pr-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent"
             @click="handleCategoryClick(category)"
           >
-            <span class="text-2xl">{{ getCategoryIcon(category.id) }}</span>
-            <span class="w-full text-sm text-center leading-tight whitespace-normal break-words">{{
-              category.name
-            }}</span>
-            <Badge variant="secondary" class="text-xs">{{ category.count }}</Badge>
-          </Button>
-        </div>
-
-        <!-- Draggable grid for custom sorting -->
-        <VueDraggable
-          v-else
-          v-model="draggableCategories"
-          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-          :animation="200"
-          :ghost-class="'opacity-50'"
-          :chosen-class="'scale-105'"
-          :drag-class="'rotate-2'"
-          handle=".drag-handle"
-          @end="onDragEnd"
-        >
-          <template #item="{ element: category }">
-            <Button
-              :key="category.id"
-              variant="outline"
-              class="relative h-auto p-4 flex flex-col items-center space-y-2 transition-all duration-200 cursor-move"
-              @click="handleCategoryClick(category)"
+            <span
+              class="drag-handle cursor-grab text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
             >
-              <!-- Drag handle for custom sort -->
-              <div
-                class="drag-handle absolute top-2 right-2 text-gray-400 cursor-move hover:text-gray-600"
-              >
-                <GripVertical class="h-4 w-4" />
-              </div>
-
-              <span class="text-2xl">{{ getCategoryIcon(category.id) }}</span>
-              <span class="w-full text-sm text-center leading-tight whitespace-normal break-words">{{
-              category.name
-            }}</span>
-              <Badge variant="secondary" class="text-xs">{{ category.count }}</Badge>
-            </Button>
-          </template>
-        </VueDraggable>
-      </ScrollArea>
-    </CardContent>
-  </Card>
+              <GripVertical class="h-4 w-4" />
+            </span>
+            <span class="text-base leading-none">{{ getCategoryIcon(category.id) }}</span>
+            <span class="font-medium">{{ category.name }}</span>
+            <span class="tabular-nums text-xs text-muted-foreground">{{ category.count }}</span>
+          </button>
+        </template>
+      </VueDraggable>
+    </ScrollArea>
+  </section>
 </template>
 
 <script setup lang="ts">
 import ScrollArea from "../ui/scroll-area/ScrollArea.vue";
 import { type CategoryWithCount, useStatsStore } from "@/stores/stats";
-import { ChevronDown, GripVertical, Maximize2, Minimize2 } from "lucide-vue-next";
+import { ArrowDownUp, ChevronDown, GripVertical, Maximize2, Minimize2 } from "lucide-vue-next";
 
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import VueDraggable from "vuedraggable";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
 
 type SortType = "alphabetical" | "count" | "custom";
 

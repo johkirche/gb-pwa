@@ -1,5 +1,18 @@
 {
   "welcome": "Willkommen, {userName}!",
+  "greeting": {
+    "morning": "Guten Morgen",
+    "afternoon": "Guten Tag",
+    "evening": "Guten Abend",
+    "night": "Willkommen zurück"
+  },
+  "subtitle": "Was möchten Sie heute singen?",
+  "quickAccess": "Schnellzugriff",
+  "categoriesHeading": "Nach Thema stöbern",
+  "recentHeading": "Letzte Gottesdienste",
+  "recentViewAll": "Alle ansehen",
+  "recentEmpty": "Noch keine Gottesdienste — bereiten Sie einen vor, um ihn hier zu sehen.",
+  "songsCountLabel": "{count} Lieder",
   "gesangbuchlieder": "Gesangbuchlieder",
   "browseDescription": "Durchsuchen und suchen Sie alle Lieder im Gesangbuch.",
   "browseAllSongs": "Alle Lieder durchsuchen",
