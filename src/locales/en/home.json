@@ -21,7 +21,8 @@
   "search": {
     "title": "Search Songs",
     "placeholder": "Search for songs or authors...",
-    "button": "Search"
+    "button": "Search",
+    "noResults": "No songs found"
   },
   "actions": {
     "browseSongs": "Browse All Songs",

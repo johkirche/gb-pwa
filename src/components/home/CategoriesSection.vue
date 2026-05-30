@@ -76,7 +76,9 @@
             @click="handleCategoryClick(category)"
           >
             <span class="text-2xl">{{ getCategoryIcon(category.id) }}</span>
-            <span class="text-sm text-center">{{ category.name }}</span>
+            <span class="w-full text-sm text-center leading-tight whitespace-normal break-words">{{
+              category.name
+            }}</span>
             <Badge variant="secondary" class="text-xs">{{ category.count }}</Badge>
           </Button>
         </div>
@@ -108,7 +110,9 @@
               </div>
 
               <span class="text-2xl">{{ getCategoryIcon(category.id) }}</span>
-              <span class="text-sm text-center">{{ category.name }}</span>
+              <span class="w-full text-sm text-center leading-tight whitespace-normal break-words">{{
+              category.name
+            }}</span>
               <Badge variant="secondary" class="text-xs">{{ category.count }}</Badge>
             </Button>
           </template>

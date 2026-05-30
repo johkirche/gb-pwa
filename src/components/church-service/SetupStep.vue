@@ -16,9 +16,13 @@
       </CardHeader>
       <CardContent>
         <PiecePicker
-          :selected-piece="store.currentService.intro"
+          :selected-piece="store.currentService.intro?.piece ?? null"
+          :speed="store.currentService.intro?.speed ?? 1"
+          :pitch-semitones="store.currentService.intro?.pitchSemitones ?? 0"
           :placeholder="t('churchService.selectIntroPiece')"
           @piece-selected="store.setIntroPiece"
+          @update:speed="(v) => store.updatePieceSpeed('intro', v)"
+          @update:pitch="(v) => store.updatePiecePitch('intro', v)"
         />
       </CardContent>
     </Card>
@@ -55,9 +59,13 @@
       </CardHeader>
       <CardContent>
         <PiecePicker
-          :selected-piece="store.currentService.outro"
+          :selected-piece="store.currentService.outro?.piece ?? null"
+          :speed="store.currentService.outro?.speed ?? 1"
+          :pitch-semitones="store.currentService.outro?.pitchSemitones ?? 0"
           :placeholder="t('churchService.selectOutroPiece')"
           @piece-selected="store.setOutroPiece"
+          @update:speed="(v) => store.updatePieceSpeed('outro', v)"
+          @update:pitch="(v) => store.updatePiecePitch('outro', v)"
         />
       </CardContent>
     </Card>
@@ -74,22 +82,41 @@
     </div>
 
     <!-- Step footer -->
-    <div class="flex items-center justify-between gap-3 pt-2">
+    <div
+      class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2"
+    >
       <Button variant="outline" @click="emit('back')">
         <ChevronLeft class="w-4 h-4 mr-1" />
         {{ t("churchService.stepper.backToStart") }}
       </Button>
-      <Button :disabled="!store.canAdvanceToDevice" @click="store.goToDevice">
-        {{ t("churchService.stepper.nextDevice") }}
-        <ChevronRight class="w-4 h-4 ml-1" />
-      </Button>
+      <div class="flex items-center gap-2 sm:justify-end">
+        <Button
+          variant="secondary"
+          :disabled="!canSavePrepared"
+          @click="store.openPreparedDialog"
+        >
+          <BookmarkPlus class="w-4 h-4 mr-1" />
+          {{ t("churchService.prepared.save") }}
+        </Button>
+        <Button :disabled="!store.canAdvanceToDevice" @click="store.goToDevice">
+          {{ t("churchService.stepper.nextDevice") }}
+          <ChevronRight class="w-4 h-4 ml-1" />
+        </Button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useChurchServiceStore } from "@/stores/churchService";
-import { AlertTriangle, ChevronLeft, ChevronRight, Sparkles, Sunset } from "lucide-vue-next";
+import {
+  AlertTriangle,
+  BookmarkPlus,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Sunset,
+} from "lucide-vue-next";
 
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
@@ -109,6 +136,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const store = useChurchServiceStore();
+
+// "Save for later" is allowed as soon as there's anything in the service —
+// even a partial/invalid draft (unlike advancing to the device step, which
+// requires every song to be playable).
+const canSavePrepared = computed(() => store.playlist.length > 0);
 
 const invalidMessages = computed(() =>
   store.invalidSetupSongs.map((entry) =>

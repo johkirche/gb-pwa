@@ -1,5 +1,27 @@
 <template>
   <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+    <!-- Preview listen — play the loaded MIDI (song's main verse or the piece
+         file) once, with the current tempo/pitch applied. -->
+    <Button
+      variant="outline"
+      size="sm"
+      class="gap-1.5"
+      :disabled="!canPreview"
+      :title="t('churchService.previewListen.hint')"
+      @click="togglePreview"
+    >
+      <Loader2 v-if="isLoadingPreview" class="w-4 h-4 animate-spin" />
+      <Square v-else-if="isPreviewing" class="w-4 h-4" />
+      <Play v-else class="w-4 h-4" />
+      <span>
+        {{
+          isPreviewing
+            ? t("churchService.previewListen.stop")
+            : t("churchService.previewListen.play")
+        }}
+      </span>
+    </Button>
+
     <!-- Tempo (BPM) -->
     <div class="flex items-center gap-2">
       <Gauge class="w-4 h-4 text-muted-foreground" />
@@ -17,13 +39,21 @@
         >
           <Minus class="w-4 h-4" />
         </Button>
-        <span
-          class="px-2 min-w-[5rem] text-center text-sm font-medium tabular-nums select-none"
+        <input
+          ref="speedInput"
+          type="text"
+          inputmode="decimal"
+          class="px-2 w-20 text-center text-sm font-medium tabular-nums bg-transparent border-0 outline-none focus:ring-1 focus:ring-ring rounded-sm"
+          :value="isEditingSpeed ? speedText : speedLabel"
           :title="speedTooltip"
+          :aria-label="t('churchService.speed.edit')"
+          @focus="startEditSpeed"
+          @input="speedText = ($event.target as HTMLInputElement).value"
+          @blur="commitSpeed"
+          @keydown.enter.prevent="speedInput?.blur()"
+          @keydown.esc.prevent="cancelEditSpeed"
           @dblclick="resetSpeed"
-        >
-          {{ speedLabel }}
-        </span>
+        />
         <Button
           variant="ghost"
           size="icon"
@@ -72,25 +102,45 @@
           <Plus class="w-4 h-4" />
         </Button>
       </div>
+
+      <!-- Toggle: play a reference tone of the resulting tonic on key change. -->
+      <Button
+        variant="ghost"
+        size="icon"
+        class="h-8 w-8"
+        :class="toneEnabled ? 'text-primary' : 'text-muted-foreground'"
+        :aria-pressed="toneEnabled"
+        :aria-label="toneEnabled
+          ? t('churchService.pitch.toneDisable')
+          : t('churchService.pitch.toneEnable')"
+        :title="toneEnabled
+          ? t('churchService.pitch.toneDisable')
+          : t('churchService.pitch.toneEnable')"
+        @click="toggleTone"
+      >
+        <Bell v-if="toneEnabled" class="w-4 h-4" />
+        <BellOff v-else class="w-4 h-4" />
+      </Button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Gauge, Minus, Music2, Plus } from "lucide-vue-next";
+import { Bell, BellOff, Gauge, Loader2, Minus, Music2, Play, Plus, Square } from "lucide-vue-next";
 
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-
-import type { Gesangbuchlied } from "@/gql/graphql";
-import { type GesangbuchliedWithMidi } from "@/gql/extra-types";
 
 import { Button } from "@/components/ui/button";
 
 import {
   type MidiKeySignature,
+  type ParsedMidiFile,
   parseMidiFile,
   tonicNameGerman,
+  tonicPitchClass,
+  useKeyChangeTone,
+  useMidiPlayer,
 } from "@/composables/useMidiPlayer";
 import { fetchAssetByUrl } from "@/composables/useOfflineDownload";
 
@@ -103,7 +153,10 @@ import {
 } from "@/stores/churchService";
 
 interface Props {
-  song: Gesangbuchlied;
+  // Directus file id of the MIDI to read tempo/key metadata from and to play
+  // when previewing. For main songs this is `midi_main`; for intro/outro pieces
+  // it's the standalone `midi_file`. Null/undefined disables preview.
+  midiAssetId: string | null | undefined;
   speed: number;
   pitchSemitones: number;
 }
@@ -119,32 +172,83 @@ const { t } = useI18n();
 
 const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
 
-// MIDI metadata derived from the main file. Both null until the file resolves
-// (or stay null on fetch / parse failure — UI falls back to multiplier/semitone
-// display).
+// Dedicated player instance for the preview. Per-control so the playing state
+// binds to this row's button; `onUnmounted` in the composable stops it.
+const {
+  isPlaying: isPreviewing,
+  selectedOutput,
+  playSingle,
+  playTone,
+  stop: stopPreview,
+} = useMidiPlayer();
+
+const { enabled: toneEnabled, setEnabled: setToneEnabled } = useKeyChangeTone();
+
+// MIDI metadata + parsed file derived from `midiAssetId`. All null until the
+// file resolves (or stay null on fetch / parse failure — UI falls back to
+// multiplier/semitone display and preview is disabled).
 const baseBpm = ref<number | null>(null);
 const keySignature = ref<MidiKeySignature | null>(null);
+const parsedFile = ref<ParsedMidiFile | null>(null);
+const isLoadingPreview = ref(false);
 
 watch(
-  () => props.song?.id,
-  () => loadMeta(),
+  () => props.midiAssetId,
+  () => {
+    // Drop any in-flight preview when the underlying file changes.
+    stopPreview();
+    void loadMeta();
+  },
   { immediate: true },
 );
 
 async function loadMeta() {
   baseBpm.value = null;
   keySignature.value = null;
-  const main = (props.song as GesangbuchliedWithMidi)?.midi_main;
-  if (!main?.id || !directusUrl) return;
+  parsedFile.value = null;
+  const id = props.midiAssetId;
+  if (!id || !directusUrl) return;
   try {
-    const buf = await fetchAssetByUrl(`${directusUrl}/assets/${main.id}`);
+    const buf = await fetchAssetByUrl(`${directusUrl}/assets/${id}`);
     const parsed = parseMidiFile(buf);
+    parsedFile.value = parsed;
     baseBpm.value = parsed.bpm;
     keySignature.value = parsed.keySignature;
   } catch (err) {
-    // Non-fatal: we still let the user adjust, just without the labelled units.
+    // Non-fatal: we still let the user adjust, just without the labelled units
+    // and without preview.
     console.warn("Failed to load MIDI metadata for playback controls:", err);
   }
+}
+
+// ── Preview listen ───────────────────────────────────────────────────────────
+
+const canPreview = computed(
+  () => !!props.midiAssetId && !!selectedOutput.value && !isLoadingPreview.value,
+);
+
+async function togglePreview() {
+  if (isPreviewing.value) {
+    stopPreview();
+    return;
+  }
+  let file = parsedFile.value;
+  if (!file) {
+    // Metadata never resolved (or is mid-load) — fetch on demand so the button
+    // still works even if the eager load failed.
+    isLoadingPreview.value = true;
+    try {
+      await loadMeta();
+    } finally {
+      isLoadingPreview.value = false;
+    }
+    file = parsedFile.value;
+  }
+  if (!file) return;
+  await playSingle(file, {
+    speed: props.speed,
+    pitchSemitones: props.pitchSemitones,
+  });
 }
 
 // ── Speed (BPM) ─────────────────────────────────────────────────────────────
@@ -188,6 +292,45 @@ function adjustSpeed(direction: -1 | 1) {
 
 function resetSpeed() {
   emit("update:speed", 1);
+  // Keep the editable buffer in sync if the field is currently focused.
+  if (isEditingSpeed.value) {
+    speedText.value = String(baseBpm.value !== null ? Math.round(baseBpm.value) : 1);
+    void nextTick(() => speedInput.value?.select());
+  }
+}
+
+// ── Inline editing of the speed value ────────────────────────────────────────
+// The field shows the formatted label (BPM or multiplier) while idle and the
+// raw number while focused. The user types a BPM when we have a base tempo,
+// otherwise a multiplier; both are converted back to multiplier units here.
+const speedInput = ref<HTMLInputElement | null>(null);
+const isEditingSpeed = ref(false);
+const speedText = ref("");
+
+function startEditSpeed() {
+  isEditingSpeed.value = true;
+  speedText.value = String(
+    currentBpm.value !== null ? currentBpm.value : props.speed.toFixed(2),
+  );
+  void nextTick(() => speedInput.value?.select());
+}
+
+function commitSpeed() {
+  if (!isEditingSpeed.value) return;
+  isEditingSpeed.value = false;
+  const parsed = Number.parseFloat(speedText.value.replace(",", "."));
+  if (!Number.isFinite(parsed)) return;
+  if (baseBpm.value !== null && baseBpm.value > 0) {
+    emit("update:speed", clamp(parsed / baseBpm.value, SPEED_MIN, SPEED_MAX));
+  } else {
+    emit("update:speed", clamp(parsed, SPEED_MIN, SPEED_MAX));
+  }
+}
+
+function cancelEditSpeed() {
+  // Drop the buffer first so the blur handler skips committing it.
+  isEditingSpeed.value = false;
+  speedInput.value?.blur();
 }
 
 // ── Pitch ───────────────────────────────────────────────────────────────────
@@ -212,6 +355,36 @@ const pitchTooltip = computed(() => {
   }
   return t("churchService.pitch.tooltipSemitones");
 });
+
+// MIDI note of the reference tone for the current key. When the file declares a
+// key signature we sound its (transposed) tonic in a comfortable middle octave;
+// otherwise we fall back to a fixed reference shifted by the same offset so the
+// operator still hears the direction/size of the transposition.
+const REFERENCE_BASE_NOTE = 60; // C4
+const referenceToneNote = computed(() => {
+  if (keySignature.value) {
+    return REFERENCE_BASE_NOTE + tonicPitchClass(keySignature.value) + props.pitchSemitones;
+  }
+  return REFERENCE_BASE_NOTE + props.pitchSemitones;
+});
+
+// Sound the tonic whenever the key changes and the toggle is on. Without
+// `immediate` this never fires on mount — only on real user transpositions.
+watch(
+  () => props.pitchSemitones,
+  () => {
+    if (toneEnabled.value && selectedOutput.value) {
+      playTone(referenceToneNote.value);
+    }
+  },
+);
+
+function toggleTone() {
+  const next = !toneEnabled.value;
+  setToneEnabled(next);
+  // Confirm the toggle audibly when enabling so the operator hears it works.
+  if (next && selectedOutput.value) playTone(referenceToneNote.value);
+}
 
 function formatSignedSemitones(v: number): string {
   if (v === 0) return "±0";

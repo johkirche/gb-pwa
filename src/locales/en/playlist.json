@@ -30,5 +30,11 @@
   "create.description": "Provide a name and optionally a description.",
   "edit.title": "Edit playlist",
   "noSongsInPlaylist": "No songs in this playlist",
-  "notFound": "This playlist could not be found."
+  "notFound": "This playlist could not be found.",
+  "emojiLabel": "Symbol",
+  "currentEmoji": "Current symbol",
+  "clearEmoji": "Clear",
+  "searchEmoji": "Search emoji…",
+  "loadingEmoji": "Loading emojis…",
+  "noEmojiFound": "No emoji found"
 }

@@ -227,7 +227,13 @@
                     class="p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
                     @click="activePlaylistId = pl.id"
                   >
-                    <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="w-9 h-9 rounded-md bg-muted flex items-center justify-center text-lg flex-shrink-0"
+                      >
+                        <span v-if="pl.emoji">{{ pl.emoji }}</span>
+                        <ListMusic v-else class="w-4 h-4 text-muted-foreground" />
+                      </div>
                       <div class="flex-1 min-w-0">
                         <h6 class="font-medium truncate">{{ pl.name }}</h6>
                         <p
@@ -253,7 +259,12 @@
                   <ArrowLeft class="w-4 h-4 mr-1" />
                   {{ t("playlist.myPlaylists") }}
                 </Button>
-                <span class="text-sm font-medium truncate">{{ activePlaylist?.name }}</span>
+                <span class="text-sm font-medium truncate flex items-center gap-1.5">
+                  <span v-if="activePlaylist?.emoji" class="text-base leading-none">{{
+                    activePlaylist.emoji
+                  }}</span>
+                  {{ activePlaylist?.name }}
+                </span>
                 <Badge variant="secondary" class="text-xs">
                   {{ t("playlist.songsCount", { count: activePlaylistSongs.length }) }}
                 </Badge>

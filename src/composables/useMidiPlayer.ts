@@ -98,6 +98,7 @@ const DEFAULT_US_PER_QUARTER = 500_000; // 120 BPM
 const STORED_DEVICE_KEY = "gb-pwa.midi.selectedOutputId";
 const STORED_VOLUME_KEY = "gb-pwa.synth.volume"; // 0-100
 const STORED_PROGRAM_KEY = "gb-pwa.synth.program"; // 0-127 (GM)
+const STORED_KEY_TONE_KEY = "gb-pwa.synth.keyChangeTone"; // "1" | "0"
 const DEFAULT_VOLUME = 70;
 const DEFAULT_PROGRAM = 19; // Church Organ
 
@@ -336,6 +337,37 @@ function loadStoredProgram(): number {
   if (raw === null) return DEFAULT_PROGRAM;
   const n = Number(raw);
   return Number.isFinite(n) && n >= 0 && n <= 127 ? n : DEFAULT_PROGRAM;
+}
+
+// Whether changing a song/piece key in the setup step plays a short reference
+// tone of the resulting tonic. On by default; persisted so the operator's
+// preference survives reloads. Shared module-level so every per-song control
+// stays in lockstep with a single toggle.
+const keyChangeToneEnabledRef = ref<boolean>(loadStoredKeyTone());
+
+function loadStoredKeyTone(): boolean {
+  if (typeof localStorage === "undefined") return true;
+  // Default on: only an explicit "0" disables it.
+  return localStorage.getItem(STORED_KEY_TONE_KEY) !== "0";
+}
+
+function setKeyChangeToneEnabledShared(v: boolean) {
+  keyChangeToneEnabledRef.value = v;
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(STORED_KEY_TONE_KEY, v ? "1" : "0");
+  }
+}
+
+/**
+ * Shared toggle for the "play a reference tone when the key changes" behavior
+ * in the church-service setup step. Reactive across every playback-control
+ * instance so flipping it on one song applies everywhere.
+ */
+export function useKeyChangeTone() {
+  return {
+    enabled: readonly(keyChangeToneEnabledRef),
+    setEnabled: setKeyChangeToneEnabledShared,
+  };
 }
 
 function setSynthVolumeShared(v: number) {
@@ -823,22 +855,29 @@ export function useMidiPlayer() {
 
   /**
    * Play a single MIDI file once. Used for standalone Vorspiel/Nachspiel pieces
-   * — no intro/main/outro trio, no verse iteration. Resolves when the file's
-   * last note time elapses (or stop() is called).
+   * — no intro/main/outro trio, no verse iteration — and for the setup-step
+   * "preview listen" of a song's main MIDI. Resolves when the file's last note
+   * time elapses (or stop() is called). `options` apply the same tempo/pitch
+   * overrides as the trio sequence.
    */
-  async function playSingle(file: ParsedMidiFile): Promise<void> {
+  async function playSingle(
+    file: ParsedMidiFile,
+    options: PlaybackOptions = {},
+  ): Promise<void> {
     if (!selectedOutputShared.value) {
       accessErrorRef.value = "No MIDI output device selected";
       return;
     }
     stop();
+    const speed = sanitizeSpeed(options.speed);
+    const pitch = sanitizePitch(options.pitchSemitones);
     const myRunId = ++runId;
     isPlaying.value = true;
     progress.value = { stage: "single", verseNumber: 1, totalVerses: 1 };
-    totalMs.value = file.durationMs;
+    totalMs.value = file.durationMs / speed;
     startTicker();
     try {
-      await playFile(file, myRunId);
+      await playFile(file, myRunId, speed, pitch);
     } catch (err) {
       console.error("MIDI playback error:", err);
     } finally {
@@ -931,6 +970,32 @@ export function useMidiPlayer() {
     }
   }
 
+  /**
+   * Sound a single short reference note (Note On now, Note Off after
+   * `durationMs`) on the selected output. Used by the setup step to play the
+   * resulting tonic when the operator transposes a song. Fire-and-forget and
+   * independent of the sequence scheduler — it intentionally plays over any
+   * preview already running so the operator hears the new pitch immediately.
+   */
+  function playTone(note: number, durationMs = 900, velocity = 96) {
+    const sink = selectedOutputShared.value;
+    if (!sink) return;
+    const n = Math.min(127, Math.max(0, Math.round(note)));
+    try {
+      sink.send([0x90, n, Math.min(127, Math.max(1, velocity))]);
+    } catch (err) {
+      console.error("Reference tone note-on failed:", err);
+      return;
+    }
+    setTimeout(() => {
+      try {
+        sink.send([0x80, n, 0]);
+      } catch (err) {
+        console.error("Reference tone note-off failed:", err);
+      }
+    }, durationMs);
+  }
+
   onUnmounted(() => {
     stop();
   });
@@ -953,6 +1018,7 @@ export function useMidiPlayer() {
     totalMs: readonly(totalMs),
     playSequence,
     playSingle,
+    playTone,
     stop,
   };
 }

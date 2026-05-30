@@ -3,7 +3,7 @@
     <Card>
       <CardContent class="flex flex-col items-center justify-center p-6">
         <div class="text-2xl font-bold text-primary">
-          {{ statsStore.stats.totalSongs }}+
+          {{ statsStore.stats.totalSongs }}
         </div>
         <p class="text-sm text-muted-foreground text-center">
           {{ t("home.stats.totalSongs") }}

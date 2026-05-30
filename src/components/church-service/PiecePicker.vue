@@ -43,6 +43,16 @@
       </div>
     </div>
 
+    <!-- Preview / tempo / key for the selected piece -->
+    <SongPlaybackControls
+      v-if="selectedPiece"
+      :midi-asset-id="selectedPiece.midi_file?.id"
+      :speed="speed"
+      :pitch-semitones="pitchSemitones"
+      @update:speed="(v) => emit('update:speed', v)"
+      @update:pitch="(v) => emit('update:pitch', v)"
+    />
+
     <!-- Picker dialog -->
     <Dialog v-model:open="dialogOpen">
       <DialogContent class="max-w-2xl max-h-[90vh] flex flex-col">
@@ -193,15 +203,26 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+import SongPlaybackControls from "./SongPlaybackControls.vue";
+
 interface Props {
   selectedPiece: FreiesMusikstueck | null;
   placeholder: string;
+  // Tempo/pitch overrides for the selected piece (intro/outro slot). Default
+  // neutral so the picker works standalone.
+  speed?: number;
+  pitchSemitones?: number;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  speed: 1,
+  pitchSemitones: 0,
+});
 
 const emit = defineEmits<{
   pieceSelected: [piece: FreiesMusikstueck | null];
+  "update:speed": [speed: number];
+  "update:pitch": [semitones: number];
 }>();
 
 const { t } = useI18n();

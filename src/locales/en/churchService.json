@@ -30,6 +30,19 @@
     "load": "Load",
     "title": "Service History"
   },
+  "prepared": {
+    "title": "Prepared services",
+    "description": "Saved service plans you can load later",
+    "empty": "No prepared services yet",
+    "emptyDescription": "Save a plan for later from the first step",
+    "save": "Save for later",
+    "defaultName": "Prepared service {date}",
+    "saveDialog": {
+      "title": "Save for later",
+      "description": "Save this plan (prelude, songs and postlude with all tempo and key changes) so you can load it later.",
+      "save": "Save"
+    }
+  },
   "loadingSongs": "Loading songs...",
   "mainSongs": "Main songs",
   "moveDown": "Move down",
@@ -76,9 +89,15 @@
   "cannotPlayMissingVerses": "No verses selected for “{song}”",
   "verse": "Verse",
   "verses": "Verses",
+  "previewListen": {
+    "play": "Preview",
+    "stop": "Stop preview",
+    "hint": "Listen to this MIDI with the current tempo and key"
+  },
   "speed": {
     "label": "Tempo",
     "bpm": "{value} BPM",
+    "edit": "Enter tempo",
     "decrease": "Decrease tempo",
     "increase": "Increase tempo",
     "tooltipBpm": "Original: {base} BPM · double-click to reset",
@@ -89,7 +108,9 @@
     "decrease": "Transpose down",
     "increase": "Transpose up",
     "tooltipKey": "Original: {base} · transposed: {offset} · double-click to reset",
-    "tooltipSemitones": "Semitones · double-click to reset"
+    "tooltipSemitones": "Semitones · double-click to reset",
+    "toneEnable": "Play a reference tone on key change",
+    "toneDisable": "Mute reference tone on key change"
   },
   "intro": "Prelude",
   "outro": "Postlude",

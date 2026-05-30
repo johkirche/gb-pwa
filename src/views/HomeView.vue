@@ -83,19 +83,6 @@
 
           <Card
             class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
-            @click="router.push({ name: 'midi-test' })"
-          >
-            <CardHeader>
-              <CardTitle class="flex items-center space-x-2">
-                <span>🎹</span>
-                <span>MIDI Test</span>
-              </CardTitle>
-              <CardDescription>Test MIDI file upload and playback</CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card
-            class="cursor-pointer hover:shadow-lg hover:bg-muted transition-all"
             @click="router.push({ name: 'settings' })"
           >
             <CardHeader>
@@ -117,13 +104,6 @@
           @load-service="handleLoadService"
           @delete-service="churchServiceStore.deleteService"
         />
-
-        <!-- Featured Songs -->
-        <FeaturedSongsSection
-          :featured-songs="mockFeaturedSongs"
-          @song-click="handleSongClick"
-          @play-song="handlePlaySong"
-        />
       </main>
     </ScrollArea>
   </div>
@@ -133,7 +113,7 @@
 import { type ServiceHistoryItem, useChurchServiceStore } from "@/stores/churchService";
 import { useStatsStore } from "@/stores/stats";
 
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
@@ -143,7 +123,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import AppHeader from "@/components/AppHeader.vue";
 import ServiceHistory from "@/components/church-service/ServiceHistory.vue";
 import CategoriesSection from "@/components/home/CategoriesSection.vue";
-import FeaturedSongsSection, { type Song } from "@/components/home/FeaturedSongsSection.vue";
 import SearchSection from "@/components/home/SearchSection.vue";
 import StatsRow from "@/components/home/StatsRow.vue";
 
@@ -164,33 +143,6 @@ const handleLoadService = async (service: ServiceHistoryItem) => {
   await router.push({ name: "church-service" });
 };
 
-const mockFeaturedSongs = ref<Song[]>([
-  {
-    id: 1,
-    title: "O Come, O Come Emmanuel",
-    author: "Traditional",
-    category: "Advent",
-    hasAudio: true,
-    hasSheetMusic: true,
-  },
-  {
-    id: 2,
-    title: "Silent Night",
-    author: "Franz Gruber",
-    category: "Weihnachten",
-    hasAudio: true,
-    hasSheetMusic: true,
-  },
-  {
-    id: 3,
-    title: "Christ the Lord is Risen Today",
-    author: "Charles Wesley",
-    category: "Ostern",
-    hasAudio: false,
-    hasSheetMusic: true,
-  },
-]);
-
 // Load stats and service history on component mount
 onMounted(async () => {
   await statsStore.loadStats();
@@ -200,15 +152,5 @@ onMounted(async () => {
 // Handler functions
 const handleLogout = async () => {
   await logout();
-};
-
-const handleSongClick = (song: Song) => {
-  console.log("Navigate to song:", song.title);
-  // Navigate to song detail
-};
-
-const handlePlaySong = (song: Song) => {
-  console.log("Play song:", song.title);
-  // Start playing song
 };
 </script>

@@ -30,5 +30,11 @@
   "create.description": "Gib einen Namen und optional eine Beschreibung an.",
   "edit.title": "Playlist bearbeiten",
   "noSongsInPlaylist": "Keine Lieder in dieser Playlist",
-  "notFound": "Diese Playlist wurde nicht gefunden."
+  "notFound": "Diese Playlist wurde nicht gefunden.",
+  "emojiLabel": "Symbol",
+  "currentEmoji": "Aktuelles Symbol",
+  "clearEmoji": "Entfernen",
+  "searchEmoji": "Emoji suchen…",
+  "loadingEmoji": "Emojis werden geladen…",
+  "noEmojiFound": "Kein Emoji gefunden"
 }

@@ -24,18 +24,23 @@
         <Card>
           <CardHeader>
             <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0 flex-1">
-                <CardTitle class="flex items-center space-x-2 break-words">
-                  <ListMusic class="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                  <span>{{ playlist.name }}</span>
-                </CardTitle>
-                <CardDescription v-if="playlist.description" class="mt-1">
-                  {{ playlist.description }}
-                </CardDescription>
-                <div class="mt-2">
-                  <Badge variant="secondary" class="text-xs">
-                    {{ t("playlist.songsCount", { count: songs.length }) }}
-                  </Badge>
+              <div class="min-w-0 flex-1 flex items-start gap-3">
+                <div
+                  class="w-12 h-12 rounded-md bg-muted flex items-center justify-center text-2xl flex-shrink-0"
+                >
+                  <span v-if="playlist.emoji">{{ playlist.emoji }}</span>
+                  <ListMusic v-else class="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <CardTitle class="break-words">{{ playlist.name }}</CardTitle>
+                  <CardDescription v-if="playlist.description" class="mt-1">
+                    {{ playlist.description }}
+                  </CardDescription>
+                  <div class="mt-2">
+                    <Badge variant="secondary" class="text-xs">
+                      {{ t("playlist.songsCount", { count: songs.length }) }}
+                    </Badge>
+                  </div>
                 </div>
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
@@ -72,22 +77,45 @@
               <div
                 v-for="song in songs"
                 :key="song.id"
-                class="p-3 border rounded-lg flex items-start justify-between gap-2"
+                class="p-3 border rounded-lg flex items-start justify-between gap-2 cursor-pointer transition-colors hover:bg-accent hover:border-accent-foreground/20"
+                @click="openSong(song.id)"
               >
-                <div class="flex items-baseline gap-2 min-w-0 flex-1">
-                  <span
-                    v-if="getLiedNumber(song) !== null"
-                    class="inline-flex items-center px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-bold tabular-nums flex-shrink-0"
+                <div class="min-w-0 flex-1 space-y-1">
+                  <div class="flex items-baseline gap-2">
+                    <span
+                      v-if="getLiedNumber(song) !== null"
+                      class="inline-flex items-center px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-bold tabular-nums leading-tight flex-shrink-0"
+                    >
+                      {{ getLiedNumber(song) }}
+                    </span>
+                    <span class="font-medium truncate">{{ song.titel }}</span>
+                  </div>
+                  <p v-if="authorsText(song)" class="text-sm text-muted-foreground truncate">
+                    {{ authorsText(song) }}
+                  </p>
+                  <p v-if="firstLine(song)" class="text-sm italic text-muted-foreground/80 truncate">
+                    {{ firstLine(song) }}
+                  </p>
+                  <div
+                    v-if="getCategories(song).length > 0"
+                    class="flex flex-wrap items-center gap-1.5 pt-0.5"
                   >
-                    {{ getLiedNumber(song) }}
-                  </span>
-                  <span class="font-medium truncate">{{ song.titel }}</span>
+                    <Badge
+                      v-for="category in getCategories(song).slice(0, 3)"
+                      :key="category"
+                      variant="outline"
+                      class="text-xs"
+                    >
+                      {{ category }}
+                    </Badge>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
+                  class="flex-shrink-0"
                   :title="t('playlist.remove')"
-                  @click="removeSong(song.id)"
+                  @click.stop="removeSong(song.id)"
                 >
                   <X class="w-4 h-4" />
                 </Button>
@@ -106,6 +134,12 @@
         </DialogHeader>
 
         <div class="space-y-3 py-2">
+          <div class="space-y-1">
+            <Label>{{ t("playlist.emojiLabel") }}</Label>
+            <div>
+              <EmojiPickerPopover v-model="formEmoji" />
+            </div>
+          </div>
           <div class="space-y-1">
             <Label for="playlist-name">{{ t("playlist.name") }}</Label>
             <Input
@@ -227,6 +261,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import AppHeader from "@/components/AppHeader.vue";
+import EmojiPickerPopover from "@/components/EmojiPickerPopover.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -235,7 +270,7 @@ const router = useRouter();
 const store = usePlaylistStore();
 const songStore = useGesangbuchliedStore();
 const { lieder, isUsingCachedData } = storeToRefs(songStore);
-const { fetchLieder, setFilter } = songStore;
+const { fetchLieder, setFilter, getAuthors, getCategories } = songStore;
 
 // `loaded` flips true once the initial load finishes so we can distinguish
 // "still loading" from "playlist doesn't exist" — only the latter should
@@ -261,15 +296,32 @@ const songs = computed<Gesangbuchlied[]>(() => {
   return out;
 });
 
+// Card metadata helpers
+const authorsText = (song: Gesangbuchlied): string => getAuthors(song).join(", ");
+
+// First line of the first verse, with the soft-hyphen marker (¬) stripped.
+const firstLine = (song: Gesangbuchlied): string | null => {
+  const strophe = song.textId?.strophenEinzeln?.[0]?.strophe;
+  if (!strophe) return null;
+  const line = strophe.replace(/¬/g, "").split("\n")[0]?.trim();
+  return line || null;
+};
+
+const openSong = (songId: string) => {
+  router.push(`/lied/${songId}`);
+};
+
 // Edit dialog
 const editOpen = ref(false);
 const formName = ref("");
 const formDescription = ref("");
+const formEmoji = ref<string | undefined>(undefined);
 
 const openEdit = () => {
   if (!playlist.value) return;
   formName.value = playlist.value.name;
   formDescription.value = playlist.value.description ?? "";
+  formEmoji.value = playlist.value.emoji;
   editOpen.value = true;
 };
 
@@ -280,6 +332,7 @@ const saveEdit = async () => {
   await store.updatePlaylist(playlist.value.id, {
     name,
     description: formDescription.value.trim() || undefined,
+    emoji: formEmoji.value,
   });
   editOpen.value = false;
 };
@@ -321,9 +374,7 @@ const addCandidates = computed(() => {
     const q = addSearch.value.toLowerCase();
     base = base.filter((s) => s.titel?.toLowerCase().includes(q));
   }
-  return [...base].sort(
-    (a, b) => (getLiedNumber(a) ?? Infinity) - (getLiedNumber(b) ?? Infinity),
-  );
+  return [...base].sort((a, b) => (getLiedNumber(a) ?? Infinity) - (getLiedNumber(b) ?? Infinity));
 });
 
 const addSong = async (songId: string) => {

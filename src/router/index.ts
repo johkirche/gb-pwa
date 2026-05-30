@@ -44,11 +44,6 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: "/midi-test",
-      name: "midi-test",
-      component: () => import("@/views/MidiTestView.vue"),
-    },
-    {
       path: "/playlists",
       name: "playlists",
       component: () => import("@/views/PlaylistsView.vue"),

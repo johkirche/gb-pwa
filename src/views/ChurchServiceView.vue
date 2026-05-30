@@ -25,6 +25,19 @@
             </CardContent>
           </Card>
 
+          <!-- Prepared ("future") services — only shown once at least one exists. -->
+          <ServiceHistory
+            v-if="store.preparedServices.length > 0"
+            :history="store.preparedServices"
+            :title="t('churchService.prepared.title')"
+            :description="t('churchService.prepared.description')"
+            :empty-title="t('churchService.prepared.empty')"
+            :empty-description="t('churchService.prepared.emptyDescription')"
+            icon="🗓️"
+            @load-service="store.loadService"
+            @delete-service="store.deletePreparedService"
+          />
+
           <ServiceHistory
             :history="store.serviceHistory"
             @load-service="store.loadService"
@@ -45,6 +58,8 @@
 
     <!-- Post-service save prompt — rendered at root so it overlays regardless of step. -->
     <SaveServiceDialog />
+    <!-- "Save for later" prompt from the setup step. -->
+    <SavePreparedDialog />
   </div>
 </template>
 
@@ -64,6 +79,7 @@ import AppHeader from "@/components/AppHeader.vue";
 import ChurchServiceStepper from "@/components/church-service/ChurchServiceStepper.vue";
 import DeviceStep from "@/components/church-service/DeviceStep.vue";
 import RunStep from "@/components/church-service/RunStep.vue";
+import SavePreparedDialog from "@/components/church-service/SavePreparedDialog.vue";
 import SaveServiceDialog from "@/components/church-service/SaveServiceDialog.vue";
 import ServiceHistory from "@/components/church-service/ServiceHistory.vue";
 import SetupStep from "@/components/church-service/SetupStep.vue";
@@ -79,6 +95,6 @@ function onStepperJump(step: WizardStep) {
 }
 
 onMounted(async () => {
-  await store.loadHistory();
+  await Promise.all([store.loadHistory(), store.loadPreparedServices()]);
 });
 </script>

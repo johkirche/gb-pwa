@@ -9,10 +9,15 @@ export interface Playlist {
   id: string;
   name: string;
   description?: string;
+  // Free-form visual marker — single emoji glyph the user picks from a curated
+  // grid in the create/edit dialog. Stored as a plain string (no normalization)
+  // so future picker upgrades can use any unicode without a migration.
+  emoji?: string;
   songIds: string[];
   createdAt: string;
   updatedAt: string;
 }
+
 
 const DB_NAME = "PlaylistsDB";
 const DB_VERSION = 1;
@@ -108,13 +113,18 @@ export const usePlaylistStore = defineStore("playlists", () => {
   const getPlaylist = (id: string): Playlist | undefined =>
     playlists.value.find((p) => p.id === id);
 
-  const createPlaylist = async (name: string, description?: string): Promise<Playlist> => {
+  const createPlaylist = async (
+    name: string,
+    description?: string,
+    emoji?: string,
+  ): Promise<Playlist> => {
     await initDB();
     const now = new Date().toISOString();
     const playlist: Playlist = {
       id: crypto.randomUUID(),
       name: name.trim(),
       description: description?.trim() || undefined,
+      emoji: emoji || undefined,
       songIds: [],
       createdAt: now,
       updatedAt: now,
@@ -126,7 +136,7 @@ export const usePlaylistStore = defineStore("playlists", () => {
 
   const updatePlaylist = async (
     id: string,
-    patch: Partial<Pick<Playlist, "name" | "description" | "songIds">>,
+    patch: Partial<Pick<Playlist, "name" | "description" | "emoji" | "songIds">>,
   ) => {
     await initDB();
     const existing = getPlaylist(id);

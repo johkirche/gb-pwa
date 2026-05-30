@@ -30,6 +30,19 @@
     "load": "Laden",
     "title": "Gottesdienst-Verlauf"
   },
+  "prepared": {
+    "title": "Vorbereitete Gottesdienste",
+    "description": "Gespeicherte Abläufe, die du später laden kannst",
+    "empty": "Noch keine vorbereiteten Gottesdienste",
+    "emptyDescription": "Speichere im ersten Schritt einen Ablauf für später",
+    "save": "Für später speichern",
+    "defaultName": "Vorbereiteter Gottesdienst {date}",
+    "saveDialog": {
+      "title": "Für später speichern",
+      "description": "Speichere diesen Ablauf (Vorspiel, Lieder und Nachspiel mit allen Tempo- und Tonart-Änderungen), um ihn später zu laden.",
+      "save": "Speichern"
+    }
+  },
   "loadingSongs": "Lieder werden geladen...",
   "mainSongs": "Hauptlieder",
   "moveDown": "Nach unten verschieben",
@@ -76,9 +89,15 @@
   "cannotPlayMissingVerses": "Keine Strophen ausgewählt für „{song}“",
   "verse": "Strophe",
   "verses": "Strophen",
+  "previewListen": {
+    "play": "Vorhören",
+    "stop": "Vorhören stoppen",
+    "hint": "Diese MIDI mit aktuellem Tempo und Tonart anhören"
+  },
   "speed": {
     "label": "Tempo",
     "bpm": "{value} BPM",
+    "edit": "Tempo eingeben",
     "decrease": "Tempo verringern",
     "increase": "Tempo erhöhen",
     "tooltipBpm": "Original: {base} BPM · Doppelklick setzt zurück",
@@ -89,7 +108,9 @@
     "decrease": "Tiefer transponieren",
     "increase": "Höher transponieren",
     "tooltipKey": "Original: {base} · Transponiert: {offset} · Doppelklick setzt zurück",
-    "tooltipSemitones": "Halbtöne · Doppelklick setzt zurück"
+    "tooltipSemitones": "Halbtöne · Doppelklick setzt zurück",
+    "toneEnable": "Beispielton bei Tonart-Wechsel einschalten",
+    "toneDisable": "Beispielton bei Tonart-Wechsel ausschalten"
   },
   "intro": "Vorspiel",
   "outro": "Nachspiel",

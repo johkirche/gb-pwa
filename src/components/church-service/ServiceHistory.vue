@@ -2,11 +2,11 @@
   <Card>
     <CardHeader>
       <CardTitle class="flex items-center space-x-2">
-        <span>📚</span>
-        <span>{{ t("churchService.history.title") }}</span>
+        <span>{{ icon ?? "📚" }}</span>
+        <span>{{ title ?? t("churchService.history.title") }}</span>
       </CardTitle>
       <CardDescription>
-        {{ t("churchService.history.description") }}
+        {{ description ?? t("churchService.history.description") }}
       </CardDescription>
     </CardHeader>
 
@@ -15,30 +15,31 @@
       <div v-if="history.length === 0" class="text-center py-8">
         <History class="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h3 class="text-lg font-medium text-muted-foreground mb-2">
-          {{ t("churchService.history.empty") }}
+          {{ emptyTitle ?? t("churchService.history.empty") }}
         </h3>
         <p class="text-sm text-muted-foreground">
-          {{ t("churchService.history.emptyDescription") }}
+          {{ emptyDescription ?? t("churchService.history.emptyDescription") }}
         </p>
       </div>
 
       <!-- History List -->
-      <div v-else class="h-[500px] overflow-auto" ref="scrollElement">
+      <div v-else class="h-max-[500px] overflow-auto" ref="scrollElement">
         <div :style="{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }">
           <div
             v-for="virtualItem in virtualizer.getVirtualItems()"
             :key="virtualItem.index"
+            :data-index="virtualItem.index"
+            :ref="(el) => measureRow(el as Element | null)"
             :style="{
               position: 'absolute',
               top: 0,
               left: 0,
               width: '100%',
-              height: `${virtualItem.size}px`,
               transform: `translateY(${virtualItem.start}px)`,
               paddingBottom: '16px', // Add spacing between items
             }"
           >
-            <div class="border rounded-lg p-4 transition-colors h-full relative">
+            <div class="border rounded-lg p-4 transition-colors relative">
               <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center space-x-2 mb-2">
@@ -56,11 +57,31 @@
                   </div>
 
                   <div class="space-y-2">
+                    <!-- Prelude (Vorspiel) -->
+                    <div
+                      v-if="history[virtualItem.index].intro"
+                      class="flex flex-wrap items-center gap-2 text-sm"
+                    >
+                      <Badge
+                        variant="outline"
+                        class="text-[10px] bg-purple-100 text-purple-800 border-purple-200"
+                      >
+                        {{ t("churchService.intro") }}
+                      </Badge>
+                      <span class="font-medium truncate">
+                        {{ history[virtualItem.index].intro!.piece.name }}
+                      </span>
+                      <ChangeBadges
+                        :speed="history[virtualItem.index].intro!.speed"
+                        :pitch="history[virtualItem.index].intro!.pitchSemitones"
+                      />
+                    </div>
+
                     <!-- Songs List -->
                     <div
                       v-for="(serviceSong, index) in history[virtualItem.index].songs"
                       :key="index"
-                      class="flex items-center space-x-2 text-sm"
+                      class="flex flex-wrap items-center gap-2 text-sm"
                     >
                       <span class="text-muted-foreground">{{ index + 1 }}.</span>
                       <span class="font-medium">{{
@@ -76,6 +97,30 @@
                       >
                         🎵
                       </Badge>
+                      <ChangeBadges
+                        :speed="serviceSong.speed"
+                        :pitch="serviceSong.pitchSemitones"
+                      />
+                    </div>
+
+                    <!-- Postlude (Nachspiel) -->
+                    <div
+                      v-if="history[virtualItem.index].outro"
+                      class="flex flex-wrap items-center gap-2 text-sm"
+                    >
+                      <Badge
+                        variant="outline"
+                        class="text-[10px] bg-amber-100 text-amber-800 border-amber-200"
+                      >
+                        {{ t("churchService.outro") }}
+                      </Badge>
+                      <span class="font-medium truncate">
+                        {{ history[virtualItem.index].outro!.piece.name }}
+                      </span>
+                      <ChangeBadges
+                        :speed="history[virtualItem.index].outro!.speed"
+                        :pitch="history[virtualItem.index].outro!.pitchSemitones"
+                      />
                     </div>
                   </div>
                 </div>
@@ -145,6 +190,7 @@
 </template>
 
 <script setup lang="ts">
+import type { ServiceHistoryItem } from "@/stores/churchService";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { Download, History, MoreVertical, Trash2 } from "lucide-vue-next";
 
@@ -171,10 +217,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import type { ServiceHistoryItem } from "@/stores/churchService";
+import ChangeBadges from "./ChangeBadges.vue";
 
 interface Props {
   history: ServiceHistoryItem[];
+  // Optional presentation overrides so the same list can render the played-
+  // service history or the prepared-service list. All fall back to the
+  // history strings when omitted.
+  title?: string;
+  description?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  icon?: string;
 }
 
 const props = defineProps<Props>();
@@ -198,22 +252,30 @@ const virtualizer = useVirtualizer({
   },
   getScrollElement: () => scrollElement.value || null,
   estimateSize: (index) => {
-    // Dynamic height estimation based on song count
+    // Initial estimate only — actual heights are measured via measureRow below,
+    // so this just needs to be in the right ballpark to avoid layout jank.
     const service = history.value[index];
     if (!service) return 120; // fallback
 
     // Base height for service header and container
     const baseHeight = 70;
-    // Each song adds approximately 28px
-    const songHeight = service.songs.length * 22.2;
+    // One row per song plus one each for the prelude/postlude when present.
+    const rowCount =
+      service.songs.length + (service.intro ? 1 : 0) + (service.outro ? 1 : 0);
+    const rowHeight = rowCount * 22.2;
     // Add padding between items
-    const spacing = 8;
+    const spacing = 24;
 
-    return baseHeight + songHeight + spacing;
+    return baseHeight + rowHeight + spacing;
   },
   overscan: 3,
-  // Remove measureElement for now to test basic functionality
 });
+
+// Measure each rendered row so variable-height entries (prelude/postlude rows,
+// wrapped change badges) don't overflow their virtual slot.
+const measureRow = (el: Element | null) => {
+  if (el instanceof HTMLElement) virtualizer.value.measureElement(el);
+};
 
 const loadService = (service: ServiceHistoryItem) => {
   emit("loadService", service);

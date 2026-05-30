@@ -18,6 +18,15 @@ export interface ChurchServiceSong {
   pitchSemitones: number;
 }
 
+// An intro/outro slot ("Vorspiel"/"Nachspiel"): one standalone MIDI piece plus
+// the same tempo/pitch overrides the main songs carry, so the operator can
+// transpose or retime a prelude/postlude to match the service.
+export interface ChurchServicePiece {
+  piece: FreiesMusikstueck;
+  speed: number;
+  pitchSemitones: number;
+}
+
 // Speed/pitch bounds — kept here so the UI, store and player agree.
 export const SPEED_MIN = 0.5;
 export const SPEED_MAX = 2.0;
@@ -30,7 +39,13 @@ export const PITCH_MAX = 12;
 // collection — no verses, no trio. Main entries are full hymns and carry the
 // user-chosen per-song speed/pitch into the runner.
 export type PlaylistEntry =
-  | { kind: "piece"; role: "intro" | "outro"; piece: FreiesMusikstueck }
+  | {
+      kind: "piece";
+      role: "intro" | "outro";
+      piece: FreiesMusikstueck;
+      speed: number;
+      pitchSemitones: number;
+    }
   | {
       kind: "song";
       role: "main";
@@ -43,12 +58,12 @@ export type PlaylistEntry =
 export interface ChurchService {
   id?: string;
   name?: string;
-  // Optional standalone Vorspiel piece played before the main set.
-  intro: FreiesMusikstueck | null;
+  // Optional standalone Vorspiel piece (+ tempo/pitch) played before the main set.
+  intro: ChurchServicePiece | null;
   // Main song list — draggable in the setup UI.
   songs: ChurchServiceSong[];
-  // Optional standalone Nachspiel piece played after the main set.
-  outro: FreiesMusikstueck | null;
+  // Optional standalone Nachspiel piece (+ tempo/pitch) played after the main set.
+  outro: ChurchServicePiece | null;
   createdAt: string;
 }
 
@@ -63,8 +78,11 @@ export type WizardStep = "idle" | "setup" | "device" | "run";
 
 // IndexedDB constants
 const DB_NAME = "ChurchServiceDB";
-const DB_VERSION = 1;
+// v2 adds the `prepared` store for "future" services the operator saves to
+// load later (separate from the played-service history).
+const DB_VERSION = 2;
 const SERVICES_STORE = "services";
+const PREPARED_STORE = "prepared";
 
 class ServiceDBManager {
   private db: IDBDatabase | null = null;
@@ -82,36 +100,39 @@ class ServiceDBManager {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // Create services store
+        // History of services that have been played.
         if (!db.objectStoreNames.contains(SERVICES_STORE)) {
           const store = db.createObjectStore(SERVICES_STORE, { keyPath: "id" });
+          store.createIndex("createdAt", "createdAt", { unique: false });
+        }
+
+        // Prepared ("future") services. Same record shape as history entries,
+        // kept in a separate store so the two lists never mix.
+        if (!db.objectStoreNames.contains(PREPARED_STORE)) {
+          const store = db.createObjectStore(PREPARED_STORE, { keyPath: "id" });
           store.createIndex("createdAt", "createdAt", { unique: false });
         }
       };
     });
   }
 
-  async saveService(service: ServiceHistoryItem): Promise<void> {
+  // ── Generic store helpers (shared by history + prepared) ─────────────────
+
+  private putInStore(storeName: string, service: ServiceHistoryItem): Promise<void> {
     if (!this.db) throw new Error("Database not initialized");
-
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([SERVICES_STORE], "readwrite");
-      const store = transaction.objectStore(SERVICES_STORE);
-
-      const request = store.put(service);
+      const transaction = this.db!.transaction([storeName], "readwrite");
+      const request = transaction.objectStore(storeName).put(service);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }
 
-  async getAllServices(): Promise<ServiceHistoryItem[]> {
+  private getAllFromStore(storeName: string): Promise<ServiceHistoryItem[]> {
     if (!this.db) throw new Error("Database not initialized");
-
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([SERVICES_STORE], "readonly");
-      const store = transaction.objectStore(SERVICES_STORE);
-      const index = store.index("createdAt");
-
+      const transaction = this.db!.transaction([storeName], "readonly");
+      const index = transaction.objectStore(storeName).index("createdAt");
       const request = index.getAll();
       request.onsuccess = () => {
         const services = (request.result as ServiceHistoryItem[])
@@ -123,17 +144,36 @@ class ServiceDBManager {
     });
   }
 
-  async deleteService(id: string): Promise<void> {
+  private removeFromStore(storeName: string, id: string): Promise<void> {
     if (!this.db) throw new Error("Database not initialized");
-
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([SERVICES_STORE], "readwrite");
-      const store = transaction.objectStore(SERVICES_STORE);
-
-      const request = store.delete(id);
+      const transaction = this.db!.transaction([storeName], "readwrite");
+      const request = transaction.objectStore(storeName).delete(id);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
+  }
+
+  // Played-service history.
+  saveService(service: ServiceHistoryItem): Promise<void> {
+    return this.putInStore(SERVICES_STORE, service);
+  }
+  getAllServices(): Promise<ServiceHistoryItem[]> {
+    return this.getAllFromStore(SERVICES_STORE);
+  }
+  deleteService(id: string): Promise<void> {
+    return this.removeFromStore(SERVICES_STORE, id);
+  }
+
+  // Prepared ("future") services.
+  savePrepared(service: ServiceHistoryItem): Promise<void> {
+    return this.putInStore(PREPARED_STORE, service);
+  }
+  getAllPrepared(): Promise<ServiceHistoryItem[]> {
+    return this.getAllFromStore(PREPARED_STORE);
+  }
+  deletePrepared(id: string): Promise<void> {
+    return this.removeFromStore(PREPARED_STORE, id);
   }
 }
 
@@ -146,6 +186,28 @@ function emptyService(): ChurchService {
   };
 }
 
+// Older saved services stored intro/outro as a bare `FreiesMusikstueck`; newer
+// ones wrap it in a `ChurchServicePiece` with speed/pitch. Accept both and
+// always return the wrapped shape (or null).
+function normalizePiece(raw: unknown): ChurchServicePiece | null {
+  if (!raw || typeof raw !== "object") return null;
+  // Already wrapped — backfill any missing tempo/pitch fields.
+  if ("piece" in raw && (raw as ChurchServicePiece).piece) {
+    const wrapped = raw as ChurchServicePiece;
+    return {
+      piece: wrapped.piece,
+      speed: typeof wrapped.speed === "number" ? wrapped.speed : 1,
+      pitchSemitones:
+        typeof wrapped.pitchSemitones === "number" ? wrapped.pitchSemitones : 0,
+    };
+  }
+  // Legacy bare piece (has its own midi_file/name) — wrap at neutral playback.
+  if ("midi_file" in raw || "name" in raw) {
+    return { piece: raw as FreiesMusikstueck, speed: 1, pitchSemitones: 0 };
+  }
+  return null;
+}
+
 function normalizeService<T extends ChurchService>(svc: T): T {
   // Backfill speed/pitch on older saved entries that predate the field.
   const songs = (svc.songs ?? []).map((s) => ({
@@ -155,8 +217,8 @@ function normalizeService<T extends ChurchService>(svc: T): T {
   }));
   return {
     ...svc,
-    intro: svc.intro ?? null,
-    outro: svc.outro ?? null,
+    intro: normalizePiece(svc.intro),
+    outro: normalizePiece(svc.outro),
     songs,
   };
 }
@@ -171,12 +233,16 @@ export const useChurchServiceStore = defineStore("churchService", () => {
   const currentService = ref<ChurchService>(emptyService());
 
   const serviceHistory = ref<ServiceHistoryItem[]>([]);
+  // Prepared ("future") services — saved from the setup step, loadable later.
+  const preparedServices = ref<ServiceHistoryItem[]>([]);
   const wizardStep = ref<WizardStep>("idle");
   const isPlayingService = ref(false);
   const currentPlayingIndex = ref(0);
 
   // Save-prompt dialog visibility — opened by finishService() and bound from the view.
   const saveDialogOpen = ref(false);
+  // "Save for later" dialog visibility — opened from the setup step.
+  const preparedDialogOpen = ref(false);
 
   // Database manager
   const dbManager = new ServiceDBManager();
@@ -195,7 +261,13 @@ export const useChurchServiceStore = defineStore("churchService", () => {
   const playlist = computed<PlaylistEntry[]>(() => {
     const out: PlaylistEntry[] = [];
     if (currentService.value.intro) {
-      out.push({ kind: "piece", role: "intro", piece: currentService.value.intro });
+      out.push({
+        kind: "piece",
+        role: "intro",
+        piece: currentService.value.intro.piece,
+        speed: currentService.value.intro.speed,
+        pitchSemitones: currentService.value.intro.pitchSemitones,
+      });
     }
     for (const s of currentService.value.songs) {
       if (s.song)
@@ -209,7 +281,13 @@ export const useChurchServiceStore = defineStore("churchService", () => {
         });
     }
     if (currentService.value.outro) {
-      out.push({ kind: "piece", role: "outro", piece: currentService.value.outro });
+      out.push({
+        kind: "piece",
+        role: "outro",
+        piece: currentService.value.outro.piece,
+        speed: currentService.value.outro.speed,
+        pitchSemitones: currentService.value.outro.pitchSemitones,
+      });
     }
     return out;
   });
@@ -300,11 +378,27 @@ export const useChurchServiceStore = defineStore("churchService", () => {
   // ── Intro/outro piece mutations ──────────────────────────────────────────
 
   const setIntroPiece = (piece: FreiesMusikstueck | null) => {
-    currentService.value.intro = piece;
+    currentService.value.intro = piece
+      ? { piece, speed: 1, pitchSemitones: 0 }
+      : null;
   };
 
   const setOutroPiece = (piece: FreiesMusikstueck | null) => {
-    currentService.value.outro = piece;
+    currentService.value.outro = piece
+      ? { piece, speed: 1, pitchSemitones: 0 }
+      : null;
+  };
+
+  // Tempo/pitch mutations for the intro/outro slots — mirror the per-song
+  // controls but keyed by role since there's at most one of each.
+  const updatePieceSpeed = (role: "intro" | "outro", speed: number) => {
+    const slot = currentService.value[role];
+    if (slot) slot.speed = clampSpeed(speed);
+  };
+
+  const updatePiecePitch = (role: "intro" | "outro", pitchSemitones: number) => {
+    const slot = currentService.value[role];
+    if (slot) slot.pitchSemitones = clampPitch(pitchSemitones);
   };
 
   // ── Verse helpers ────────────────────────────────────────────────────────
@@ -472,6 +566,84 @@ export const useChurchServiceStore = defineStore("churchService", () => {
     }
   };
 
+  // ── Prepared ("future") services ─────────────────────────────────────────
+
+  const loadPreparedServices = async () => {
+    try {
+      await initDB();
+      preparedServices.value = await dbManager.getAllPrepared();
+    } catch (error) {
+      console.error("Failed to load prepared services:", error);
+      preparedServices.value = [];
+    }
+  };
+
+  const openPreparedDialog = () => {
+    preparedDialogOpen.value = true;
+  };
+
+  const closePreparedDialog = () => {
+    preparedDialogOpen.value = false;
+  };
+
+  // Persist the current setup (prelude, songs, postlude — including every
+  // tempo/pitch change) as a reusable "future" service. Unlike confirmSave this
+  // does NOT clear the editor or change the wizard step: the operator keeps
+  // working on the same service after stashing a copy.
+  const saveAsPrepared = async (name?: string) => {
+    try {
+      await initDB();
+
+      const serviceName = (name && name.trim()) || defaultServiceName();
+
+      const serviceToSave: ServiceHistoryItem = {
+        ...currentService.value,
+        id: crypto.randomUUID(),
+        name: serviceName,
+        createdAt: new Date().toISOString(),
+      };
+
+      const cleanService = JSON.parse(JSON.stringify(serviceToSave));
+
+      await dbManager.savePrepared(cleanService);
+      await loadPreparedServices();
+
+      toast({
+        title: "Prepared service saved",
+        description: `"${serviceName}" has been saved for later.`,
+      });
+    } catch (error) {
+      console.error("Failed to save prepared service:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save prepared service. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      preparedDialogOpen.value = false;
+    }
+  };
+
+  const deletePreparedService = async (id: string) => {
+    try {
+      await initDB();
+      await dbManager.deletePrepared(id);
+      await loadPreparedServices();
+
+      toast({
+        title: "Prepared service deleted",
+        description: "Prepared service has been removed.",
+      });
+    } catch (error) {
+      console.error("Failed to delete prepared service:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete prepared service. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // ── Run-step callbacks (called from RunStep on song progression) ─────────
 
   const onSongCompleted = () => {
@@ -486,10 +658,12 @@ export const useChurchServiceStore = defineStore("churchService", () => {
     // State
     currentService,
     serviceHistory,
+    preparedServices,
     wizardStep,
     isPlayingService,
     currentPlayingIndex,
     saveDialogOpen,
+    preparedDialogOpen,
 
     // Computed
     playlist,
@@ -512,6 +686,8 @@ export const useChurchServiceStore = defineStore("churchService", () => {
     // Intro/outro piece mutations
     setIntroPiece,
     setOutroPiece,
+    updatePieceSpeed,
+    updatePiecePitch,
 
     // Wizard navigation
     startSetup,
@@ -528,6 +704,13 @@ export const useChurchServiceStore = defineStore("churchService", () => {
     loadService,
     deleteService,
     loadHistory,
+
+    // Prepared ("future") services
+    openPreparedDialog,
+    closePreparedDialog,
+    saveAsPrepared,
+    deletePreparedService,
+    loadPreparedServices,
 
     // Run-step callbacks
     onSongCompleted,

@@ -52,7 +52,10 @@
                     >
                       <GripVertical class="h-5 w-5" />
                     </div>
-                    <Badge variant="outline" class="text-sm flex-shrink-0">
+                    <Badge
+                      variant="outline"
+                      class="text-sm flex-shrink-0 absolute -top-3 -left-3 bg-secondary text-secondary-foreground"
+                    >
                       {{ index + 1 }}
                     </Badge>
                     <span
@@ -116,9 +119,9 @@
                 />
               </div>
 
-              <!-- Speed (BPM) / Pitch (transposed tonic) for this song -->
+              <!-- Preview / Speed (BPM) / Pitch (transposed tonic) for this song -->
               <SongPlaybackControls
-                :song="serviceSong.song"
+                :midi-asset-id="getMainMidiId(serviceSong.song)"
                 :speed="serviceSong.speed"
                 :pitch-semitones="serviceSong.pitchSemitones"
                 @update:speed="(v) => emit('updateSpeed', index, v)"
@@ -154,19 +157,18 @@
 import SongPlaybackControls from "./SongPlaybackControls.vue";
 import SongSelector from "./SongSelector.vue";
 import VerseSelector from "./VerseSelector.vue";
+import type { ChurchServiceSong } from "@/stores/churchService";
 import { AlertTriangle, GripVertical, Music, Plus, Trash2 } from "lucide-vue-next";
 
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import VueDraggable from "vuedraggable";
 
-import type { Gesangbuchlied } from "@/gql/graphql";
 import { type GesangbuchliedWithMidi, getLiedNumber } from "@/gql/extra-types";
+import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-import type { ChurchServiceSong } from "@/stores/churchService";
 
 interface Props {
   songs: ChurchServiceSong[];
@@ -255,6 +257,11 @@ const hasMidiTrio = (song: Gesangbuchlied): boolean => {
   const s = song as GesangbuchliedWithMidi;
   return !!(s.midi_intro && s.midi_main && s.midi_outro);
 };
+
+// Directus file id of the song's main-verse MIDI — drives the preview-listen
+// and tempo/key metadata in SongPlaybackControls. Undefined when absent.
+const getMainMidiId = (song: Gesangbuchlied): string | undefined =>
+  (song as GesangbuchliedWithMidi).midi_main?.id;
 
 const getAuthors = (song: Gesangbuchlied): string => {
   const textAuthors =

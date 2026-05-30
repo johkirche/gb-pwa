@@ -17,64 +17,78 @@
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <!-- IndexedDB Storage -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div
+            class="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950/30 dark:border-blue-900"
+          >
             <div class="flex items-center space-x-2 mb-2">
-              <Database class="w-4 h-4 text-blue-600" />
-              <span class="text-sm font-medium text-blue-800">IndexedDB</span>
+              <Database class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span
+                class="text-sm font-medium text-blue-800 dark:text-blue-300"
+                >IndexedDB</span
+              >
             </div>
-            <div class="text-lg font-bold text-blue-900">
+            <div class="text-lg font-bold text-blue-900 dark:text-blue-100">
               {{ offlineStorageInfo?.sizeInMB || "0" }} MB
             </div>
-            <div class="text-xs text-blue-600">
+            <div class="text-xs text-blue-600 dark:text-blue-400">
               {{ offlineStorageInfo?.itemCount || 0 }}
               {{ t("offline.storage.items") }}
             </div>
           </div>
 
           <!-- Cache Storage -->
-          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div
+            class="bg-green-50 border border-green-200 rounded-lg p-4 dark:bg-green-950/30 dark:border-green-900"
+          >
             <div class="flex items-center space-x-2 mb-2">
-              <Archive class="w-4 h-4 text-green-600" />
-              <span class="text-sm font-medium text-green-800">{{
-                t("offline.storage.cache")
-              }}</span>
+              <Archive class="w-4 h-4 text-green-600 dark:text-green-400" />
+              <span
+                class="text-sm font-medium text-green-800 dark:text-green-300"
+                >{{ t("offline.storage.cache") }}</span
+              >
             </div>
-            <div class="text-lg font-bold text-green-900">
+            <div class="text-lg font-bold text-green-900 dark:text-green-100">
               {{ formatBytes(cacheStorageSize) }}
             </div>
-            <div class="text-xs text-green-600">
+            <div class="text-xs text-green-600 dark:text-green-400">
               {{ cacheCount }} {{ t("offline.storage.caches") }}
             </div>
           </div>
 
           <!-- Available Storage -->
-          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div
+            class="bg-purple-50 border border-purple-200 rounded-lg p-4 dark:bg-purple-950/30 dark:border-purple-900"
+          >
             <div class="flex items-center space-x-2 mb-2">
-              <Gauge class="w-4 h-4 text-purple-600" />
-              <span class="text-sm font-medium text-purple-800">{{
-                t("offline.storage.available")
-              }}</span>
+              <Gauge class="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span
+                class="text-sm font-medium text-purple-800 dark:text-purple-300"
+                >{{ t("offline.storage.available") }}</span
+              >
             </div>
-            <div class="text-lg font-bold text-purple-900">
+            <div class="text-lg font-bold text-purple-900 dark:text-purple-100">
               {{ formatBytes(storageQuota?.available || 0) }}
             </div>
-            <div class="text-xs text-purple-600">
+            <div class="text-xs text-purple-600 dark:text-purple-400">
               {{ t("offline.storage.free") }}
             </div>
           </div>
 
           <!-- Total Quota -->
-          <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div
+            class="bg-orange-50 border border-orange-200 rounded-lg p-4 dark:bg-orange-950/30 dark:border-orange-900"
+          >
             <div class="flex items-center space-x-2 mb-2">
-              <Disc class="w-4 h-4 text-orange-600" />
-              <span class="text-sm font-medium text-orange-800">{{
-                t("offline.storage.total")
-              }}</span>
+              <Disc class="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              <span
+                class="text-sm font-medium text-orange-800 dark:text-orange-300"
+                >{{ t("offline.storage.total") }}</span
+              >
             </div>
-            <div class="text-lg font-bold text-orange-900">
+            <div class="text-lg font-bold text-orange-900 dark:text-orange-100">
               {{ formatBytes(storageQuota?.quota || 0) }}
             </div>
-            <div class="text-xs text-orange-600">
+            <div class="text-xs text-orange-600 dark:text-orange-400">
               {{ t("offline.storage.quota") }}
             </div>
           </div>

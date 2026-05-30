@@ -21,7 +21,8 @@
   "search": {
     "title": "Lieder suchen",
     "placeholder": "Lied oder Autor suchen...",
-    "button": "Suchen"
+    "button": "Suchen",
+    "noResults": "Keine Lieder gefunden"
   },
   "actions": {
     "browseSongs": "Alle Lieder",

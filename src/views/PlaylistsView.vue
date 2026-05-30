@@ -46,7 +46,13 @@
               class="border rounded-lg p-4 hover:bg-accent/40 transition-colors cursor-pointer"
               @click="openDetail(pl.id)"
             >
-              <div class="flex items-start justify-between gap-2">
+              <div class="flex items-start gap-3">
+                <div
+                  class="w-10 h-10 rounded-md bg-muted flex items-center justify-center text-xl flex-shrink-0"
+                >
+                  <span v-if="pl.emoji">{{ pl.emoji }}</span>
+                  <ListMusic v-else class="w-5 h-5 text-muted-foreground" />
+                </div>
                 <div class="flex-1 min-w-0">
                   <h4 class="font-medium truncate">{{ pl.name }}</h4>
                   <p v-if="pl.description" class="text-sm text-muted-foreground truncate mt-0.5">
@@ -77,6 +83,12 @@
         </DialogHeader>
 
         <div class="space-y-3 py-2">
+          <div class="space-y-1">
+            <Label>{{ t("playlist.emojiLabel") }}</Label>
+            <div>
+              <EmojiPickerPopover v-model="formEmoji" />
+            </div>
+          </div>
           <div class="space-y-1">
             <Label for="new-playlist-name">{{ t("playlist.name") }}</Label>
             <Input
@@ -129,6 +141,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import AppHeader from "@/components/AppHeader.vue";
+import EmojiPickerPopover from "@/components/EmojiPickerPopover.vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -138,17 +151,23 @@ const store = usePlaylistStore();
 const createOpen = ref(false);
 const formName = ref("");
 const formDescription = ref("");
+const formEmoji = ref<string | undefined>(undefined);
 
 const openCreateDialog = () => {
   formName.value = "";
   formDescription.value = "";
+  formEmoji.value = undefined;
   createOpen.value = true;
 };
 
 const saveCreate = async () => {
   const name = formName.value.trim();
   if (!name) return;
-  const created = await store.createPlaylist(name, formDescription.value || undefined);
+  const created = await store.createPlaylist(
+    name,
+    formDescription.value || undefined,
+    formEmoji.value,
+  );
   createOpen.value = false;
   // Jump straight into the new playlist so the user can add songs.
   router.push({ name: "playlist-detail", params: { id: created.id } });

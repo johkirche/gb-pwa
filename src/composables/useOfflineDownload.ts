@@ -216,6 +216,18 @@ export async function hasOfflineAsset(id: string): Promise<boolean> {
   return (await getOfflineAssetBlob(id)) !== null;
 }
 
+// Count songs stored offline in IndexedDB. Module-level so it can be called
+// from outside a Vue setup() context (e.g. the stats store) without spinning
+// up the full composable and its onMounted hook. Returns 0 on error/empty.
+export async function getOfflineSongCount(): Promise<number> {
+  try {
+    return await dbManager.count(SONGS_STORE);
+  } catch (error) {
+    console.error("Error counting offline songs:", error);
+    return 0;
+  }
+}
+
 /**
  * Fetch an asset by URL with an IndexedDB pre-check. Drop-in replacement for
  * the `fetch(url).then(r => r.arrayBuffer())` pattern used by MIDI/MusicXML

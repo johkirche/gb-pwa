@@ -444,7 +444,7 @@ async function startCurrentEntry() {
   parseError.value = null;
 
   if (entry.kind === "piece") {
-    await startPiece(entry.piece);
+    await startPiece(entry.piece, entry.speed, entry.pitchSemitones);
   } else {
     await startSong(entry.song, entry.speed, entry.pitchSemitones);
   }
@@ -456,7 +456,11 @@ async function startCurrentEntry() {
   }
 }
 
-async function startPiece(piece: { midi_file: { id: string } }) {
+async function startPiece(
+  piece: { midi_file: { id: string } },
+  speed: number,
+  pitchSemitones: number,
+) {
   isLoadingFiles.value = true;
   let file: ParsedMidiFile;
   try {
@@ -468,7 +472,7 @@ async function startPiece(piece: { midi_file: { id: string } }) {
     return;
   }
   isLoadingFiles.value = false;
-  await playSingle(file);
+  await playSingle(file, { speed, pitchSemitones });
 }
 
 async function startSong(

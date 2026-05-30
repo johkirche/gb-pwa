@@ -8,6 +8,7 @@ import { computed, ref } from "vue";
 import type { Kategorie } from "@/gql/graphql";
 
 import { useDirectusApi } from "@/composables/useDirectusApi";
+import { getOfflineSongCount } from "@/composables/useOfflineDownload";
 
 export interface StatsData {
   totalSongs: number;
@@ -403,12 +404,16 @@ export const useStatsStore = defineStore("stats", () => {
     isLoadingStats.value = true;
     statsError.value = null;
 
+    // Read the offline count from IndexedDB first — it doesn't depend on the
+    // network, so it must survive a failed (e.g. offline) totalSongs fetch.
+    const offlineSongs = await getOfflineSongCount();
+
     try {
       const totalSongs = await fetchTotalSongsCount();
 
       stats.value = {
         totalSongs,
-        offlineSongs: 0, // TODO: Get from local storage
+        offlineSongs,
         favorites: 0, // TODO: Get from user preferences/local storage
         recentlyPlayed: 0, // TODO: Get from local storage
       };
@@ -416,10 +421,10 @@ export const useStatsStore = defineStore("stats", () => {
       console.error("Error loading stats:", error);
       statsError.value = error instanceof Error ? error.message : "Failed to load stats";
 
-      // Set default values on error
+      // Network total failed (e.g. offline) — still surface the offline count.
       stats.value = {
         totalSongs: 0,
-        offlineSongs: 0,
+        offlineSongs,
         favorites: 0,
         recentlyPlayed: 0,
       };
