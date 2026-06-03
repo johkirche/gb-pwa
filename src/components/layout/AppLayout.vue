@@ -56,7 +56,9 @@
           <LanguageSwitch variant="dropdown" size="sm" class="flex-1 [&_button]:w-full" />
         </div>
 
-        <div class="flex items-center gap-2 rounded-lg px-1.5 py-1">
+        <!-- Account row only when actually signed in; in offline mode there is
+             no real user, so we offer a sign-in shortcut instead. -->
+        <div v-if="user" class="flex items-center gap-2 rounded-lg px-1.5 py-1">
           <div
             class="w-8 h-8 shrink-0 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold"
           >
@@ -77,6 +79,16 @@
             <span class="sr-only">{{ t("utils.logout") }}</span>
           </Button>
         </div>
+        <Button
+          v-else
+          variant="outline"
+          size="sm"
+          class="w-full justify-start gap-2"
+          @click="goToLogin"
+        >
+          <LogIn class="w-4 h-4" />
+          {{ t("utils.login") }}
+        </Button>
       </div>
     </aside>
 
@@ -157,9 +169,17 @@
               English
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem class="text-destructive focus:text-destructive" @click="handleLogout">
+            <DropdownMenuItem
+              v-if="user"
+              class="text-destructive focus:text-destructive"
+              @click="handleLogout"
+            >
               <LogOut class="w-4 h-4 mr-2" />
               {{ t("utils.logout") }}
+            </DropdownMenuItem>
+            <DropdownMenuItem v-else @click="goToLogin">
+              <LogIn class="w-4 h-4 mr-2" />
+              {{ t("utils.login") }}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -175,6 +195,7 @@ import {
   DownloadCloud,
   Home,
   ListMusic,
+  LogIn,
   LogOut,
   Moon,
   MoreHorizontal,
@@ -211,7 +232,7 @@ interface NavItem {
 const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { userName, logout } = useAuth();
+const { user, userName, logout } = useAuth();
 
 const navItems: NavItem[] = [
   { key: "home", label: "nav.home", icon: Home, to: { name: "home" }, match: ["home"] },
@@ -274,5 +295,9 @@ const initials = computed(() => {
 
 const handleLogout = async () => {
   await logout();
+};
+
+const goToLogin = () => {
+  router.push("/login");
 };
 </script>

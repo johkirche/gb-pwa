@@ -21,6 +21,7 @@
   "failedToClearContent": "Failed to clear offline content.",
   "home": "Home",
   "logout": "Logout",
+  "login": "Sign in",
   "unknownSize": "Unknown size",
   "image": "Image",
   "panZoom": {

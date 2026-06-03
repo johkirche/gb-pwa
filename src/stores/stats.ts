@@ -8,7 +8,7 @@ import { computed, ref } from "vue";
 import type { Kategorie } from "@/gql/graphql";
 
 import { useDirectusApi } from "@/composables/useDirectusApi";
-import { getOfflineSongCount } from "@/composables/useOfflineDownload";
+import { getAllOfflineSongs, getOfflineSongCount } from "@/composables/useOfflineDownload";
 
 export interface StatsData {
   totalSongs: number;
@@ -433,6 +433,47 @@ export const useStatsStore = defineStore("stats", () => {
     }
   };
 
+  // Derive categories (with counts) from the songs stored offline in IndexedDB.
+  // The downloaded set is exactly the rangfolge=5 songs the online counts are
+  // based on, so these numbers match what the API returns — unlike the old mock
+  // fallback, which showed a handful of fake categories. Counts each category
+  // junction on each song (mirroring the server-side aggregate over the
+  // gesangbuchlied_kategorie rows).
+  const buildOfflineCategories = async (): Promise<CategoryWithCount[]> => {
+    const songs = await getAllOfflineSongs();
+    const map = new Map<string, CategoryWithCount>();
+
+    for (const song of songs) {
+      const kats = song.kategorieId;
+      if (!Array.isArray(kats)) continue;
+
+      for (const kat of kats) {
+        const cat = kat?.kategorie_id as
+          | { id?: string | number; name?: string; typ?: string }
+          | null
+          | undefined;
+        if (!cat?.name) continue;
+
+        // Prefer the real category id (needed for the emoji icon map); fall
+        // back to the name as key for older downloads that lack it.
+        const id = cat.id != null ? cat.id.toString() : cat.name;
+        const existing = map.get(id);
+        if (existing) {
+          existing.count++;
+        } else {
+          map.set(id, {
+            id,
+            name: cat.name,
+            typ: cat.typ ?? undefined,
+            count: 1,
+          });
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  };
+
   const loadCategories = async () => {
     if (isLoadingCategories.value) return;
 
@@ -440,22 +481,27 @@ export const useStatsStore = defineStore("stats", () => {
     categoriesError.value = null;
 
     try {
+      const authStore = useAuthStore();
+      const online = typeof navigator === "undefined" || navigator.onLine;
+
+      // Offline-first: when the API is unreachable (no network or no session),
+      // derive categories from downloaded songs instead of hitting the network.
+      if (!online || !authStore.accessToken) {
+        const offline = await buildOfflineCategories();
+        if (offline.length > 0) {
+          categories.value = offline;
+          return;
+        }
+      }
+
       categories.value = await fetchCategoriesWithCount();
     } catch (error) {
       console.error("Error loading categories:", error);
       categoriesError.value = error instanceof Error ? error.message : "Failed to load categories";
 
-      // Fallback to mock data on error
-      categories.value = [
-        { id: "1", name: "Advent", count: 45 },
-        { id: "2", name: "Weihnachten", count: 62 },
-        { id: "3", name: "Ostern", count: 38 },
-        { id: "4", name: "Pfingsten", count: 24 },
-        { id: "5", name: "Lob & Anbetung", count: 89 },
-        { id: "6", name: "Gemeinschaft", count: 56 },
-        { id: "7", name: "Moderne Lieder", count: 34 },
-        { id: "8", name: "Klassische Hymnen", count: 78 },
-      ];
+      // Network path failed — fall back to whatever was downloaded for offline
+      // use (empty array if nothing is downloaded, which is honest).
+      categories.value = await buildOfflineCategories();
     } finally {
       isLoadingCategories.value = false;
     }

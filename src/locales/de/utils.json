@@ -21,6 +21,7 @@
   "failedToClearContent": "Offline-Inhalte konnten nicht gelöscht werden.",
   "home": "Startseite",
   "logout": "Abmelden",
+  "login": "Anmelden",
   "unknownSize": "Unbekannte Größe",
   "image": "Bild",
   "panZoom": {

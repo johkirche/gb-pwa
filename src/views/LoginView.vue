@@ -87,6 +87,31 @@
               </Button>
             </div>
           </form>
+
+          <!-- Offline access: let users with downloaded content into the app
+               without signing in (e.g. after a logout or an expired session). -->
+          <div v-if="hasOfflineContent">
+            <div class="mt-6 flex items-center gap-3">
+              <span class="h-px flex-1 bg-gray-200" />
+              <span class="text-xs uppercase text-gray-500">{{ t("login.orDivider") }}</span>
+              <span class="h-px flex-1 bg-gray-200" />
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              class="w-full mt-4"
+              size="lg"
+              @click="continueOffline"
+            >
+              <WifiOff class="h-5 w-5 mr-2" />
+              {{ t("login.continueOffline") }}
+            </Button>
+
+            <p class="mt-2 text-center text-xs text-gray-500">
+              {{ t("login.continueOfflineHint") }}
+            </p>
+          </div>
         </CardContent>
       </template>
     </Card>
@@ -94,12 +119,15 @@
 </template>
 
 <script setup lang="ts">
-import { AlertCircle, Loader2, Lock, LogIn, Mail } from "lucide-vue-next";
+import { AlertCircle, Loader2, Lock, LogIn, Mail, WifiOff } from "lucide-vue-next";
 
 import { onMounted, ref } from "vue";
 import type { Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+
+import { hasOfflineContentAvailable } from "@/composables/useOfflineDownload";
+import { useAuthStore } from "@/stores/auth";
 
 import LanguageSwitch from "@/components/ui/LanguageSwitch.vue";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -114,13 +142,18 @@ const email: Ref<string> = ref("");
 const password: Ref<string> = ref("");
 const error: Ref<string> = ref("");
 const checking: Ref<boolean> = ref(false);
+const hasOfflineContent: Ref<boolean> = ref(false);
 
 const { login, isLoading, checkAuth, getRedirectUrl, isLoggedIn } = useAuth();
+const authStore = useAuthStore();
 const router = useRouter();
 const { t } = useI18n();
 
 // Check authentication status on mount
 onMounted(async (): Promise<void> => {
+  // Surface the offline-entry option if the user has downloaded content.
+  hasOfflineContent.value = await hasOfflineContentAvailable();
+
   // Only check auth if not already logged in to prevent unnecessary calls
   if (isLoggedIn.value) {
     await router.push("/home");
@@ -140,6 +173,14 @@ onMounted(async (): Promise<void> => {
     checking.value = false;
   }
 });
+
+// Enter the app in offline mode using downloaded content. Clears any explicit
+// logout flag (pressing this is a deliberate choice to use the app again) so
+// the offline-first router guard lets the user through to /home.
+const continueOffline = async (): Promise<void> => {
+  authStore.setLoggedOut(false);
+  await router.push("/home");
+};
 
 const handleLogin = async (): Promise<void> => {
   error.value = "";

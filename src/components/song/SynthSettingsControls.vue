@@ -121,6 +121,7 @@ import {
   cacheAssetById,
   extractDirectusAssetId,
   hasOfflineAsset,
+  setCachedSoundfontId,
 } from "@/composables/useOfflineDownload";
 
 const { t } = useI18n();
@@ -202,6 +203,8 @@ async function onDownloadSoundfont() {
   soundfontError.value = null;
   try {
     await cacheAssetById(soundfontAssetId.value);
+    // Persist the id so the synth can resolve this soundfont offline.
+    setCachedSoundfontId(soundfontAssetId.value);
     soundfontStatus.value = "cached";
   } catch (err) {
     soundfontError.value = (err as Error)?.message ?? "download failed";

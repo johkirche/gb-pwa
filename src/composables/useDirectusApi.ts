@@ -5,8 +5,6 @@ import type { User } from "@/stores/auth";
 import { useAuthStore } from "@/stores/auth";
 import axios, { type AxiosRequestConfig } from "axios";
 
-import { useRouter } from "vue-router";
-
 export interface LoginRequest {
   email: string;
   password: string;
@@ -99,11 +97,14 @@ export class DirectusApiClient {
   }
 
   /**
-   * Create an authenticated fetch function with automatic token refresh
+   * Create an authenticated fetch function with automatic token refresh.
+   *
+   * On a 401 it attempts a single token refresh and retries. It deliberately
+   * does NOT clear the session or redirect to /login on failure — that would
+   * defeat offline-first usage. Instead it throws, letting callers fall back to
+   * cached/IndexedDB content. Session teardown is owned by useAuth.
    */
   createAuthenticatedFetch(accessToken: string) {
-    const router = useRouter();
-
     return async (url: string, options: AxiosRequestConfig = {}) => {
       try {
         const response = await axios({
@@ -116,25 +117,30 @@ export class DirectusApiClient {
         });
         return response.data;
       } catch (error: unknown) {
-        // If we get a 401 error, try to refresh the token
+        // If we get a 401 error, try to refresh the token once.
         if (axios.isAxiosError(error) && error.response?.status === 401) {
           const authStore = useAuthStore();
 
-          if (authStore.refreshToken) {
+          // Prefer the freshest persisted refresh token (another tab may have
+          // rotated it) over the possibly-stale in-memory copy.
+          const refreshToken =
+            (typeof window !== "undefined" &&
+              localStorage.getItem("auth-refresh-token")) ||
+            authStore.refreshToken;
+
+          if (refreshToken) {
             try {
-              // Try to refresh the token
               const refreshResponse = await this.refresh({
-                refresh_token: authStore.refreshToken,
+                refresh_token: refreshToken,
                 mode: "json",
               });
 
-              // Update tokens in store
               authStore.setTokens(
                 refreshResponse.access_token,
                 refreshResponse.refresh_token,
               );
 
-              // Retry the original request with the new token
+              // Retry the original request with the new token.
               const retryResponse = await axios({
                 url,
                 ...options,
@@ -145,10 +151,12 @@ export class DirectusApiClient {
               });
               return retryResponse.data;
             } catch (refreshError) {
-              console.error("Token refresh failed:", refreshError);
-              // Clear auth and redirect to login
-              authStore.clearAuth();
-              await router.push("/login");
+              // Don't clear auth / redirect — keep the user in (possibly
+              // offline) and let the caller fall back to cached data.
+              console.warn(
+                "Authenticated request refresh failed; falling back:",
+                refreshError,
+              );
               throw refreshError;
             }
           }

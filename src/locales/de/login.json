@@ -10,5 +10,8 @@
   "signInButton": "Anmelden",
   "signingInButton": "Anmeldung läuft...",
   "fillAllFields": "Bitte füllen Sie alle Felder aus",
-  "loginFailed": "Anmeldung fehlgeschlagen"
+  "loginFailed": "Anmeldung fehlgeschlagen",
+  "continueOffline": "Offline fortfahren",
+  "continueOfflineHint": "Du hast heruntergeladene Inhalte verfügbar. Nutze die App ohne Anmeldung.",
+  "orDivider": "oder"
 }

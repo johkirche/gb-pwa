@@ -216,6 +216,29 @@ export async function hasOfflineAsset(id: string): Promise<boolean> {
   return (await getOfflineAssetBlob(id)) !== null;
 }
 
+// Cached answer to "has the user downloaded content for offline use?" so the
+// router guard can decide instantly on most navigations instead of opening an
+// IndexedDB transaction every time. Kept in sync by storeOfflineContent (→true)
+// and clearOfflineContent (→false); `null` means "not checked yet".
+let offlineContentAvailableCache: boolean | null = null;
+
+// Module-level check used by the router guard / auth layer to enable a fully
+// offline-capable mode once songs have been downloaded. Reads the offline-meta
+// record written after a successful download.
+export async function hasOfflineContentAvailable(): Promise<boolean> {
+  if (offlineContentAvailableCache !== null) return offlineContentAvailableCache;
+  try {
+    const meta = (await dbManager.get(META_STORE, "offline-meta")) as
+      | OfflineMeta
+      | undefined;
+    offlineContentAvailableCache = !!meta;
+  } catch (error) {
+    console.error("Error checking offline content availability:", error);
+    offlineContentAvailableCache = false;
+  }
+  return offlineContentAvailableCache;
+}
+
 // Count songs stored offline in IndexedDB. Module-level so it can be called
 // from outside a Vue setup() context (e.g. the stats store) without spinning
 // up the full composable and its onMounted hook. Returns 0 on error/empty.
@@ -225,6 +248,44 @@ export async function getOfflineSongCount(): Promise<number> {
   } catch (error) {
     console.error("Error counting offline songs:", error);
     return 0;
+  }
+}
+
+// Read every downloaded song from IndexedDB. Module-level so non-setup contexts
+// (e.g. the stats store deriving categories offline) can use it without the full
+// composable. Returns [] on error/empty.
+export async function getAllOfflineSongs(): Promise<Gesangbuchlied[]> {
+  try {
+    return (await dbManager.getAllFromStore(SONGS_STORE)) as Gesangbuchlied[];
+  } catch (error) {
+    console.error("Error reading offline songs:", error);
+    return [];
+  }
+}
+
+// The Directus file id of the configured soundfont, persisted at download time.
+// Offline, the soundfont id otherwise only lives in the Directus `settings`
+// singleton (unreachable without network) — so the synth couldn't locate its
+// precached blob. We stash the id in localStorage so it can be resolved
+// offline and the blob read straight from the `assets` store.
+const SOUNDFONT_ID_KEY = "gb-pwa.offline.soundfontId";
+
+export function getCachedSoundfontId(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    return localStorage.getItem(SOUNDFONT_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedSoundfontId(id: string | null): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    if (id) localStorage.setItem(SOUNDFONT_ID_KEY, id);
+    else localStorage.removeItem(SOUNDFONT_ID_KEY);
+  } catch {
+    /* ignore quota / availability errors */
   }
 }
 
@@ -430,6 +491,7 @@ export const useOfflineDownload = () => {
 
       await dbManager.put(META_STORE, meta, "offline-meta");
 
+      offlineContentAvailableCache = true;
       hasOfflineContent.value = true;
       offlineContentInfo.value = {
         count: content.songs.length,
@@ -508,9 +570,14 @@ export const useOfflineDownload = () => {
       }
 
       // Soundfont — referenced from `settings.soundfont`, fetched once here so
-      // the browser synth has its bank available offline too.
+      // the browser synth has its bank available offline too. Persist the id so
+      // the synth can locate the cached blob offline (settings is unreachable
+      // without network).
       const sfId = await fetchSoundfontId();
-      if (sfId) note(sfId);
+      if (sfId) {
+        note(sfId);
+        setCachedSoundfontId(sfId);
+      }
 
       const desiredList = Array.from(desired.values());
       const totalAssets = desiredList.length;
@@ -730,6 +797,8 @@ export const useOfflineDownload = () => {
       await dbManager.clear(ASSETS_STORE);
       await dbManager.delete(META_STORE, "offline-meta");
 
+      offlineContentAvailableCache = false;
+      setCachedSoundfontId(null);
       hasOfflineContent.value = false;
       offlineContentInfo.value = null;
     } catch (error) {

@@ -87,7 +87,7 @@ export const useGesangbuchlied = () => {
       kategorieId: [
         "id",
         {
-          kategorie_id: ["name", "typ"],
+          kategorie_id: ["id", "name", "typ"],
         },
       ],
     },

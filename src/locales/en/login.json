@@ -10,5 +10,8 @@
   "signInButton": "Sign in",
   "signingInButton": "Signing in...",
   "fillAllFields": "Please fill in all fields",
-  "loginFailed": "Login failed"
+  "loginFailed": "Login failed",
+  "continueOffline": "Continue offline",
+  "continueOfflineHint": "You have downloaded content available. Use the app without signing in.",
+  "orDivider": "or"
 }

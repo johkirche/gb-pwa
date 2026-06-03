@@ -46,6 +46,14 @@ export interface AuthState {
   isLoggedIn: boolean;
 }
 
+// localStorage keys — exported so other modules (e.g. cross-tab sync, the
+// refresh-rotation retry) can read the freshest persisted values directly
+// without going through the (possibly stale in this tab) in-memory refs.
+export const ACCESS_TOKEN_KEY = "auth-access-token";
+export const REFRESH_TOKEN_KEY = "auth-refresh-token";
+export const USER_KEY = "auth-user";
+export const LOGGED_OUT_KEY = "auth-logged-out";
+
 export const useAuthStore = defineStore("auth", () => {
   // State
   const user = ref<User | null>(null);
@@ -53,10 +61,16 @@ export const useAuthStore = defineStore("auth", () => {
   const refreshToken = ref<string | null>(null);
   const isLoading = ref<boolean>(false);
   const isLoggedIn = ref<boolean>(false);
+  // True only after an *explicit* user logout. Lets the router guard force a
+  // login even when offline content is downloaded (so "Log out" actually
+  // sticks); cleared on the next successful login.
+  const isLoggedOut = ref<boolean>(false);
 
   // Getters
   const userName = computed(() => {
-    if (!user.value) return "User";
+    // No user (e.g. offline mode) → empty string so callers can hide
+    // user-specific UI instead of showing a meaningless "User" placeholder.
+    if (!user.value) return "";
     return user.value.first_name || user.value.email || "User";
   });
 
@@ -70,9 +84,9 @@ export const useAuthStore = defineStore("auth", () => {
 
     // Persist user to localStorage
     if (newUser) {
-      setLocalStorage("auth-user", JSON.stringify(newUser));
+      setLocalStorage(USER_KEY, JSON.stringify(newUser));
     } else {
-      setLocalStorage("auth-user", null);
+      setLocalStorage(USER_KEY, null);
     }
   };
 
@@ -84,33 +98,47 @@ export const useAuthStore = defineStore("auth", () => {
     refreshToken.value = newRefreshToken;
 
     // Store tokens in localStorage
-    setLocalStorage("auth-access-token", newAccessToken);
-    setLocalStorage("auth-refresh-token", newRefreshToken);
+    setLocalStorage(ACCESS_TOKEN_KEY, newAccessToken);
+    setLocalStorage(REFRESH_TOKEN_KEY, newRefreshToken);
   };
 
   const setLoading = (loading: boolean) => {
     isLoading.value = loading;
   };
 
-  const clearAuth = () => {
+  // Mark whether the user has explicitly logged out. Persisted so the choice
+  // survives reloads (otherwise a downloaded-offline app would silently let a
+  // logged-out user back in via the offline-first guard).
+  const setLoggedOut = (value: boolean) => {
+    isLoggedOut.value = value;
+    setLocalStorage(LOGGED_OUT_KEY, value ? "1" : null);
+  };
+
+  // Clear the session. `explicit` is true for a deliberate user logout (sets
+  // the logged-out flag); leave it false for token-expiry / error cleanups so
+  // we don't trap an offline user behind the login screen unnecessarily.
+  const clearAuth = (explicit = false) => {
     user.value = null;
     accessToken.value = null;
     refreshToken.value = null;
     isLoggedIn.value = false;
 
     // Clear localStorage
-    setLocalStorage("auth-access-token", null);
-    setLocalStorage("auth-refresh-token", null);
-    setLocalStorage("auth-user", null);
+    setLocalStorage(ACCESS_TOKEN_KEY, null);
+    setLocalStorage(REFRESH_TOKEN_KEY, null);
+    setLocalStorage(USER_KEY, null);
+
+    if (explicit) setLoggedOut(true);
   };
 
   // Hydrate state from localStorage
   const hydrateFromStorage = () => {
     try {
-      accessToken.value = getLocalStorage("auth-access-token");
-      refreshToken.value = getLocalStorage("auth-refresh-token");
+      accessToken.value = getLocalStorage(ACCESS_TOKEN_KEY);
+      refreshToken.value = getLocalStorage(REFRESH_TOKEN_KEY);
+      isLoggedOut.value = getLocalStorage(LOGGED_OUT_KEY) === "1";
 
-      const userString = getLocalStorage("auth-user");
+      const userString = getLocalStorage(USER_KEY);
       if (userString) {
         try {
           user.value = JSON.parse(userString);
@@ -118,8 +146,12 @@ export const useAuthStore = defineStore("auth", () => {
         } catch (error) {
           console.error("Failed to parse user from localStorage:", error);
           // Clear invalid user data
-          setLocalStorage("auth-user", null);
+          setLocalStorage(USER_KEY, null);
         }
+      } else {
+        // Another tab may have logged out / cleared the session.
+        user.value = null;
+        isLoggedIn.value = false;
       }
     } catch (error) {
       console.error("Failed to hydrate auth state from localStorage:", error);
@@ -141,6 +173,7 @@ export const useAuthStore = defineStore("auth", () => {
     refreshToken,
     isLoading,
     isLoggedIn,
+    isLoggedOut,
     isHydrated,
     // Getters
     userName,
@@ -149,6 +182,7 @@ export const useAuthStore = defineStore("auth", () => {
     setUser,
     setTokens,
     setLoading,
+    setLoggedOut,
     clearAuth,
     hydrateFromStorage,
     markAsHydrated,
