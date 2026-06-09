@@ -24,9 +24,27 @@ function createMessagesFromModules(modules: Record<string, unknown>) {
 const enMessages = createMessagesFromModules(enModules);
 const deMessages = createMessagesFromModules(deModules);
 
+const SUPPORTED_LOCALES = ["de", "en"] as const;
+const FALLBACK_LOCALE = "de";
+
+// Resolve the initial locale: a saved preference wins, then the browser's
+// preferred language, then the German fallback.
+function getDefaultLocale() {
+  const saved = localStorage.getItem("preferred-language");
+  if (saved && (SUPPORTED_LOCALES as readonly string[]).includes(saved)) {
+    return saved;
+  }
+
+  const fromBrowser = (navigator.languages ?? [navigator.language])
+    .map((lang) => lang.split("-")[0].toLowerCase())
+    .find((lang) => (SUPPORTED_LOCALES as readonly string[]).includes(lang));
+
+  return fromBrowser ?? FALLBACK_LOCALE;
+}
+
 const i18n = createI18n({
   legacy: false,
-  locale: localStorage.getItem("preferred-language") || "en",
+  locale: getDefaultLocale(),
   fallbackLocale: "en",
   messages: {
     en: enMessages,

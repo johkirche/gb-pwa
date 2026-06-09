@@ -172,6 +172,10 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    port: 4823,
+    open: "http://gb-pwa.localhost:4823",
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
