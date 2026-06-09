@@ -31,28 +31,20 @@
         </Transition>
       </div>
 
-      <div class="flex items-center space-x-2">
-        <Button v-if="!isCollapsed" variant="outline" size="sm" @click="selectAllVerses">
-          {{ t("churchService.selectAll") }}
-        </Button>
-        <Button v-if="!isCollapsed" variant="outline" size="sm" @click="clearAllVerses">
-          {{ t("churchService.clearAll") }}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          @click="toggleCollapse"
-          class="flex items-center space-x-1"
-        >
-          <ChevronDown
-            :class="['w-4 h-4 transition-transform duration-200', isCollapsed ? 'rotate-180' : '']"
-          />
-          <span>{{ isCollapsed ? t("churchService.expand") : t("churchService.collapse") }}</span>
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        @click="toggleCollapse"
+        :title="isCollapsed ? t('churchService.expand') : t('churchService.collapse')"
+        :aria-label="isCollapsed ? t('churchService.expand') : t('churchService.collapse')"
+      >
+        <ChevronDown
+          :class="['w-4 h-4 transition-transform duration-200', isCollapsed ? 'rotate-180' : '']"
+        />
+      </Button>
     </div>
 
-    <!-- Expanded View - Full Verse Selection -->
+    <!-- Expanded View - Verse cards (toggle + preview combined) -->
     <Transition
       enter-active-class="transition-all duration-300 ease-out"
       enter-from-class="opacity-0 translate-y-2"
@@ -61,50 +53,39 @@
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 -translate-y-2"
     >
-      <div v-if="!isCollapsed" class="border border-border rounded-lg p-4 bg-background">
-        <div class="flex flex-wrap gap-6">
-          <div
-            v-for="verseNumber in availableVerses"
-            :key="verseNumber"
-            :class="[
-              'relative flex items-center justify-center w-10 h-10 rounded-lg border-2 cursor-pointer transition-all',
-              isVerseSelected(verseNumber)
-                ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
-                : 'border-border hover:border-primary/50 hover:bg-accent',
-            ]"
-            @click="toggleVerse(verseNumber)"
-          >
-            <span class="text-sm font-medium">{{ verseNumber }}</span>
-            <CheckCircle
-              v-if="isVerseSelected(verseNumber)"
-              class="absolute -top-[5.5px] -right-[5.5px] w-4 h-4 text-green-500 bg-muted rounded-full shadow"
-            />
-          </div>
-        </div>
-
-        <!-- Verse Preview -->
-        <div v-if="selectedVerses.length > 0" class="mt-4 pt-4 border-t border-border">
-          <h5 class="text-sm font-medium mb-2">{{ t("churchService.selectedVerses") }}:</h5>
-          <div class="flex flex-wrap gap-1">
-            <Badge v-for="verse in sortedSelectedVerses" :key="verse" variant="secondary">
-              {{ t("churchService.verse") }} {{ verse }}
-            </Badge>
-          </div>
-        </div>
-
-        <!-- Verse Text Preview -->
-        <div
-          v-if="previewText && selectedVerses.length > 0"
-          class="mt-4 pt-4 border-t border-border"
+      <div v-if="!isCollapsed" class="grid gap-2 sm:grid-cols-2">
+        <button
+          v-for="verseNumber in availableVerses"
+          :key="verseNumber"
+          type="button"
+          :class="[
+            'group relative text-left rounded-lg border-2 p-3 pl-10 transition-all',
+            isVerseSelected(verseNumber)
+              ? 'border-primary bg-primary/5'
+              : 'border-border bg-background hover:border-primary/50 hover:bg-accent',
+          ]"
+          @click="toggleVerse(verseNumber)"
         >
-          <h5 class="text-sm font-medium mb-2">{{ t("churchService.preview") }}:</h5>
-          <div class="max-h-32 overflow-y-auto pr-1 text-sm text-muted-foreground space-y-2">
-            <div v-for="verse in sortedSelectedVerses" :key="verse">
-              <span class="font-medium">{{ verse }}.</span>
-              {{ getVerseText(verse) }}
-            </div>
-          </div>
-        </div>
+          <!-- Selection indicator (top left) -->
+          <CheckCircle
+            v-if="isVerseSelected(verseNumber)"
+            class="absolute top-2.5 left-2.5 w-5 h-5 text-primary"
+          />
+          <span
+            v-else
+            class="absolute top-2.5 left-2.5 w-5 h-5 rounded-full border-2 border-muted-foreground/30 group-hover:border-primary/50 transition-colors"
+          />
+
+          <span class="block text-sm font-semibold">
+            {{ t("churchService.verse") }} {{ verseNumber }}
+          </span>
+          <p
+            v-if="getVerseText(verseNumber)"
+            class="mt-1 text-xs text-muted-foreground line-clamp-3"
+          >
+            {{ getVerseText(verseNumber) }}
+          </p>
+        </button>
       </div>
     </Transition>
   </div>
@@ -164,10 +145,6 @@ const availableVerses = computed(() => {
   return verses;
 });
 
-const previewText = computed(() => {
-  return props.song.textId?.strophenEinzeln && Array.isArray(props.song.textId.strophenEinzeln);
-});
-
 const isVerseSelected = (verseNumber: number): boolean => {
   return selectedVerses.value.includes(verseNumber);
 };
@@ -185,14 +162,6 @@ const toggleVerse = (verseNumber: number) => {
   selectedVerses.value = currentSelection;
 };
 
-const selectAllVerses = () => {
-  selectedVerses.value = [...availableVerses.value];
-};
-
-const clearAllVerses = () => {
-  selectedVerses.value = [];
-};
-
 const getVerseText = (verseNumber: number): string => {
   if (!props.song.textId?.strophenEinzeln || !Array.isArray(props.song.textId.strophenEinzeln)) {
     return "";
@@ -201,11 +170,8 @@ const getVerseText = (verseNumber: number): string => {
   const verse = props.song.textId.strophenEinzeln[verseNumber - 1];
   if (verse && typeof verse === "object" && "strophe" in verse) {
     const stropheText = (verse as { strophe?: string }).strophe;
-    // remove \n from stropheText
-    const cleanedStropheText = stropheText?.replace(/¬/g, "");
-    return cleanedStropheText
-      ? cleanedStropheText.slice(0, 100) + (cleanedStropheText.length > 100 ? "..." : "")
-      : "";
+    // Drop the ¬ hyphenation markers; the card clamps overflow via CSS.
+    return stropheText?.replace(/¬/g, "") ?? "";
   }
 
   return "";

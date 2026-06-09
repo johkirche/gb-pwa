@@ -43,11 +43,15 @@
             @delete-service="store.deletePreparedService"
           />
 
-          <ServiceHistory
-            :history="store.serviceHistory"
-            @load-service="store.loadService"
-            @delete-service="store.deleteService"
-          />
+          <Card>
+            <CardContent>
+              <ServiceHistory
+                :history="store.serviceHistory"
+                @load-service="store.loadService"
+                @delete-service="store.deleteService"
+              />
+            </CardContent>
+          </Card>
         </template>
 
         <!-- Wizard (setup / device / run) -->
@@ -76,6 +80,7 @@ import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 import AppLayout from "@/components/layout/AppLayout.vue";
 import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";

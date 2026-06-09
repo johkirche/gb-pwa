@@ -45,7 +45,7 @@
             <div v-if="serviceSong.song" class="space-y-4">
               <div class="flex items-start justify-between gap-2">
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
+                  <div class="flex items-center gap-2 mb-1 min-w-0">
                     <div
                       class="drag-handle cursor-move text-gray-400 hover:text-gray-600 flex-shrink-0"
                       v-if="songs.length > 1"
@@ -64,36 +64,20 @@
                     >
                       {{ getLiedNumber(serviceSong.song) }}
                     </span>
-                    <h5 class="font-medium truncate">{{ serviceSong.song.titel }}</h5>
-                  </div>
-                  <p class="text-sm text-muted-foreground mb-2 truncate">
-                    {{ getAuthors(serviceSong.song) }}
-                  </p>
-                  <div class="flex flex-wrap items-center gap-2">
+                    <h5 class="font-medium truncate min-w-0">{{ serviceSong.song.titel }}</h5>
                     <Badge
-                      v-if="hasMidiTrio(serviceSong.song)"
+                      v-if="!hasMidiTrio(serviceSong.song)"
                       variant="secondary"
-                      class="text-xs bg-green-100 text-green-800 hover:bg-green-100"
-                    >
-                      🎹 MIDI
-                    </Badge>
-                    <Badge
-                      v-else
-                      variant="secondary"
-                      class="text-xs bg-orange-100 text-orange-800 hover:bg-orange-100"
+                      class="text-xs flex-shrink-0 bg-orange-100 text-orange-800 hover:bg-orange-100"
+                      :title="t('churchService.missingMidi')"
                     >
                       <AlertTriangle class="w-3 h-3 mr-1" />
                       {{ t("churchService.missingMidi") }}
                     </Badge>
-                    <Badge
-                      v-for="category in getCategories(serviceSong.song).slice(0, 2)"
-                      :key="category"
-                      variant="outline"
-                      class="text-xs"
-                    >
-                      {{ category }}
-                    </Badge>
                   </div>
+                  <p class="text-sm text-muted-foreground truncate">
+                    {{ getAuthors(serviceSong.song) }}
+                  </p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <Button variant="outline" size="sm" @click="changeSong(index)">
@@ -280,12 +264,6 @@ const getAuthors = (song: Gesangbuchlied): string => {
 
   const allAuthors = [...new Set([...textAuthors, ...melodieAuthors])];
   return allAuthors.length > 0 ? allAuthors.join(", ") : t("utils.unknown");
-};
-
-const getCategories = (song: Gesangbuchlied): string[] => {
-  return (
-    (song.kategorieId?.map((kat) => kat?.kategorie_id?.name).filter(Boolean) as string[]) || []
-  );
 };
 </script>
 

@@ -2,6 +2,8 @@
   "networkError": "Diese Funktion benötigt eine Internetverbindung. Bitte überprüfen Sie Ihr Netzwerk und versuchen Sie es erneut.",
   "unknownError": "Ein unbekannter Fehler ist aufgetreten",
   "loading": "Lädt...",
+  "offlineDataBadge": "Offline-Daten",
+  "offlineDataHint": "Es werden nur heruntergeladene Lieder angezeigt. Gehe online und lösche die Offline-Inhalte, um den ganzen Katalog zu durchsuchen.",
   "offlineAccess": "Offline-Zugang",
   "downloadDescription": "Laden Sie alle Lieder für den Offline-Zugang herunter, wenn Sie keine Internetverbindung haben.",
   "songsDownloaded": "{count} Lieder heruntergeladen",

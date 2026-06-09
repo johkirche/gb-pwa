@@ -2,6 +2,8 @@
   "networkError": "This feature requires an internet connection. Please check your network and try again.",
   "unknownError": "Unknown error occurred",
   "loading": "Loading...",
+  "offlineDataBadge": "Offline data",
+  "offlineDataHint": "Showing only downloaded songs. Connect and clear offline content to search the full catalogue.",
   "offlineAccess": "Offline Access",
   "downloadDescription": "Download all songs for offline access when you don't have internet connection.",
   "songsDownloaded": "{count} songs downloaded",

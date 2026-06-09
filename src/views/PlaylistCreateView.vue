@@ -14,39 +14,41 @@
           </p>
         </div>
 
-        <div class="max-w-xl space-y-4">
-          <div class="space-y-1">
-            <Label>{{ t("playlist.emojiLabel") }}</Label>
-            <div>
-              <EmojiPickerPopover v-model="formEmoji" />
+        <Card class="mx-auto max-w-xl">
+          <CardContent class="space-y-4">
+            <div class="space-y-1">
+              <Label>{{ t("playlist.emojiLabel") }}</Label>
+              <div>
+                <EmojiPickerPopover v-model="formEmoji" />
+              </div>
             </div>
-          </div>
-          <div class="space-y-1">
-            <Label for="new-playlist-name">{{ t("playlist.name") }}</Label>
-            <Input
-              id="new-playlist-name"
-              v-model="formName"
-              :placeholder="t('playlist.namePlaceholder')"
-              autofocus
-              @keydown.enter="saveCreate"
-            />
-          </div>
-          <div class="space-y-1">
-            <Label for="new-playlist-desc">{{ t("playlist.descriptionLabel") }}</Label>
-            <Input
-              id="new-playlist-desc"
-              v-model="formDescription"
-              :placeholder="t('playlist.descriptionPlaceholder')"
-            />
-          </div>
+            <div class="space-y-1">
+              <Label for="new-playlist-name">{{ t("playlist.name") }}</Label>
+              <Input
+                id="new-playlist-name"
+                v-model="formName"
+                :placeholder="t('playlist.namePlaceholder')"
+                autofocus
+                @keydown.enter="saveCreate"
+              />
+            </div>
+            <div class="space-y-1">
+              <Label for="new-playlist-desc">{{ t("playlist.descriptionLabel") }}</Label>
+              <Input
+                id="new-playlist-desc"
+                v-model="formDescription"
+                :placeholder="t('playlist.descriptionPlaceholder')"
+              />
+            </div>
 
-          <div class="flex justify-end gap-2 pt-2">
-            <Button variant="outline" @click="cancel">{{ t("playlist.cancel") }}</Button>
-            <Button :disabled="!formName.trim()" @click="saveCreate">
-              {{ t("playlist.save") }}
-            </Button>
-          </div>
-        </div>
+            <div class="flex justify-end gap-2 pt-2">
+              <Button variant="outline" @click="cancel">{{ t("playlist.cancel") }}</Button>
+              <Button :disabled="!formName.trim()" @click="saveCreate">
+                {{ t("playlist.save") }}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </main>
   </AppLayout>
@@ -61,12 +63,13 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import EmojiPickerPopover from "@/components/EmojiPickerPopover.vue";
 import AppLayout from "@/components/layout/AppLayout.vue";
 import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";
-import EmojiPickerPopover from "@/components/EmojiPickerPopover.vue";
 
 const { t } = useI18n();
 const router = useRouter();

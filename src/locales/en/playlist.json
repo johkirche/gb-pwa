@@ -20,6 +20,7 @@
   "noPlaylistsInDialogTitle": "No playlists yet",
   "noPlaylistsInDialogDescription": "Create playlists under \"Playlists\" to see them here.",
   "addSongs": "Add songs",
+  "selectedCount": "{count} selected",
   "addToPlaylist": "Add to playlist",
   "remove": "Remove",
   "save": "Save",
