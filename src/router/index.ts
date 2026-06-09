@@ -50,9 +50,25 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      // Create-playlist screen (full view, not a modal). Static segment ranks
+      // above /playlists/:id, so "new" is never treated as an id.
+      path: "/playlists/new",
+      name: "playlist-new",
+      component: () => import("@/views/PlaylistCreateView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/playlists/:id",
       name: "playlist-detail",
       component: () => import("@/views/PlaylistDetailView.vue"),
+      props: true,
+      meta: { requiresAuth: true },
+    },
+    {
+      // Song-picker screen (full view, not a modal).
+      path: "/playlists/:id/add",
+      name: "playlist-add-songs",
+      component: () => import("@/views/PlaylistAddSongsView.vue"),
       props: true,
       meta: { requiresAuth: true },
     },

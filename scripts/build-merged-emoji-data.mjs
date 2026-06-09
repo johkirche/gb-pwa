@@ -4,8 +4,13 @@
 // search tags. Net effect: search hits work for both German and English
 // keywords regardless of which UI locale is active.
 //
-// Output: public/emojibase/{locale}-merged/{data.json,messages.json}
-// Picked up at runtime via the EmojiPickerPopover's emojibaseUrl="/emojibase".
+// Output: public/emojibase/{locale}/{data.json,messages.json}
+// Picked up at runtime via the emoji picker's emojibaseUrl="/emojibase".
+//
+// NOTE: the output folder MUST be a valid emojibase locale name (e.g. "en",
+// "de"). vue-frimousse runs the `locale` prop through `validateLocale`, which
+// silently falls back to "en" for unknown locales — so a "*-merged" folder
+// name would make it fetch a non-existent path and load no emojis at all.
 //
 // Run with: pnpm run build:emoji-data
 //
@@ -70,13 +75,14 @@ const main = async () => {
 
     const merged = buildMergedData(primaryData, secondaryData);
 
-    const outDir = resolve(OUT_ROOT, `${primary}-merged`);
+    // Folder name must stay a valid emojibase locale (see header note).
+    const outDir = resolve(OUT_ROOT, primary);
     await mkdir(outDir, { recursive: true });
     await writeFile(resolve(outDir, "data.json"), JSON.stringify(merged));
     await writeFile(resolve(outDir, "messages.json"), JSON.stringify(messages));
 
     console.log(
-      `wrote ${primary}-merged (${merged.length} emojis, ${primary} labels + ${secondary} tags)`,
+      `wrote ${primary} (${merged.length} emojis, ${primary} labels + ${secondary} tags)`,
     );
   }
 };

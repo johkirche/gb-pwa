@@ -13,5 +13,8 @@
   "loginFailed": "Login failed",
   "continueOffline": "Continue offline",
   "continueOfflineHint": "You have downloaded content available. Use the app without signing in.",
-  "orDivider": "or"
+  "orDivider": "or",
+  "toggleTheme": "Toggle theme",
+  "themeToDark": "Switch to dark mode",
+  "themeToLight": "Switch to light mode"
 }

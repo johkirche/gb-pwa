@@ -7,10 +7,10 @@
       <!-- Brand -->
       <RouterLink
         to="/home"
-        class="flex items-center gap-2.5 h-16 px-5 border-b border-sidebar-border"
+        class="flex items-center gap-4 h-16 px-5 border-b border-sidebar-border"
       >
-        <img src="/logo.png" alt="" class="w-8 h-8 invert dark:invert-0" />
-        <span class="text-base font-semibold tracking-tight">{{ t("nav.brand") }}</span>
+        <img src="/logo.png" alt="" class="w-12 h-12 invert dark:invert-0" />
+        <span class="text-base font-semibold tracking-tight text-xl">{{ t("nav.brand") }}</span>
       </RouterLink>
 
       <!-- Nav links -->
@@ -102,12 +102,7 @@
           <img src="/logo.png" alt="" class="w-7 h-7 invert dark:invert-0" />
           <span class="font-semibold tracking-tight">{{ t("nav.brand") }}</span>
         </RouterLink>
-        <Button
-          variant="ghost"
-          size="icon"
-          :title="t('nav.toggleTheme')"
-          @click="toggleTheme"
-        >
+        <Button variant="ghost" size="icon" :title="t('nav.toggleTheme')" @click="toggleTheme">
           <Sun class="h-5 w-5 scale-100 dark:scale-0 transition-transform" />
           <Moon class="absolute h-5 w-5 scale-0 dark:scale-100 transition-transform" />
           <span class="sr-only">{{ t("nav.toggleTheme") }}</span>
@@ -151,11 +146,7 @@
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" class="w-52 mb-1">
-            <DropdownMenuItem
-              v-for="item in moreNav"
-              :key="item.key"
-              @click="router.push(item.to)"
-            >
+            <DropdownMenuItem v-for="item in moreNav" :key="item.key" @click="router.push(item.to)">
               <component :is="item.icon" class="w-4 h-4 mr-2 text-muted-foreground" />
               {{ t(item.label) }}
             </DropdownMenuItem>
@@ -208,6 +199,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { type RouteLocationRaw, RouterLink, useRoute, useRouter } from "vue-router";
 
+import LanguageSwitch from "@/components/ui/LanguageSwitch.vue";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -216,7 +208,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import LanguageSwitch from "@/components/ui/LanguageSwitch.vue";
 
 import { useAuth } from "@/composables/useAuth";
 
@@ -236,7 +227,13 @@ const { user, userName, logout } = useAuth();
 
 const navItems: NavItem[] = [
   { key: "home", label: "nav.home", icon: Home, to: { name: "home" }, match: ["home"] },
-  { key: "songs", label: "nav.songs", icon: Music, to: { name: "songs" }, match: ["songs", "lied"] },
+  {
+    key: "songs",
+    label: "nav.songs",
+    icon: Music,
+    to: { name: "songs" },
+    match: ["songs", "lied"],
+  },
   {
     key: "playlists",
     label: "nav.playlists",

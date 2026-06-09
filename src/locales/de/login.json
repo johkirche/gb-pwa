@@ -13,5 +13,8 @@
   "loginFailed": "Anmeldung fehlgeschlagen",
   "continueOffline": "Offline fortfahren",
   "continueOfflineHint": "Du hast heruntergeladene Inhalte verfügbar. Nutze die App ohne Anmeldung.",
-  "orDivider": "oder"
+  "orDivider": "oder",
+  "toggleTheme": "Design umschalten",
+  "themeToDark": "Zum dunklen Design wechseln",
+  "themeToLight": "Zum hellen Design wechseln"
 }

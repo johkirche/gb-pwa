@@ -15,49 +15,48 @@
       </Card>
 
       <template v-else-if="playlist">
-        <!-- Header card: name, description, actions -->
-        <Card>
-          <CardHeader>
-            <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0 flex-1 flex items-start gap-3">
-                <div
-                  class="w-12 h-12 rounded-md bg-muted flex items-center justify-center text-2xl flex-shrink-0"
-                >
-                  <span v-if="playlist.emoji">{{ playlist.emoji }}</span>
-                  <ListMusic v-else class="w-6 h-6 text-muted-foreground" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <CardTitle class="break-words">{{ playlist.name }}</CardTitle>
-                  <CardDescription v-if="playlist.description" class="mt-1">
-                    {{ playlist.description }}
-                  </CardDescription>
-                  <div class="mt-2">
-                    <Badge variant="secondary" class="text-xs">
-                      {{ t("playlist.songsCount", { count: songs.length }) }}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <Button variant="outline" size="sm" @click="openEdit">
-                  <Pencil class="w-4 h-4 mr-1" />
-                  {{ t("playlist.edit") }}
-                </Button>
-                <Button variant="outline" size="sm" @click="deleteOpen = true">
-                  <Trash2 class="w-4 h-4 mr-1" />
-                  {{ t("playlist.delete") }}
-                </Button>
+        <!-- Header: name, description, actions -->
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0 flex-1 flex items-start gap-3">
+            <div
+              class="w-12 h-12 rounded-md bg-muted flex items-center justify-center text-2xl flex-shrink-0"
+            >
+              <span v-if="playlist.emoji">{{ playlist.emoji }}</span>
+              <ListMusic v-else class="w-6 h-6 text-muted-foreground" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <h1 class="text-2xl font-bold tracking-tight break-words">{{ playlist.name }}</h1>
+              <p v-if="playlist.description" class="text-sm text-muted-foreground mt-1">
+                {{ playlist.description }}
+              </p>
+              <div class="mt-2">
+                <Badge variant="secondary" class="text-xs">
+                  {{ t("playlist.songsCount", { count: songs.length }) }}
+                </Badge>
               </div>
             </div>
-          </CardHeader>
-        </Card>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" @click="openEdit">
+              <Pencil class="w-4 h-4 mr-1" />
+              {{ t("playlist.edit") }}
+            </Button>
+            <Button variant="outline" size="sm" @click="deleteOpen = true">
+              <Trash2 class="w-4 h-4 mr-1" />
+              {{ t("playlist.delete") }}
+            </Button>
+          </div>
+        </div>
 
         <!-- Songs card -->
         <Card>
           <CardHeader>
             <div class="flex items-center justify-between gap-2">
               <CardTitle class="text-base">{{ t("churchService.mainSongs") }}</CardTitle>
-              <Button size="sm" @click="openAddSongs">
+              <Button
+                size="sm"
+                @click="router.push({ name: 'playlist-add-songs', params: { id: playlistId } })"
+              >
                 <Plus class="w-4 h-4 mr-1" />
                 {{ t("playlist.addSongs") }}
               </Button>
@@ -125,7 +124,7 @@
     <Dialog v-model:open="editOpen">
       <DialogContent class="max-w-md">
         <DialogHeader>
-          <DialogTitle>{{ t("playlist.edit.title") }}</DialogTitle>
+          <DialogTitle>{{ t("playlist.editTitle") }}</DialogTitle>
         </DialogHeader>
 
         <div class="space-y-3 py-2">
@@ -163,50 +162,6 @@
       </DialogContent>
     </Dialog>
 
-    <!-- Add-songs picker (single dialog) -->
-    <Dialog v-model:open="addOpen">
-      <DialogContent class="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader class="flex-shrink-0">
-          <DialogTitle>{{ t("playlist.addToPlaylist") }}</DialogTitle>
-        </DialogHeader>
-
-        <div class="relative flex-shrink-0">
-          <Search
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"
-          />
-          <Input v-model="addSearch" :placeholder="t('churchService.searchSongs')" class="pl-10" />
-        </div>
-
-        <div class="h-[450px] overflow-auto pr-4">
-          <div class="space-y-2">
-            <div
-              v-for="song in addCandidates"
-              :key="song.id"
-              class="p-3 border rounded-lg cursor-pointer hover:bg-accent"
-              @click="addSong(song.id)"
-            >
-              <div class="flex items-baseline gap-2 min-w-0">
-                <span
-                  v-if="getLiedNumber(song) !== null"
-                  class="inline-flex items-center px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-bold tabular-nums flex-shrink-0"
-                >
-                  {{ getLiedNumber(song) }}
-                </span>
-                <span class="font-medium truncate">{{ song.titel }}</span>
-              </div>
-            </div>
-            <div v-if="addCandidates.length === 0" class="text-center py-8">
-              <p class="text-sm text-muted-foreground">{{ t("churchService.noSongsFound") }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-2 border-t">
-          <Button variant="outline" @click="addOpen = false">{{ t("playlist.back") }}</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-
     <!-- Delete confirmation -->
     <Dialog v-model:open="deleteOpen">
       <DialogContent class="max-w-md">
@@ -232,10 +187,10 @@
 <script setup lang="ts">
 import { useGesangbuchliedStore } from "@/stores/gesangbuchlieder";
 import { usePlaylistStore } from "@/stores/playlists";
-import { ArrowLeft, ListMusic, Pencil, Plus, Search, Trash2, X } from "lucide-vue-next";
+import { ArrowLeft, ListMusic, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import { storeToRefs } from "pinia";
 
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 
@@ -244,7 +199,7 @@ import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -265,8 +220,8 @@ const router = useRouter();
 
 const store = usePlaylistStore();
 const songStore = useGesangbuchliedStore();
-const { lieder, isUsingCachedData } = storeToRefs(songStore);
-const { fetchLieder, setFilter, getAuthors, getCategories } = songStore;
+const { lieder } = storeToRefs(songStore);
+const { fetchLieder, getAuthors, getCategories } = songStore;
 
 // `loaded` flips true once the initial load finishes so we can distinguish
 // "still loading" from "playlist doesn't exist" — only the latter should
@@ -347,41 +302,6 @@ const performDelete = async () => {
   await store.deletePlaylist(playlist.value.id);
   deleteOpen.value = false;
   router.push({ name: "playlists" });
-};
-
-// Add-songs dialog
-const addOpen = ref(false);
-const addSearch = ref("");
-let addSearchDebounce: ReturnType<typeof setTimeout> | undefined;
-
-const openAddSongs = async () => {
-  addSearch.value = "";
-  addOpen.value = true;
-  if (lieder.value.length === 0) await fetchLieder();
-};
-
-watch(addSearch, (q) => {
-  clearTimeout(addSearchDebounce);
-  if (isUsingCachedData.value) return;
-  addSearchDebounce = setTimeout(async () => {
-    setFilter("searchQuery", q);
-    await fetchLieder();
-  }, 300);
-});
-
-const addCandidates = computed(() => {
-  const taken = new Set(playlist.value?.songIds ?? []);
-  let base = lieder.value.filter((s) => !taken.has(s.id));
-  if (isUsingCachedData.value && addSearch.value) {
-    const q = addSearch.value.toLowerCase();
-    base = base.filter((s) => s.titel?.toLowerCase().includes(q));
-  }
-  return [...base].sort((a, b) => (getLiedNumber(a) ?? Infinity) - (getLiedNumber(b) ?? Infinity));
-});
-
-const addSong = async (songId: string) => {
-  if (!playlist.value) return;
-  await store.addSongToPlaylist(playlist.value.id, songId);
 };
 
 const removeSong = async (songId: string) => {

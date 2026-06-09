@@ -15,7 +15,7 @@
     <PopoverContent class="w-fit p-0" align="start">
       <EmojiPicker.Root
         class="isolate flex h-[342px] w-fit flex-col overflow-hidden rounded-md bg-popover text-popover-foreground"
-        :locale="mergedLocale"
+        :locale="emojiLocale"
         :emojibase-url="EMOJIBASE_URL"
         @emoji-select="onEmojiSelect"
       >
@@ -101,20 +101,21 @@ const emit = defineEmits<{
 
 const { locale: i18nLocale, t } = useI18n();
 
-// Self-hosted emojibase URL — points at /public/emojibase/{locale}-merged/.
-// Each "-merged" locale carries that locale's own labels but tags merged with
-// the other supported locale, so search works for both German and English
-// keywords regardless of which UI locale is active.
-// Generate the files with: pnpm run build:emoji-data
+// Self-hosted emojibase data lives in /public/emojibase/{locale}/. Each folder
+// carries that locale's own labels but tags merged with the other supported
+// locale, so search works for both German and English keywords regardless of
+// the active UI locale. Generate with: pnpm run build:emoji-data
+//
+// IMPORTANT: `locale` must be a real emojibase locale ("en"/"de"). frimousse
+// runs it through validateLocale and silently falls back to "en" for unknown
+// values, so a custom name like "en-merged" would fetch a missing path and
+// render no emojis.
 const EMOJIBASE_URL = "/emojibase";
-const SUPPORTED_MERGED = new Set(["de", "en"]);
+const SUPPORTED_LOCALES = new Set(["de", "en"]);
 
-const mergedLocale = computed<Locale>(() => {
+const emojiLocale = computed<Locale>(() => {
   const base = i18nLocale.value;
-  const matched = SUPPORTED_MERGED.has(base) ? base : "en";
-  // Cast: `${locale}-merged` isn't in frimousse's `Locale` union but it's
-  // just used as a path segment in the emojibase URL, so the runtime is happy.
-  return `${matched}-merged` as Locale;
+  return (SUPPORTED_LOCALES.has(base) ? base : "en") as Locale;
 });
 
 const open = ref(false);

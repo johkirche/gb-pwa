@@ -102,16 +102,33 @@ export default defineConfig({
             type: "image/webp",
           },
           {
-            src: "icons/icon-512x512.webp",
+            src: "icons/maskable-512x512.webp",
             sizes: "512x512",
             type: "image/webp",
-            purpose: "any maskable",
+            purpose: "maskable",
           },
         ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff,ttf,eot}"],
         runtimeCaching: [
+          // Self-hosted emoji datasets (/emojibase/{locale}/*.json). These are
+          // large and not in the precache globs, so cache them on first use and
+          // serve from cache afterwards — including offline.
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/emojibase/"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "emoji-data",
+              expiration: {
+                maxEntries: 8,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           // Cache API responses
           {
             urlPattern: ({ url }) => url.pathname.includes("/graphql"),

@@ -14,7 +14,7 @@
               {{ t("playlist.description") }}
             </p>
           </div>
-          <Button @click="openCreateDialog">
+          <Button @click="router.push({ name: 'playlist-new' })">
             <Plus class="w-4 h-4 mr-1" />
             {{ t("playlist.create") }}
           </Button>
@@ -65,51 +65,6 @@
         </div>
       </section>
     </main>
-
-    <!-- Create Dialog (single, top-level — no nesting) -->
-    <Dialog v-model:open="createOpen">
-      <DialogContent class="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{{ t("playlist.create.title") }}</DialogTitle>
-          <DialogDescription>
-            {{ t("playlist.create.description") }}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div class="space-y-3 py-2">
-          <div class="space-y-1">
-            <Label>{{ t("playlist.emojiLabel") }}</Label>
-            <div>
-              <EmojiPickerPopover v-model="formEmoji" />
-            </div>
-          </div>
-          <div class="space-y-1">
-            <Label for="new-playlist-name">{{ t("playlist.name") }}</Label>
-            <Input
-              id="new-playlist-name"
-              v-model="formName"
-              :placeholder="t('playlist.namePlaceholder')"
-              @keydown.enter="saveCreate"
-            />
-          </div>
-          <div class="space-y-1">
-            <Label for="new-playlist-desc">{{ t("playlist.descriptionLabel") }}</Label>
-            <Input
-              id="new-playlist-desc"
-              v-model="formDescription"
-              :placeholder="t('playlist.descriptionPlaceholder')"
-            />
-          </div>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-2">
-          <Button variant="outline" @click="createOpen = false">{{ t("playlist.cancel") }}</Button>
-          <Button :disabled="!formName.trim()" @click="saveCreate">
-            {{ t("playlist.save") }}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   </AppLayout>
 </template>
 
@@ -117,25 +72,15 @@
 import { usePlaylistStore } from "@/stores/playlists";
 import { ChevronRight, ListMusic, Plus } from "lucide-vue-next";
 
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 import AppLayout from "@/components/layout/AppLayout.vue";
 import PageHeader, { type BreadcrumbItem } from "@/components/layout/PageHeader.vue";
-import EmojiPickerPopover from "@/components/EmojiPickerPopover.vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -146,31 +91,6 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 ]);
 
 const store = usePlaylistStore();
-
-const createOpen = ref(false);
-const formName = ref("");
-const formDescription = ref("");
-const formEmoji = ref<string | undefined>(undefined);
-
-const openCreateDialog = () => {
-  formName.value = "";
-  formDescription.value = "";
-  formEmoji.value = undefined;
-  createOpen.value = true;
-};
-
-const saveCreate = async () => {
-  const name = formName.value.trim();
-  if (!name) return;
-  const created = await store.createPlaylist(
-    name,
-    formDescription.value || undefined,
-    formEmoji.value,
-  );
-  createOpen.value = false;
-  // Jump straight into the new playlist so the user can add songs.
-  router.push({ name: "playlist-detail", params: { id: created.id } });
-};
 
 const openDetail = (id: string) => {
   router.push({ name: "playlist-detail", params: { id } });

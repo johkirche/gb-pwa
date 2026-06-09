@@ -58,52 +58,65 @@
       </div>
     </div>
 
-    <ScrollArea
-      :class="['transition-all duration-300 ease-in-out', isEnlarged ? 'h-[560px]' : 'h-[268px]']"
-    >
-      <!-- Non-draggable chip cloud for alphabetical and count sorting -->
-      <div v-if="currentSort !== 'custom'" class="flex flex-wrap gap-2 pr-3">
-        <button
-          v-for="category in sortedCategories"
-          :key="category.id"
-          class="group inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent"
-          @click="handleCategoryClick(category)"
-        >
-          <span class="text-base leading-none">{{ getCategoryIcon(category.id) }}</span>
-          <span class="font-medium">{{ category.name }}</span>
-          <span class="tabular-nums text-xs text-muted-foreground">{{ category.count }}</span>
-        </button>
-      </div>
-
-      <!-- Draggable chip cloud for custom sorting -->
-      <VueDraggable
-        v-else
-        v-model="draggableCategories"
-        class="flex flex-wrap gap-2 pr-3"
-        :animation="200"
-        :ghost-class="'opacity-50'"
-        :chosen-class="'scale-105'"
-        handle=".drag-handle"
-        @end="onDragEnd"
+    <div ref="scrollWrapperRef" class="relative">
+      <ScrollArea
+        :class="['transition-all duration-300 ease-in-out', isEnlarged ? 'h-[560px]' : 'h-[268px]']"
       >
-        <template #item="{ element: category }">
+        <!-- Non-draggable chip cloud for alphabetical and count sorting -->
+        <div v-if="currentSort !== 'custom'" class="flex flex-wrap gap-2 pr-3">
           <button
+            v-for="category in sortedCategories"
             :key="category.id"
-            class="group inline-flex items-center gap-2 rounded-full border bg-card pl-1.5 pr-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent"
+            class="group inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent"
             @click="handleCategoryClick(category)"
           >
-            <span
-              class="drag-handle cursor-grab text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
-            >
-              <GripVertical class="h-4 w-4" />
-            </span>
             <span class="text-base leading-none">{{ getCategoryIcon(category.id) }}</span>
             <span class="font-medium">{{ category.name }}</span>
             <span class="tabular-nums text-xs text-muted-foreground">{{ category.count }}</span>
           </button>
-        </template>
-      </VueDraggable>
-    </ScrollArea>
+        </div>
+
+        <!-- Draggable chip cloud for custom sorting -->
+        <VueDraggable
+          v-else
+          v-model="draggableCategories"
+          class="flex flex-wrap gap-2 pr-3"
+          :animation="200"
+          :ghost-class="'opacity-50'"
+          :chosen-class="'scale-105'"
+          handle=".drag-handle"
+          @end="onDragEnd"
+        >
+          <template #item="{ element: category }">
+            <button
+              :key="category.id"
+              class="group inline-flex items-center gap-2 rounded-full border bg-card pl-1.5 pr-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent"
+              @click="handleCategoryClick(category)"
+            >
+              <span
+                class="drag-handle cursor-grab text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
+              >
+                <GripVertical class="h-4 w-4" />
+              </span>
+              <span class="text-base leading-none">{{ getCategoryIcon(category.id) }}</span>
+              <span class="font-medium">{{ category.name }}</span>
+              <span class="tabular-nums text-xs text-muted-foreground">{{ category.count }}</span>
+            </button>
+          </template>
+        </VueDraggable>
+      </ScrollArea>
+
+      <!-- Fade hint at the top, shown once scrolled away from the start -->
+      <div
+        class="pointer-events-none absolute inset-x-0 top-0 h-8 rounded-t-[inherit] bg-gradient-to-b from-background to-transparent transition-opacity duration-200"
+        :class="showTopFade ? 'opacity-100' : 'opacity-0'"
+      />
+      <!-- Fade hint at the bottom, shown while there is more to scroll -->
+      <div
+        class="pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-[inherit] bg-gradient-to-t from-background to-transparent transition-opacity duration-200"
+        :class="showBottomFade ? 'opacity-100' : 'opacity-0'"
+      />
+    </div>
   </section>
 </template>
 
@@ -112,7 +125,7 @@ import ScrollArea from "../ui/scroll-area/ScrollArea.vue";
 import { type CategoryWithCount, useStatsStore } from "@/stores/stats";
 import { ArrowDownUp, ChevronDown, GripVertical, Maximize2, Minimize2 } from "lucide-vue-next";
 
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import VueDraggable from "vuedraggable";
@@ -137,6 +150,54 @@ const customOrder = ref<string[]>([]);
 
 // Enlarge state
 const isEnlarged = ref(false);
+
+// Scroll fade indicators — show a gradient when there is more content above/below
+const scrollWrapperRef = ref<HTMLElement | null>(null);
+const showTopFade = ref(false);
+const showBottomFade = ref(false);
+
+let viewportEl: HTMLElement | null = null;
+let resizeObserver: ResizeObserver | null = null;
+
+const updateScrollFades = () => {
+  if (!viewportEl) return;
+  const { scrollTop, scrollHeight, clientHeight } = viewportEl;
+  showTopFade.value = scrollTop > 1;
+  showBottomFade.value = Math.ceil(scrollTop + clientHeight) < scrollHeight - 1;
+};
+
+// Observe the viewport (height changes on enlarge) and its content (reflow on
+// load / sort switch), re-attaching to the content node when it gets swapped.
+const reobserveContent = () => {
+  if (!resizeObserver || !viewportEl) return;
+  resizeObserver.disconnect();
+  resizeObserver.observe(viewportEl);
+  const content = viewportEl.firstElementChild;
+  if (content) resizeObserver.observe(content);
+  updateScrollFades();
+};
+
+const setupScrollFades = () => {
+  viewportEl =
+    scrollWrapperRef.value?.querySelector<HTMLElement>("[data-reka-scroll-area-viewport]") ?? null;
+  if (!viewportEl) return;
+
+  viewportEl.addEventListener("scroll", updateScrollFades, { passive: true });
+  resizeObserver = new ResizeObserver(() => updateScrollFades());
+  reobserveContent();
+};
+
+// The content node is replaced when toggling between the draggable / static
+// chip clouds, so re-point the observer once the new DOM has rendered.
+watch(
+  () => [currentSort.value, statsStore.categories.length],
+  () => nextTick(reobserveContent),
+);
+
+onBeforeUnmount(() => {
+  viewportEl?.removeEventListener("scroll", updateScrollFades);
+  resizeObserver?.disconnect();
+});
 
 // Load categories and restore sort preferences on component mount
 onMounted(async () => {
@@ -163,6 +224,10 @@ onMounted(async () => {
     initializeCustomOrder();
     saveCustomOrder();
   }
+
+  // Wait for the chips to render before measuring the scroll viewport
+  await nextTick();
+  setupScrollFades();
 });
 
 // Initialize custom order when categories are loaded
