@@ -1,5 +1,11 @@
 <template>
   <div class="h-dvh flex overflow-hidden bg-background text-foreground">
+    <!-- Global indicator: floats in the top-right corner, clearing the mobile
+         top bar (h-14) so it never overlaps the brand or the theme toggle. -->
+    <div class="fixed right-3 top-[4.25rem] md:top-3 z-40 w-fit">
+      <OfflineDataBadge />
+    </div>
+
     <!-- ============ Desktop sidebar ============ -->
     <aside
       class="hidden md:flex md:flex-col w-64 shrink-0 border-r bg-sidebar text-sidebar-foreground"
@@ -39,7 +45,6 @@
 
       <!-- Footer: preferences + account -->
       <div class="border-t border-sidebar-border p-3 space-y-3">
-        <OfflineDataBadge class="w-full justify-center" />
         <div class="flex items-center gap-2">
           <Button
             variant="outline"
@@ -99,18 +104,15 @@
       <header
         class="md:hidden flex items-center justify-between h-14 px-4 border-b bg-background/80 backdrop-blur-sm shrink-0"
       >
-        <RouterLink to="/home" class="flex items-center gap-2 min-w-0">
-          <img src="/logo.png" alt="" class="w-7 h-7 invert dark:invert-0 shrink-0" />
-          <span class="font-semibold tracking-tight truncate">{{ t("nav.brand") }}</span>
+        <RouterLink to="/home" class="flex items-center gap-2">
+          <img src="/logo.png" alt="" class="w-7 h-7 invert dark:invert-0" />
+          <span class="font-semibold tracking-tight">{{ t("nav.brand") }}</span>
         </RouterLink>
-        <div class="flex items-center gap-2 shrink-0">
-          <OfflineDataBadge compact />
-          <Button variant="ghost" size="icon" :title="t('nav.toggleTheme')" @click="toggleTheme">
-            <Sun class="h-5 w-5 scale-100 dark:scale-0 transition-transform" />
-            <Moon class="absolute h-5 w-5 scale-0 dark:scale-100 transition-transform" />
-            <span class="sr-only">{{ t("nav.toggleTheme") }}</span>
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" :title="t('nav.toggleTheme')" @click="toggleTheme">
+          <Sun class="h-5 w-5 scale-100 dark:scale-0 transition-transform" />
+          <Moon class="absolute h-5 w-5 scale-0 dark:scale-100 transition-transform" />
+          <span class="sr-only">{{ t("nav.toggleTheme") }}</span>
+        </Button>
       </header>
 
       <!-- Page content (each view owns its own scroll) -->
