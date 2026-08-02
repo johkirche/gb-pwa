@@ -15,5 +15,9 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  // Tests live in test/, but exclude co-located ones too so a future
+  // src/foo.test.ts can never break the production build (it would reference
+  // vitest globals this project deliberately does not type).
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/__tests__/**"]
 }

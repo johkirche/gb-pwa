@@ -27,6 +27,10 @@ dev-dist
 .env
 .eslintcache
 
+# Test coverage output
+coverage
+*.tsbuildinfo
+
 # Copied from node_modules at build time by the copy-spessasynth-worklet plugin
 public/spessasynth_processor.min.js
 test-input

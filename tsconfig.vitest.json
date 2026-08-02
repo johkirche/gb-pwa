@@ -1,0 +1,16 @@
+{
+  // Standalone (NOT a project reference) so `pnpm build` / `vue-tsc -b` keeps
+  // exactly the inputs it had before tests existed. Run via `pnpm type-check:test`.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
+    "types": ["node", "vitest/globals"],
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "test/**/*.ts"
+  ]
+}
