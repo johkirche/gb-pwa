@@ -17,9 +17,11 @@
             </div>
             <div class="flex-1 space-y-2">
               <div class="bg-muted/50 p-4 rounded-lg">
-                <pre class="whitespace-pre-wrap font-serif text-base leading-relaxed">{{
-                  strophe?.strophe?.replace(/¬/g, "")
-                }}</pre>
+                <pre
+                  lang="de"
+                  class="strophe-text whitespace-pre-wrap break-words hyphens-auto font-serif text-base leading-relaxed"
+                  >{{ strophe?.strophe?.replace(/¬/g, "") }}</pre
+                >
               </div>
 
               <!-- Change suggestions -->
@@ -76,5 +78,14 @@ defineProps<Props>();
 <style scoped>
 pre {
   font-family: "Georgia", "Times New Roman", serif;
+}
+
+/* Dynamische Silbentrennung (PoC): Der Browser trennt deutschen Text
+   layout-abhängig selbst (lang="de" + hyphens: auto). Die manuellen
+   ¬-Trennzeichen werden beim Rendern entfernt und nicht benötigt.
+   hyphenate-limit-chars vermeidet zu kurze Trennsilben; Browser ohne
+   Unterstützung ignorieren die Zeile. */
+.strophe-text {
+  hyphenate-limit-chars: 6 3 2;
 }
 </style>
