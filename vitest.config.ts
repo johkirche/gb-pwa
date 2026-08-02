@@ -88,10 +88,15 @@ export default defineConfig({
         // Capped at 94.11: the catch blocks at lines 86-87 and 99-100 are
         // unreachable, because getTokenExpiry() already swallows every error
         // and returns 0 rather than throwing.
+        //
+        // branches is 82 rather than 83 because the missing-`exp` path moved to
+        // test/known-issues/issue-11-jwt-missing-exp.test.ts, which coverage
+        // does not measure. That path IS still exercised — just by the suite
+        // that asserts the correct behaviour rather than the buggy one.
         "src/composables/useJwtUtils.ts": {
           lines: 94,
           statements: 94,
-          branches: 83,
+          branches: 82,
           functions: 100,
         },
         // The offline download/IndexedDB layer.
