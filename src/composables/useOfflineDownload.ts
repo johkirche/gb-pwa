@@ -232,11 +232,17 @@ export async function hasOfflineContentAvailable(): Promise<boolean> {
       | OfflineMeta
       | undefined;
     offlineContentAvailableCache = !!meta;
+    return offlineContentAvailableCache;
   } catch (error) {
     console.error("Error checking offline content availability:", error);
-    offlineContentAvailableCache = false;
+    // Deliberately NOT cached. A transient IndexedDB failure (Safari private
+    // mode, a locked DB, an eviction mid-read) must not permanently disable
+    // offline mode: the router guard reads this to decide whether the app is
+    // usable without a session, so a sticky `false` would strand a user at
+    // /login with a fully downloaded hymnal. Leaving the cache `null` means
+    // the next call retries.
+    return false;
   }
-  return offlineContentAvailableCache;
 }
 
 // Count songs stored offline in IndexedDB. Module-level so it can be called
