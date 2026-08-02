@@ -187,6 +187,14 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
           valueB = b.titel || "";
       }
 
+      // Titles must use German collation, not raw UTF-16 code-unit order.
+      // Comparing with < / > puts every umlaut behind "Z" ("Ähre" after "Zion")
+      // and every lowercase title behind every capitalised one.
+      if (typeof valueA === "string" && typeof valueB === "string") {
+        const result = valueA.localeCompare(valueB, "de");
+        return filters.value.sortDirection === "asc" ? result : -result;
+      }
+
       if (valueA < valueB) return filters.value.sortDirection === "asc" ? -1 : 1;
       if (valueA > valueB) return filters.value.sortDirection === "asc" ? 1 : -1;
       return 0;
