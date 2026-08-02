@@ -4,7 +4,6 @@ import { type EffectScope, effectScope, nextTick, ref } from "vue";
 import { useOfflineAsset } from "@/composables/useOfflineAsset";
 
 import {
-  deferred,
   installObjectUrlTracker,
   type ObjectUrlTracker,
   withFailingStorageWrite,
@@ -212,37 +211,12 @@ describe("useOfflineAsset", () => {
     );
   });
 
-  it("lets a slow read for an abandoned id overwrite the current URL (known defect)", async () => {
-    // Documents today's behaviour, not the desired one: the effect has no
-    // stale-response guard, so if the read for the *previous* id settles last
-    // it wins — the element ends up showing the wrong asset — and its blob URL
-    // is never revoked, because the cleanup for that run already ran while
-    // `createdBlobUrl` was still null. See `concerns`.
-    const slow = deferred<Blob>();
-    const fast = deferred<Blob>();
-    const slowBlob = coverBlob("cover-1-bytes");
-    const fastBlob = coverBlob("cover-2-bytes");
-    h.getOfflineAssetBlob.mockImplementation((assetId: string) =>
-      assetId === "cover-1" ? slow.promise : fast.promise,
-    );
-    const id = ref("cover-1");
-
-    const url = mount(() => useOfflineAsset(id));
-    id.value = "cover-2";
-    await flush();
-
-    fast.resolve(fastBlob);
-    await flush();
-    const current = url.value!;
-    expect(tracker.blobFor(current)).toBe(fastBlob);
-
-    slow.resolve(slowBlob);
-    await flush();
-
-    // The abandoned id's blob now sits in `url`, and nothing will ever revoke it.
-    expect(tracker.blobFor(url.value!)).toBe(slowBlob);
-    expect(tracker.revokedUrls()).toEqual([]);
-  });
+  // The stale-in-flight-read race — an abandoned read overwriting `url` with the
+  // previous asset and leaking its blob URL — is a filed defect (issue #8)
+  // rather than intended behaviour, so it is asserted in
+  // test/known-issues/issue-8-offline-asset-stale-read.test.ts where it fails
+  // visibly. Deliberately not pinned here: a green test asserting the wrong
+  // asset wins would read as coverage while blessing it.
 });
 
 // ---------------------------------------------------------------------------
@@ -433,16 +407,11 @@ describe("useFavorites persistence", () => {
     expect(console.error).toHaveBeenCalled();
   });
 
-  it("cannot remove a song that was persisted twice (known defect)", async () => {
-    // Hydration accepts the stored array verbatim, and removeFromFavorites
-    // splices a single index — so a list that picked up a duplicate (e.g. from
-    // a future sync/merge) can never be un-favorited. See `concerns`.
-    const fav = await loadFavorites(JSON.stringify(["song-1", "song-1"]));
-    expect(fav.favoritesCount.value).toBe(2);
-
-    fav.removeFromFavorites("song-1");
-
-    expect(fav.isFavorite("song-1")).toBe(true);
-    expect(fav.favorites.value).toEqual(["song-1"]);
-  });
+  // "Cannot remove a song that was persisted twice" was pinned here as if the
+  // dead-end star were the contract. It is a defect: hydration takes the stored
+  // array verbatim and removeFromFavorites splices a single index, so a list
+  // this tab did not write — which is exactly what the cross-tab hydration of
+  // issue #23 produces — leaves the song starred with no way to clear it.
+  // Asserted in test/known-issues/issue-23-favorites-cross-tab.test.ts, where
+  // it fails visibly rather than reading as coverage for the bug.
 });

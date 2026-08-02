@@ -21,7 +21,8 @@
     "ci:verify": "run-s ci:lint type-check type-check:test test:coverage",
     "format": "prettier --write src/",
     "build:emoji-data": "node scripts/build-merged-emoji-data.mjs",
-    "generate:icons": "node scripts/generate-icons.mjs"
+    "generate:icons": "node scripts/generate-icons.mjs",
+    "test:known-issues": "vitest run --config vitest.known-issues.config.ts"
   },
   "dependencies": {
     "@graphql-typed-document-node/core": "^3.2.0",

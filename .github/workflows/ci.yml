@@ -52,3 +52,28 @@ jobs:
 
       - name: Build
         run: pnpm build-only
+
+  known-issues:
+    name: Known issues (expected red)
+    runs-on: ubuntu-latest
+    # Never blocks a merge. This job's failures are the open bug list, not a
+    # regression — the `verify` job above is the gate. It runs so the count is
+    # visible on every PR instead of buried in the tracker.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Each spec asserts the behaviour a filed GitHub issue says we should
+      # have. A spec that PASSES means the bug is fixed: move it into the main
+      # suite and close the issue.
+      - name: Run known-issue specs
+        run: pnpm test:known-issues

@@ -181,15 +181,10 @@ describe("getAllVerses", () => {
     expect(store.getAllVerses(song)).toEqual([1, 2, 3, 4]);
   });
 
-  it("returns no verses at all for an empty strophenEinzeln array", () => {
-    // Documents a sharp edge: an empty array is treated as "0 verses" rather
-    // than falling through to the 4-verse default, so the hymn is added with
-    // nothing selected and silently blocks playback.
-    const store = useChurchServiceStore();
-    const song = makeSong({ textId: { strophenEinzeln: [] } as never });
-
-    expect(store.getAllVerses(song)).toEqual([]);
-  });
+  // The empty-`strophenEinzeln` case is a filed defect (issue #29) rather than
+  // intended behaviour, so it is asserted in test/known-issues/ where it fails
+  // visibly. Deliberately not pinned here: a green test asserting the bug would
+  // read as coverage while blessing it.
 });
 
 // ---------------------------------------------------------------------------
@@ -887,7 +882,7 @@ describe("confirmSave", () => {
     expect(store.serviceHistory[0].songs).toEqual([]);
   });
 
-  it("still resets the editor when the database is unavailable", async () => {
+  it("swallows a database failure instead of rejecting, and writes nothing", async () => {
     const store = playableStore();
     store.saveDialogOpen = true;
     breakIndexedDB();
@@ -896,9 +891,15 @@ describe("confirmSave", () => {
 
     expect(console.error).toHaveBeenCalled();
     expect(store.serviceHistory).toEqual([]);
-    expect(store.saveDialogOpen).toBe(false);
-    expect(store.currentService.songs).toEqual([]);
   });
+
+  // What the failure path does to the *editor* is a filed defect (issue #27):
+  // the `finally` block wipes currentService, so a failed write destroys the
+  // just-played service instead of leaving it there to retry with. That is
+  // asserted in test/known-issues/ where it fails visibly, together with the
+  // save dialog's fate, which the fix has to decide on. Deliberately not pinned
+  // here: a green test asserting the bug would read as coverage while blessing
+  // it.
 });
 
 // ---------------------------------------------------------------------------
@@ -1032,27 +1033,12 @@ describe("loadService", () => {
     expect(store.canPlayService).toBe(true);
   });
 
-  it("drops the saved id and name, so re-saving creates a duplicate entry", async () => {
-    // Loading a service is "start from this template", not "edit this record":
-    // confirmSave after a load mints a new UUID and adds a second history row.
-    const store = playableStore();
-    await store.confirmSave("Original");
-    const original = store.serviceHistory[0];
-
-    store.loadService(original);
-
-    expect(store.currentService.id).toBeUndefined();
-    expect(store.currentService.name).toBeUndefined();
-
-    await store.confirmSave("Original");
-    expect(store.serviceHistory).toHaveLength(2);
-    const ids = store.serviceHistory.map((s) => s.id);
-    // The first record is untouched and a second one with a different id now
-    // sits beside it under the same name.
-    expect(ids).toContain(original.id);
-    expect(new Set(ids).size).toBe(2);
-    expect(store.serviceHistory.map((s) => s.name)).toEqual(["Original", "Original"]);
-  });
+  // loadService dropping the record's id and name — so re-saving an edited
+  // service mints a fresh UUID and stores a duplicate beside the original — is
+  // a filed defect (issue #28) rather than intended behaviour, so it is
+  // asserted in test/known-issues/ where it fails visibly. Deliberately not
+  // pinned here: a green test asserting the bug would read as coverage while
+  // blessing it.
 
   it("backfills tempo and pitch on songs saved before those fields existed", () => {
     const store = useChurchServiceStore();
@@ -1141,25 +1127,11 @@ describe("loadService", () => {
     expect(store.canPlayService).toBe(false);
   });
 
-  it("treats any object with a `name` key as a playable prelude", () => {
-    // normalizePiece's legacy branch only checks for `midi_file` OR `name`, so a
-    // blob carrying just a name is wrapped as a piece with no MIDI file — and
-    // canPlayService then reports the service as ready to run.
-    const store = useChurchServiceStore();
-    const suspicious = {
-      id: "old-6",
-      name: "Verdächtig",
-      createdAt: "2025-01-01T00:00:00.000Z",
-      intro: { name: "Nur ein Name" },
-      outro: null,
-      songs: [],
-    } as unknown as ServiceHistoryItem;
-
-    store.loadService(suspicious);
-
-    expect(store.currentService.intro?.piece.midi_file).toBeUndefined();
-    expect(store.canPlayService).toBe(true);
-  });
+  // A prelude/postlude blob with no `midi_file` being accepted — and counted as
+  // playable — is a filed defect (issue #9) rather than intended behaviour, so
+  // it is asserted in test/known-issues/ where it fails visibly. Deliberately
+  // not pinned here: a green test asserting the bug would read as coverage
+  // while blessing it.
 });
 
 // ---------------------------------------------------------------------------

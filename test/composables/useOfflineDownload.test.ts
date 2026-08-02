@@ -700,18 +700,23 @@ describe("storeOfflineContent / checkOfflineContent", () => {
     expect(console.error).toHaveBeenCalledWith("Error checking offline content:", expect.any(Error));
   });
 
-  it("never removes songs that vanished server-side between downloads", async () => {
-    // Documents a real gap: the songs/pieces stores are only ever `put` into,
-    // so `getOfflineSongCount()` drifts above the count in the metadata record.
+  // The songs/pieces stores never being pruned — so a withdrawn hymn survives
+  // every later download and `getOfflineSongCount()` drifts above `meta.count` —
+  // is a filed defect (issue #14) rather than intended behaviour. It is asserted
+  // in test/known-issues/ where it fails visibly. Deliberately not pinned here:
+  // a green test asserting the bug would read as coverage while blessing it.
+
+  it("overwrites a song that changed since the last download", async () => {
     const { mod, dl } = await loadComposable();
-    h.queryGesangbuchlied.mockResolvedValue([makeSong("s1"), makeSong("s2")]);
+    h.queryGesangbuchlied.mockResolvedValue([makeSong("s1", { titel: "Alter Titel" })]);
     await dl.downloadAllContent();
 
-    h.queryGesangbuchlied.mockResolvedValue([makeSong("s1")]);
+    h.queryGesangbuchlied.mockResolvedValue([makeSong("s1", { titel: "Neuer Titel" })]);
     await dl.downloadAllContent();
 
+    expect((await dl.getOfflineSongById("s1"))?.titel).toBe("Neuer Titel");
+    await expect(mod.getOfflineSongCount()).resolves.toBe(1);
     expect(dl.offlineContentInfo.value?.count).toBe(1);
-    await expect(mod.getOfflineSongCount()).resolves.toBe(2);
   });
 
   it("raises a storage-space error when the write fails", async () => {
@@ -1122,22 +1127,25 @@ describe("precacheAssets", () => {
     );
   });
 
-  it("reports the run as complete even when every asset failed to store", async () => {
-    // Documents a real gap: a dead IndexedDB is swallowed per asset, so the UI
-    // says "Completed precaching 1 assets" while nothing was actually written.
-    const { dl } = await loadComposable();
+  it("stores nothing and releases the flag when IndexedDB is unavailable", async () => {
+    const { mod, dl } = await loadComposable();
     const songs = [makeSong("s1", { noten: [{ id: "f-1" }] })];
     breakIndexedDb();
 
     await dl.precacheAssets(asSongs(songs), []);
 
+    // The run must not hang the UI on a dead database...
     expect(dl.isPrecachingAssets.value).toBe(false);
-    expect(dl.assetPrecacheProgress.value.currentAsset).toBe("Completed precaching 1 assets");
-    expect(console.warn).toHaveBeenCalledWith(
-      "Error precaching asset f-1:",
-      expect.any(Error),
-    );
-    expect(console.warn).toHaveBeenCalledWith("Asset pruning failed:", expect.any(Error));
+    // ...and must not have written anything.
+    restoreIndexedDb();
+    await expect(mod.getOfflineAssetBlob("f-1")).resolves.toBeNull();
+    expect(console.warn).toHaveBeenCalled();
+
+    // What such a run *reports* is a filed defect (issue #15): it currently ends
+    // at 100% with "Completed precaching 1 assets" having stored nothing, so the
+    // completion message is asserted in test/known-issues/ where it fails
+    // visibly. Deliberately not pinned here: a green test asserting the bug
+    // would read as coverage while blessing it.
   });
 
   it("marks the progress as failed and clears the flag when the run itself throws", async () => {
@@ -1420,7 +1428,7 @@ describe("clearOfflineContent", () => {
 
 // ===========================================================================
 describe("getStorageInfo", () => {
-  it("prefers the browser storage estimate when available", async () => {
+  it("counts the songs, pieces and assets it stored and renders the size in MB", async () => {
     setStorageManager({ estimate: vi.fn().mockResolvedValue({ usage: 5 * 1024 * 1024 }) });
     const { dl } = await loadComposable();
     h.queryGesangbuchlied.mockResolvedValue([makeSong("s1", { noten: [{ id: "f-1" }] })]);
@@ -1428,22 +1436,27 @@ describe("getStorageInfo", () => {
 
     const info = await dl.getStorageInfo();
 
-    expect(info).toMatchObject({
-      sizeInBytes: 5 * 1024 * 1024,
-      sizeInMB: "5.00",
-      itemCount: 1,
-      pieceCount: 0,
-      assetCount: 1,
-    });
+    expect(info).toMatchObject({ itemCount: 1, pieceCount: 0, assetCount: 1 });
+    // Whatever the byte figure ends up describing, the MB string is its
+    // rendering — the Settings page prints the two side by side.
+    expect(info?.sizeInMB).toBe((info!.sizeInBytes / (1024 * 1024)).toFixed(2));
+
+    // That the byte figure is `navigator.storage.estimate().usage` — the whole
+    // origin rather than the stored hymnal — is a filed defect (issue #17) and
+    // is asserted in test/known-issues/ where it fails visibly. Deliberately
+    // not pinned here: a green test asserting the bug would read as coverage
+    // while blessing it.
   });
 
-  it("treats a storage estimate with no usage figure as zero", async () => {
+  it("still returns a usable report when the browser cannot produce a usage figure", async () => {
     setStorageManager({ estimate: vi.fn().mockResolvedValue({}) });
     const { dl } = await loadComposable();
 
     const info = await dl.getStorageInfo();
 
-    expect(info).toMatchObject({ sizeInBytes: 0, sizeInMB: "0.00" });
+    expect(info).not.toBeNull();
+    expect(info).toMatchObject({ itemCount: 0, pieceCount: 0, assetCount: 0 });
+    expect(info?.sizeInMB).toBe((info!.sizeInBytes / (1024 * 1024)).toFixed(2));
   });
 
   it("falls back to the JSON size of the metadata when there is no estimate API", async () => {

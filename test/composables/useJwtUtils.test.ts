@@ -131,19 +131,10 @@ describe("isTokenExpired", () => {
     expect(isTokenExpired("not-a-jwt")).toBe(true);
   });
 
-  it("KNOWN GAP: a structurally valid token with no `exp` is treated as valid forever", () => {
-    // getTokenExpiry() computes `payload.exp * 1000`, which is NaN when the
-    // claim is missing, and `NaN <= anything` is false — so the token reads as
-    // never expiring. Directus always issues `exp`, so this is not reachable
-    // today, but it fails *open* rather than closed.
-    //
-    // This test documents current behaviour deliberately. If the guard is ever
-    // tightened, this test SHOULD fail — flip both expectations at that point.
-    const noExp = makeJwt({ iat: 1710500000, sub: "user-42" });
-
-    expect(getTokenExpiry(noExp)).toBeNaN();
-    expect(isTokenExpired(noExp)).toBe(false);
-  });
+  // The missing-`exp` case is a filed defect (issue #11) rather than intended
+  // behaviour, so it is asserted in test/known-issues/ where it fails visibly.
+  // Deliberately not pinned here: a green test asserting the bug would read as
+  // coverage while blessing it.
 });
 
 describe("getTimeUntilExpiry", () => {

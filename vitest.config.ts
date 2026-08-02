@@ -20,6 +20,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./test/setup.ts"],
     include: ["src/**/*.{test,spec}.ts", "test/**/*.{test,spec}.ts"],
+    // test/known-issues/** asserts behaviour the app does NOT yet have, so it
+    // is expected to fail and lives in its own run (vitest.known-issues.config.ts,
+    // `pnpm test:known-issues`). Keeping it out of the main suite is what lets
+    // "red" here keep meaning "you just broke something".
+    exclude: ["**/node_modules/**", "**/dist/**", "test/known-issues/**"],
     // Pinned so tests never depend on the developer's local .env and can assert
     // on fully-built request URLs.
     env: {

@@ -312,15 +312,11 @@ describe("updatePlaylist", () => {
     expect((await readPersisted(created.id))?.description).toBeUndefined();
   });
 
-  it("does NOT trim the name, unlike createPlaylist", async () => {
-    // Documented, not endorsed: the store trims on create but not on update, so
-    // callers are the only thing standing between the DB and a padded name.
-    const created = await store.createPlaylist("Advent");
-
-    await store.updatePlaylist(created.id, { name: "  Advent 2026  ", songIds: [] });
-
-    expect(store.getPlaylist(created.id)?.name).toBe("  Advent 2026  ");
-  });
+  // updatePlaylist not trimming the name and description that createPlaylist
+  // does trim is a filed defect (issue #20) rather than intended behaviour, so
+  // it is asserted in test/known-issues/ where it fails visibly. Deliberately
+  // not pinned here: a green test asserting the bug would read as coverage while
+  // blessing it.
 
   it("is a silent no-op for an unknown id", async () => {
     const created = await store.createPlaylist("Advent");
@@ -535,20 +531,26 @@ describe("addSongToPlaylist", () => {
     expect((await readPersisted(created.id))?.songIds).toEqual([]);
   });
 
-  it("loses one of two concurrent adds (last write wins)", async () => {
-    // Both calls read the same songIds snapshot before either write lands, so
-    // the second overwrites the first. Rapid double-taps in the add-songs view
-    // hit exactly this path.
+  it("adds the same song only once when it is tapped twice at once", async () => {
+    // Two concurrent adds of the *same* id must still leave one entry. This
+    // holds today and stays correct once the lost-update in issue #18 is fixed,
+    // so it is safe to pin here.
     const created = await store.createPlaylist("Advent");
 
     await Promise.all([
       store.addSongToPlaylist(created.id, "song-1"),
-      store.addSongToPlaylist(created.id, "song-2"),
+      store.addSongToPlaylist(created.id, "song-1"),
     ]);
 
-    expect(store.getPlaylist(created.id)?.songIds).toHaveLength(1);
-    expect((await readPersisted(created.id))?.songIds).toHaveLength(1);
+    expect(store.getPlaylist(created.id)?.songIds).toEqual(["song-1"]);
+    expect((await readPersisted(created.id))?.songIds).toEqual(["song-1"]);
   });
+
+  // Two concurrent adds of *different* songs dropping one of them is a filed
+  // defect (issue #18) rather than intended behaviour, so the correct outcome is
+  // asserted in test/known-issues/ where it fails visibly. Deliberately not
+  // pinned here: a green test asserting the bug would read as coverage while
+  // blessing it.
 });
 
 // ---------------------------------------------------------------------------
@@ -575,9 +577,13 @@ describe("removeSongFromPlaylist", () => {
     expect(store.hasAnyPlaylist).toBe(true);
   });
 
-  it("writes anyway when the song is not in the playlist", async () => {
-    // No early return on the remove path: the song list is unchanged but
-    // updatedAt still moves, which re-sorts the playlists overview.
+  it("leaves the song list alone when the song is not in the playlist", async () => {
+    // Whatever the write path does, removing an id that was never there must not
+    // change the songs. The missing early return that lets this still bump
+    // updatedAt is a filed defect (issue #20) and is asserted in
+    // test/known-issues/ where it fails visibly — deliberately not pinned here,
+    // because a green test asserting the bumped updatedAt would read as coverage
+    // while blessing it.
     setNow(T0);
     const created = await store.createPlaylist("Advent");
     setNow(T1);
@@ -586,9 +592,8 @@ describe("removeSongFromPlaylist", () => {
     setNow(T2);
     await store.removeSongFromPlaylist(created.id, "song-999");
 
-    const after = store.getPlaylist(created.id)!;
-    expect(after.songIds).toEqual(["song-1"]);
-    expect(after.updatedAt).toBe(T2);
+    expect(store.getPlaylist(created.id)?.songIds).toEqual(["song-1"]);
+    expect((await readPersisted(created.id))?.songIds).toEqual(["song-1"]);
   });
 
   it("is a silent no-op for an unknown playlist id", async () => {

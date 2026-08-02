@@ -1,13 +1,61 @@
 # Testing
 
-643 tests across 16 files. The full suite runs in about 7 seconds.
+There are **two** suites, because they answer different questions.
+
+| | Question it answers | State | Gates merges |
+| --- | --- | --- | --- |
+| `pnpm test` | Did this change break something? | 628 green | Yes |
+| `pnpm test:known-issues` | Which filed bugs are still open? | 75 red / 56 green | No |
 
 ```bash
-pnpm test              # run once
-pnpm test:watch        # watch mode while developing
-pnpm test:coverage     # run with coverage + threshold enforcement
-pnpm ci:verify         # everything CI runs: lint → type-check → test + coverage
+pnpm test               # main suite, ~7s
+pnpm test:watch         # watch mode while developing
+pnpm test:coverage      # main suite + coverage thresholds
+pnpm test:known-issues  # the open-bug suite — EXPECTED to fail
+pnpm ci:verify          # what CI gates on: lint → type-check → test + coverage
 ```
+
+## The known-issues suite
+
+`test/known-issues/` holds one spec per filed GitHub issue, each asserting the
+behaviour the app **should** have. It is red on purpose.
+
+This exists because the alternative is worse. Tests that assert a bug as if it
+were correct — `"loses one of two concurrent adds"`, `"writes anyway when the
+song is not in the playlist"` — look like ordinary passing tests in a green run.
+They read as coverage while quietly blessing the defect, and nobody finds them
+without opening that exact file. Around a dozen such tests existed and have been
+removed or rewritten; where one was removed there is a comment pointing here.
+
+**Workflow**
+
+1. Bug found → file an issue, add `test/known-issues/issue-<N>-<slug>.test.ts`.
+2. Bug fixed → that spec's red assertions go green.
+3. Promote the spec into the main suite and close the issue.
+
+Step 3 is not optional: a fully-green file in that directory is no longer
+describing an open defect.
+
+**Two rules that make it work**
+
+- *Fail by assertion, never by crashing.* A spec that is red because of a bad
+  import or a missing mock is worthless — it would stay red after the fix. Every
+  failure must be a real expected-vs-actual comparison. All 75 current failures
+  are; none is a crash, timeout or import error.
+- *Include a guard that passes.* Each file also asserts what must remain true
+  after the fix (e.g. "a normal token is still reported valid"), so a fix cannot
+  swing past the target. Partly-green files are correct and expected.
+
+Not every issue maps to a unit test. Logging (#12), the untranslated string
+(#10) and the view-level halves of #13 and #19 are tracker-only.
+
+## Why the split
+
+A single permanently-red suite cannot gate anything: with ~75 known failures, a
+PR that breaks a 76th thing looks identical to one that breaks nothing, and
+branch protection stops meaning anything. Splitting keeps "red means you just
+broke it" in the main suite while making the open bugs loudly visible as their
+own CI check on every PR.
 
 ## What is covered, and why that
 
@@ -91,17 +139,13 @@ not break the build but a real regression will.
 - No snapshot tests, no reliance on ordering. The suite is verified
   order-independent with `pnpm vitest run --sequence.shuffle`.
 
-## Tests that document a defect
+## Bugs the suite surfaced
 
-A few tests pin behaviour that is **wrong but current**. They are labelled in
-place and exist so the bug cannot change silently. When one of these is fixed,
-the test is *supposed* to fail — update it deliberately.
+Open defects live in `test/known-issues/` (see above), never as green tests in
+the main suite.
 
-- `useJwtUtils.test.ts` — "KNOWN GAP: a structurally valid token with no `exp`
-  is treated as valid forever".
-
-Three bugs the suite surfaced have since been fixed, and the tests that pinned
-them are now regression guards:
+Three were fixed outright, and the tests that pinned them are now regression
+guards in the main suite:
 
 - `playlists.ts` — `updatePlaylist` spread a reactive Proxy into IndexedDB, so
   every patch without an explicit `songIds` threw `DataCloneError`. That was the

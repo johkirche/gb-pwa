@@ -561,18 +561,12 @@ describe("loadMore", () => {
     });
   });
 
-  it("requests a hard-coded page of 50 regardless of the initial limit", async () => {
-    // Documents current behaviour: currentLimit only governs the first page, so
-    // a caller that lowers it gets an inconsistent second page.
-    const store = useGesangbuchliedStore();
-    store.currentLimit = 3;
-    await seedFromApi(store, 3);
-    expect(store.hasMore).toBe(true);
-
-    await store.loadMore();
-
-    expect(queryVars()).toMatchObject({ limit: 50, offset: 3 });
-  });
+  // loadMore's page size and its hasMore comparison are hard-coded to 50 instead
+  // of following currentLimit, and it has no hasMore/isLoadingMore re-entry
+  // guard — a filed defect (issue #21), not intended behaviour. Asserted in
+  // test/known-issues/issue-21-loadmore-drifted-from-fetchlieder.test.ts, where
+  // it fails visibly. Deliberately not pinned here: a green test asserting the
+  // bug would read as coverage while blessing it.
 });
 
 // ---------------------------------------------------------------------------
@@ -680,17 +674,13 @@ describe("filteredLieder — search", () => {
     expect(store.filteredLieder).toHaveLength(4);
   });
 
-  it("finds nothing for a padded query, because the term is lower-cased but not trimmed", () => {
-    // Documents a real mismatch: buildApiFilters() trims the term for the API,
-    // the client-side filter does not — so the same keystrokes give two
-    // different result sets depending on whether the data came from IndexedDB.
-    const store = useGesangbuchliedStore();
-    store.lieder = corpus;
-
-    store.setFilter("searchQuery", " lobe ");
-
-    expect(store.filteredLieder).toHaveLength(0);
-  });
+  // A padded query ("  lobe  ") matching nothing is a filed defect (issue #5):
+  // the guard trims, the needle does not, so the same keystrokes give two
+  // different result sets depending on whether the list came from Directus or
+  // IndexedDB. Asserted in
+  // test/known-issues/issue-5-search-query-not-trimmed.test.ts, where it fails
+  // visibly. Deliberately not pinned here: a green test asserting the bug would
+  // read as coverage while blessing it.
 
   it("ignores songs with no title, verses or authors instead of throwing", () => {
     const store = useGesangbuchliedStore();
@@ -994,16 +984,23 @@ describe("availableFileTypes", () => {
 
 // ---------------------------------------------------------------------------
 describe("shouldShowDataSourceControl", () => {
-  // happy-dom serves the document from http://localhost:3000/, which trips the
-  // store's dev-only escape hatch and would mask the hasOfflineContent branch
-  // entirely. Move the page onto a production-looking host for these tests.
+  // These tests are about the production behaviour: does the toggle appear
+  // because there is genuinely something to switch between? So the page is moved
+  // onto a production-looking host (happy-dom otherwise serves the document from
+  // http://localhost:3000/) and the bundle is marked as a production build.
+  // Either escape hatch left in place would force the control on and mask the
+  // hasOfflineContent branch entirely.
   const ORIGINAL_URL = window.location.href;
 
   function setPageUrl(url: string) {
     (window as unknown as { happyDOM: { setURL: (u: string) => void } }).happyDOM.setURL(url);
   }
 
-  beforeEach(() => setPageUrl("https://gesangbuch.example/songs"));
+  beforeEach(() => {
+    setPageUrl("https://gesangbuch.example/songs");
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("PROD", true);
+  });
   afterEach(() => setPageUrl(ORIGINAL_URL));
 
   it("stays hidden until songs are actually on screen", () => {
@@ -1022,7 +1019,7 @@ describe("shouldShowDataSourceControl", () => {
     expect(store.shouldShowDataSourceControl).toBe(true);
   });
 
-  it("stays hidden on a normal host while nothing has been downloaded", () => {
+  it("stays hidden in a production build while nothing has been downloaded", () => {
     // Nothing to switch between — offering an offline/online toggle here would
     // just be a dead control.
     const store = useGesangbuchliedStore();
@@ -1032,14 +1029,13 @@ describe("shouldShowDataSourceControl", () => {
     expect(store.shouldShowDataSourceControl).toBe(false);
   });
 
-  it("is forced on for localhost so the toggle is always reachable in dev", () => {
-    setPageUrl("http://localhost:3000/songs");
-    const store = useGesangbuchliedStore();
-    store.lieder = [makeLied({ id: "1" })];
-
-    expect(hasOfflineContentRef().value).toBe(false);
-    expect(store.shouldShowDataSourceControl).toBe(true);
-  });
+  // The escape hatch that forces the control on is currently keyed off
+  // `window.location.hostname === "localhost"`, a runtime check that ships to
+  // production — a filed defect (issue #22), not intended behaviour. The
+  // build-flag behaviour it should have is asserted in
+  // test/known-issues/issue-22-datasource-control-hostname-check.test.ts, where
+  // it fails visibly. Deliberately not pinned here: a green test asserting the
+  // bug would read as coverage while blessing it.
 });
 
 // ---------------------------------------------------------------------------

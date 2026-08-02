@@ -233,42 +233,17 @@ describe("stats store — loadStats", () => {
     expect(postCall(1).body.query).not.toContain("filter");
   });
 
-  it("accepts a positive count from the count-subfield fallback loop", async () => {
-    signIn();
-    const empty = ok({ data: { gesangbuchlied_aggregated: [] } });
-    post
-      .mockResolvedValueOnce(empty)
-      .mockResolvedValueOnce(empty)
-      .mockResolvedValueOnce(ok(countPayload(17)));
-    const store = useStatsStore();
-
-    await store.loadStats();
-
-    expect(store.stats.totalSongs).toBe(17);
-    expect(post).toHaveBeenCalledTimes(3);
-  });
-
-  it("falls through to countDistinct when no count subfield answers", async () => {
-    signIn();
-    const empty = ok({ data: { gesangbuchlied_aggregated: [] } });
-    post
-      // Attempts 1-5: filtered, unfiltered, then count.id / count.* / count.all.
-      .mockResolvedValueOnce(empty)
-      .mockResolvedValueOnce(empty)
-      .mockResolvedValueOnce(empty)
-      .mockResolvedValueOnce(empty)
-      .mockResolvedValueOnce(empty)
-      .mockResolvedValueOnce(
-        ok({ data: { gesangbuchlied_aggregated: [{ countDistinct: { id: 23 } }] } }),
-      );
-    const store = useStatsStore();
-
-    await store.loadStats();
-
-    expect(store.stats.totalSongs).toBe(23);
-    expect(post).toHaveBeenCalledTimes(6);
-    expect(postCall(5).body.query).toContain("countDistinct");
-  });
+  // The count/countDistinct subfield loops (six further requests, two of which
+  // send the un-answerable `count { * }` and one of which repeats the query
+  // that just failed) are a filed defect — issue #24 — not intended behaviour.
+  // Tests pinning "the third request wins" / "the sixth request wins" / "nine
+  // requests go out" used to live here; they are asserted in
+  // test/known-issues/issue-24-song-count-request-storm.test.ts instead, where
+  // they fail visibly. A green test asserting the storm would read as coverage
+  // while blessing it, and would have to be rewritten the day it is fixed.
+  //
+  // Still pinned below, because they stay true after the fix: the two aggregate
+  // attempts, and the id-counting last resort.
 
   it("falls back to counting returned ids when every aggregate query fails", async () => {
     signIn();
@@ -282,18 +257,6 @@ describe("stats store — loadStats", () => {
 
     expect(store.stats.totalSongs).toBe(3);
     expect(store.statsError).toBeNull();
-  });
-
-  it("issues nine sequential requests before giving up", async () => {
-    // Documenting the real cost of the fallback chain: 2 count attempts + 3
-    // count subfields + 3 countDistinct subfields + 1 "fetch every id". On a
-    // flaky mobile connection this is nine round-trips per loadStats().
-    signIn();
-    post.mockRejectedValue(new Error("Network Error"));
-
-    await useStatsStore().loadStats();
-
-    expect(post).toHaveBeenCalledTimes(9);
   });
 
   it("keeps the downloaded song count when the network is unreachable", async () => {
@@ -685,7 +648,12 @@ describe("stats store — refreshStats and clearStats", () => {
 // freieMusikstuecke store
 // ===========================================================================
 describe("freieMusikstuecke store — fetchPieces", () => {
-  it("serves downloaded pieces from IndexedDB without touching the network", async () => {
+  it("serves downloaded pieces from IndexedDB", async () => {
+    // The offline-first half of the contract: what is in IndexedDB is in
+    // `pieces` by the time fetchPieces() resolves, without waiting on a
+    // round-trip. Whether a refresh is *also* sent is issue #26's business (see
+    // test/known-issues/issue-26-pieces-never-revalidate.test.ts) and
+    // deliberately not asserted here either way.
     h.getOfflinePieces.mockResolvedValue([piece(), piece({ id: "p-2", name: "Panis" })]);
     const store = useFreieMusikstueckeStore();
 
@@ -695,7 +663,6 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     expect(store.isUsingCachedData).toBe(true);
     expect(store.isLoaded).toBe(true);
     expect(store.error).toBeNull();
-    expect(post).not.toHaveBeenCalled();
   });
 
   it("posts the freie_musikstuecke query when nothing is downloaded", async () => {
@@ -752,18 +719,12 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     expect(store.isUsingCachedData).toBe(false);
   });
 
-  it("skips the API entirely when the offline preference is on and data exists", async () => {
-    // Consequence worth pinning down: once anything is downloaded the store
-    // never refreshes on its own — only an explicit forceOnline does.
-    h.getOfflinePieces.mockResolvedValue([piece({ id: "cached" })]);
-    const store = useFreieMusikstueckeStore();
-
-    await store.fetchPieces();
-    await store.fetchPieces();
-
-    expect(post).not.toHaveBeenCalled();
-    expect(store.pieces.map((p) => p.id)).toEqual(["cached"]);
-  });
+  // "Once anything is downloaded the store never refreshes on its own" was
+  // pinned here as if it were the design. It is issue #26 — there is no TTL and
+  // no caller passes forceOnline, so a renamed or deleted Vor-/Nachspiel never
+  // reaches the device again. The behaviour the store should have is asserted
+  // in test/known-issues/issue-26-pieces-never-revalidate.test.ts, where it
+  // fails visibly instead of masquerading as coverage.
 
   it("keeps the downloaded pieces when the API request fails", async () => {
     // Offline-first: a rejected request must fall back to IndexedDB and leave
