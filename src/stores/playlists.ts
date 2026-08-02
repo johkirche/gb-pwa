@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import { computed, ref } from "vue";
+import { computed, ref, toRaw } from "vue";
 
 // A playlist is a user-curated group of Gesangbuchlied IDs. We only store the
 // Directus IDs (strings) — the song catalogue is the canonical source, so a
@@ -141,9 +141,16 @@ export const usePlaylistStore = defineStore("playlists", () => {
     await initDB();
     const existing = getPlaylist(id);
     if (!existing) return;
+    // `getPlaylist` returns an element of a reactive ref, so `existing` is a
+    // Proxy and `existing.songIds` read through it is a Proxy too. Spreading
+    // only flattens the top level, and IndexedDB's structured clone algorithm
+    // rejects a Proxy with DataCloneError — which broke every patch that did
+    // not happen to supply a freshly built songIds array (e.g. the rename in
+    // PlaylistDetailView). Unwrap the base object and always store a plain array.
     const updated: Playlist = {
-      ...existing,
+      ...toRaw(existing),
       ...patch,
+      songIds: [...(patch.songIds ?? existing.songIds)],
       updatedAt: new Date().toISOString(),
     };
     await dbManager.putPlaylist(updated);
