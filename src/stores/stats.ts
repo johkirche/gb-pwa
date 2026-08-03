@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/stores/auth";
+import { useChurchServiceStore } from "@/stores/churchService";
 import axios from "axios";
 import { query } from "gql-query-builder";
 import { defineStore } from "pinia";
@@ -13,7 +14,9 @@ import { getAllOfflineSongs, getOfflineSongCount } from "@/composables/useOfflin
 export interface StatsData {
   totalSongs: number;
   offlineSongs: number;
-  favorites: number;
+  // Note: there is no `favorites` here. The Favoriten tile reads the live
+  // useFavorites composable directly (StatsRow.vue); a field here was dead
+  // weight that a future tile could be wired to by mistake.
   recentlyPlayed: number;
 }
 
@@ -29,7 +32,6 @@ export const useStatsStore = defineStore("stats", () => {
   const stats = ref<StatsData>({
     totalSongs: 0,
     offlineSongs: 0,
-    favorites: 0,
     recentlyPlayed: 0,
   });
 
@@ -332,15 +334,42 @@ export const useStatsStore = defineStore("stats", () => {
     }
   };
 
+  /**
+   * How many distinct songs the user has actually played.
+   *
+   * The played-service history is the only record of a play the app keeps —
+   * the church-service wizard writes one entry per service it runs, into the
+   * ChurchServiceDB `services` store. It is local, so this number is available
+   * offline, and `loadHistory` swallows its own IndexedDB errors (yielding an
+   * empty history) rather than failing the whole stats load.
+   *
+   * No recency window is applied: this counts every service in the history.
+   * "Kürzlich" would need a threshold nobody has decided on — see #25.
+   */
+  const countPlayedSongs = async (): Promise<number> => {
+    const serviceStore = useChurchServiceStore();
+    await serviceStore.loadHistory();
+
+    const played = new Set<string>();
+    for (const service of serviceStore.serviceHistory) {
+      for (const entry of service.songs) {
+        const id = entry.song?.id;
+        if (id) played.add(String(id));
+      }
+    }
+    return played.size;
+  };
+
   const loadStats = async () => {
     if (isLoadingStats.value) return;
 
     isLoadingStats.value = true;
     statsError.value = null;
 
-    // Read the offline count from IndexedDB first — it doesn't depend on the
-    // network, so it must survive a failed (e.g. offline) totalSongs fetch.
+    // Read the local numbers from IndexedDB first — neither depends on the
+    // network, so both must survive a failed (e.g. offline) totalSongs fetch.
     const offlineSongs = await getOfflineSongCount();
+    const recentlyPlayed = await countPlayedSongs();
 
     try {
       const totalSongs = await fetchTotalSongsCount();
@@ -348,19 +377,17 @@ export const useStatsStore = defineStore("stats", () => {
       stats.value = {
         totalSongs,
         offlineSongs,
-        favorites: 0, // TODO: Get from user preferences/local storage
-        recentlyPlayed: 0, // TODO: Get from local storage
+        recentlyPlayed,
       };
     } catch (error) {
       console.error("Error loading stats:", error);
       statsError.value = error instanceof Error ? error.message : "Failed to load stats";
 
-      // Network total failed (e.g. offline) — still surface the offline count.
+      // Network total failed (e.g. offline) — still surface the local counts.
       stats.value = {
         totalSongs: 0,
         offlineSongs,
-        favorites: 0,
-        recentlyPlayed: 0,
+        recentlyPlayed,
       };
     } finally {
       isLoadingStats.value = false;
@@ -449,7 +476,6 @@ export const useStatsStore = defineStore("stats", () => {
     stats.value = {
       totalSongs: 0,
       offlineSongs: 0,
-      favorites: 0,
       recentlyPlayed: 0,
     };
     categories.value = [];
