@@ -302,6 +302,11 @@ export const useAuth = () => {
     }
   };
 
+  // The API client refreshes on its own behalf when a request 401s, bypassing
+  // refreshAuth entirely — so nothing else would re-arm the timer for the token
+  // it installs. Hand it the scheduler instead of importing useAuth there.
+  directusApi.setSessionRefreshedHandler(scheduleTokenRefresh);
+
   // Setup automatic token refresh on client side
   if (authStore.accessToken) {
     scheduleTokenRefresh(authStore.accessToken);

@@ -21,6 +21,9 @@ const h = vi.hoisted(() => ({
     logout: vi.fn(),
     refresh: vi.fn(),
     getCurrentUser: vi.fn(),
+    // useAuth hands the client its refresh scheduler so the client's own
+    // 401-retry path can re-arm the timer (issue #7).
+    setSessionRefreshedHandler: vi.fn(),
   },
   hasOfflineContentAvailable: vi.fn(),
   routerPush: vi.fn(),

@@ -10,6 +10,8 @@ import {
   useAuthStore,
 } from "@/stores/auth";
 
+import { makeTokenExpiringIn } from "../helpers/jwt";
+
 // ---------------------------------------------------------------------------
 // Mocks. `vi.hoisted` is required because vi.mock factories are hoisted above
 // the imports, so they cannot close over ordinary top-level consts.
@@ -19,12 +21,23 @@ import {
 // that also carries the verb helpers. `isAxiosError` is deliberately the real
 // implementation: the 401 branch hinges on it, and stubbing it would let a
 // broken error-shape check pass.
+//
+// The last two entries exist only for the concurrent-refresh section at the
+// bottom, which instantiates useAuth to observe its refresh timer; they keep
+// that module graph hermetic and are inert everywhere else.
 // ---------------------------------------------------------------------------
 const h = vi.hoisted(() => {
   const request = vi.fn();
   const post = vi.fn();
   const get = vi.fn();
-  return { request, post, get, client: Object.assign(request, { post, get }) };
+  return {
+    request,
+    post,
+    get,
+    client: Object.assign(request, { post, get }),
+    hasOfflineContentAvailable: vi.fn(),
+    routerPush: vi.fn(),
+  };
 });
 
 vi.mock("axios", async () => {
@@ -34,6 +47,15 @@ vi.mock("axios", async () => {
     default: Object.assign(h.client, { isAxiosError: actual.isAxiosError }),
   };
 });
+
+vi.mock("@/composables/useOfflineDownload", () => ({
+  hasOfflineContentAvailable: h.hasOfflineContentAvailable,
+}));
+
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push: h.routerPush }),
+  useRoute: () => ({ query: {} }),
+}));
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -682,5 +704,224 @@ describe("useDirectusApi", () => {
     const mod = await import("@/composables/useDirectusApi");
 
     expect(() => mod.useDirectusApi()).toThrow("Directus URL not configured");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression guard for issue #7 — concurrent 401s must share one refresh.
+// https://github.com/johkirche/gb-pwa/issues/7
+//
+// The single-flight guard used to be a module-local of useAuth.ts while
+// createAuthenticatedFetch called `this.refresh()` on the client directly, so it
+// never passed through the guard: N simultaneous 401s produced N POSTs to
+// /auth/refresh all carrying the same single-use refresh token. The first racer
+// rotated it, the rest presented a token the server had already consumed, and
+// their data requests failed even though the user was online with a live session
+// (the home screen showed "0 Lieder" until a reload).
+//
+// Secondary defect on the same path: this branch never scheduled the next
+// background refresh, so the timer stayed pinned to the old token's expiry.
+//
+// This section needs its own harness — fake timers plus a freshly imported
+// module graph, because useAuth.ts and the useDirectusApi singleton both keep
+// module-level state — so it does not share the fixtures above.
+// ---------------------------------------------------------------------------
+const SONGS_URL = `${BASE}/items/songs`;
+
+/** The expired access token every racer starts with; refreshed to `fresh`. */
+let stale: string;
+let fresh: string;
+
+/**
+ * A Directus that behaves like the real one: refresh tokens are single-use, so
+ * presenting an already-rotated token is answered with a 401. That is the whole
+ * point — three POSTs carrying the same token cannot all succeed.
+ */
+function installSingleUseRefreshServer() {
+  const consumed = new Set<string>();
+  let rotation = 0;
+
+  h.post.mockImplementation(async (url: string, body: { refresh_token: string }) => {
+    if (!url.endsWith("/auth/refresh")) throw new Error(`unexpected POST ${url}`);
+    if (consumed.has(body.refresh_token)) throw httpError(401);
+    consumed.add(body.refresh_token);
+    rotation += 1;
+    return {
+      data: {
+        data: {
+          access_token: fresh,
+          refresh_token: `refresh-rotated-${rotation}`,
+          expires: 900_000,
+        },
+      },
+    };
+  });
+
+  return {
+    refreshCalls: () =>
+      h.post.mock.calls.filter(([url]) => String(url).endsWith("/auth/refresh")),
+  };
+}
+
+/** Every request with a stale bearer token 401s; the rotated one succeeds. */
+function installTokenCheckingApi() {
+  h.request.mockImplementation(async (config: { headers?: Record<string, string> }) => {
+    if (config.headers?.Authorization !== `Bearer ${fresh}`) throw httpError(401);
+    return { data: { songs: ["Lobe den Herren"] } };
+  });
+}
+
+/**
+ * pinia is imported *after* the reset so the store module and `setActivePinia`
+ * cannot end up on different copies of it.
+ */
+async function freshClient({ withAuth = false } = {}) {
+  vi.resetModules();
+
+  const pinia = await import("pinia");
+  pinia.setActivePinia(pinia.createPinia());
+
+  const { useAuthStore: useStore } = await import("@/stores/auth");
+  const store = useStore();
+  store.setTokens(stale, "refresh-1");
+
+  const { useDirectusApi: useApi } = await import("@/composables/useDirectusApi");
+  const client = useApi();
+
+  // Instantiating useAuth is what makes a scheduled refresh observable: it owns
+  // the timer. The access token it hydrates with is already expired, so its
+  // constructor-time scheduleTokenRefresh is a no-op and any timer seen later
+  // was scheduled by the refresh under test.
+  if (withAuth) {
+    const { useAuth } = await import("@/composables/useAuth");
+    useAuth();
+  }
+
+  return { client, store };
+}
+
+describe("createAuthenticatedFetch — concurrent 401s share one refresh", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-15T12:00:00.000Z"));
+
+    stale = makeTokenExpiringIn(-60);
+    fresh = makeTokenExpiringIn(900);
+
+    h.get.mockResolvedValue({ data: { data: { id: "u-1" } } });
+    h.hasOfflineContentAvailable.mockReset().mockResolvedValue(true);
+    h.routerPush.mockReset();
+  });
+
+  it("collapses three concurrent 401s into a single POST to /auth/refresh", async () => {
+    const server = installSingleUseRefreshServer();
+    installTokenCheckingApi();
+    const { client } = await freshClient();
+    const fetchFn = client.createAuthenticatedFetch(stale);
+
+    await Promise.allSettled([
+      fetchFn(SONGS_URL),
+      fetchFn(SONGS_URL),
+      fetchFn(SONGS_URL),
+    ]);
+
+    expect(server.refreshCalls()).toHaveLength(1);
+  });
+
+  it("gives every concurrent caller its data instead of failing all but one", async () => {
+    // This is the user-visible half: HomeView and CategoriesSection both fire on
+    // mount, and the loser of the race used to render an empty screen.
+    installSingleUseRefreshServer();
+    installTokenCheckingApi();
+    const { client } = await freshClient();
+    const fetchFn = client.createAuthenticatedFetch(stale);
+
+    const results = await Promise.allSettled([
+      fetchFn(SONGS_URL),
+      fetchFn(SONGS_URL),
+      fetchFn(SONGS_URL),
+    ]);
+
+    expect(results.map((r) => r.status)).toEqual([
+      "fulfilled",
+      "fulfilled",
+      "fulfilled",
+    ]);
+  });
+
+  it("presents the single-use refresh token to the server exactly once", async () => {
+    // Even if the server were lenient about replays, spending a single-use token
+    // three times is what makes this path unpredictable.
+    const server = installSingleUseRefreshServer();
+    installTokenCheckingApi();
+    const { client } = await freshClient();
+    const fetchFn = client.createAuthenticatedFetch(stale);
+
+    await Promise.allSettled([
+      fetchFn(SONGS_URL),
+      fetchFn(SONGS_URL),
+      fetchFn(SONGS_URL),
+    ]);
+
+    expect(
+      server
+        .refreshCalls()
+        .map(([, body]) => (body as { refresh_token: string }).refresh_token),
+    ).toEqual(["refresh-1"]);
+  });
+
+  it("schedules the next background refresh after refreshing", async () => {
+    // useAuth.applyRefreshedSession calls scheduleTokenRefresh; this path did
+    // not — so after a refresh here the timer was still aimed at the *old*
+    // token's expiry and the session lapsed again unnoticed.
+    installSingleUseRefreshServer();
+    installTokenCheckingApi();
+    const { client } = await freshClient({ withAuth: true });
+    expect(vi.getTimerCount()).toBe(0);
+
+    await client.createAuthenticatedFetch(stale)(SONGS_URL);
+
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+  });
+
+  it("still refreshes and retries a lone 401", async () => {
+    // Guards against over-correction: collapsing concurrent refreshes must not
+    // swallow the one that has to happen.
+    const server = installSingleUseRefreshServer();
+    installTokenCheckingApi();
+    const { client, store } = await freshClient();
+
+    const result = await client.createAuthenticatedFetch(stale)(SONGS_URL);
+
+    expect(result).toEqual({ songs: ["Lobe den Herren"] });
+    expect(server.refreshCalls()).toHaveLength(1);
+    expect(store.accessToken).toBe(fresh);
+  });
+
+  it("still never refreshes when the requests succeed", async () => {
+    const server = installSingleUseRefreshServer();
+    h.request.mockResolvedValue({ data: { songs: [] } });
+    const { client } = await freshClient();
+    const fetchFn = client.createAuthenticatedFetch(fresh);
+
+    await Promise.all([fetchFn(SONGS_URL), fetchFn(SONGS_URL), fetchFn(SONGS_URL)]);
+
+    expect(server.refreshCalls()).toHaveLength(0);
+  });
+
+  it("still surfaces the 401 when there is no refresh token at all", async () => {
+    // A shared in-flight promise must not turn "cannot refresh" into a hang or a
+    // silently swallowed error.
+    const server = installSingleUseRefreshServer();
+    const failure = httpError(401);
+    h.request.mockRejectedValue(failure);
+    const { client, store } = await freshClient();
+    store.setTokens(stale, null); // also clears the persisted copy
+
+    await expect(client.createAuthenticatedFetch(stale)(SONGS_URL)).rejects.toBe(
+      failure,
+    );
+
+    expect(server.refreshCalls()).toHaveLength(0);
   });
 });

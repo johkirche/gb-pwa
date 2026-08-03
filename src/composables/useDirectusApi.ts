@@ -37,8 +37,28 @@ export interface LogoutRequest {
 export class DirectusApiClient {
   private baseUrl: string;
 
+  // Refresh tokens are single-use. Concurrent callers presenting the same one
+  // (two views mounting at once, both 401ing) must share one POST, or every
+  // racer but the winner is rejected with an already-rotated token. Keyed by
+  // token so an unrelated refresh with a newer token is never blocked.
+  private inFlightRefresh = new Map<string, Promise<RefreshResponse>>();
+
+  // Notified whenever this client rotates the session on a caller's behalf.
+  // A callback rather than an import: useAuth owns the background refresh timer
+  // and already imports this module, so calling into it would be a cycle.
+  private onSessionRefreshed: ((accessToken: string) => void) | null = null;
+
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
+  }
+
+  /**
+   * Register the auth layer's hook for sessions this client refreshes itself.
+   * Single slot: useAuth() may run once per component, and re-registering must
+   * not accumulate handlers.
+   */
+  setSessionRefreshedHandler(handler: ((accessToken: string) => void) | null) {
+    this.onSessionRefreshed = handler;
   }
 
   /**
@@ -59,18 +79,31 @@ export class DirectusApiClient {
   }
 
   /**
-   * Refresh access token
+   * Refresh access token.
+   *
+   * Single-flight per refresh token: this is the layer every caller shares
+   * (createAuthenticatedFetch, useAuth.doRefreshAuth and its rotation retry),
+   * so collapsing here is what guarantees a single-use token is spent once.
    */
   async refresh(request: RefreshRequest): Promise<RefreshResponse> {
-    const response = await axios.post<{ data: RefreshResponse }>(
-      `${this.baseUrl}/auth/refresh`,
-      {
+    const key = request.refresh_token;
+    const existing = this.inFlightRefresh.get(key);
+    if (existing) return existing;
+
+    const pending = axios
+      .post<{ data: RefreshResponse }>(`${this.baseUrl}/auth/refresh`, {
         refresh_token: request.refresh_token,
         mode: request.mode || "json",
-      },
-    );
+      })
+      .then((response) => response.data.data)
+      // Dropped once settled: the token is spent, so a later call presenting it
+      // again is a genuine replay and must reach the server to be rejected.
+      .finally(() => {
+        this.inFlightRefresh.delete(key);
+      });
 
-    return response.data.data;
+    this.inFlightRefresh.set(key, pending);
+    return pending;
   }
 
   /**
@@ -139,6 +172,11 @@ export class DirectusApiClient {
                 refreshResponse.access_token,
                 refreshResponse.refresh_token,
               );
+
+              // Re-arm the background refresh timer for the token we just
+              // installed — otherwise it stays aimed at the old token's expiry
+              // and the session lapses again unnoticed.
+              this.onSessionRefreshed?.(refreshResponse.access_token);
 
               // Retry the original request with the new token.
               const retryResponse = await axios({
