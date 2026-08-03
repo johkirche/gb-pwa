@@ -233,17 +233,65 @@ describe("stats store — loadStats", () => {
     expect(postCall(1).body.query).not.toContain("filter");
   });
 
-  // The count/countDistinct subfield loops (six further requests, two of which
-  // send the un-answerable `count { * }` and one of which repeats the query
-  // that just failed) are a filed defect — issue #24 — not intended behaviour.
-  // Tests pinning "the third request wins" / "the sixth request wins" / "nine
-  // requests go out" used to live here; they are asserted in
-  // test/known-issues/issue-24-song-count-request-storm.test.ts instead, where
-  // they fail visibly. A green test asserting the storm would read as coverage
-  // while blessing it, and would have to be rewritten the day it is fixed.
+  // -------------------------------------------------------------------------
+  // Regression guard for issue #24 — https://github.com/johkirche/gb-pwa/issues/24
   //
-  // Still pinned below, because they stay true after the fix: the two aggregate
-  // attempts, and the id-counting last resort.
+  // fetchTotalSongsCount used to follow the two aggregate attempts with two
+  // loops over ["id", "*", "all"], interpolating the subfield into the
+  // selection set for `count` and again for `countDistinct`. Six further
+  // requests: `{ * }` and `{ all }` are not valid GraphQL and can never be
+  // answered, and `{ id }` merely repeats the query that just failed. Nine
+  // sequential round-trips on every home-screen load — on a weak connection
+  // that times out rather than refuses, nine timeouts before the tile gives up.
+  // -------------------------------------------------------------------------
+
+  it("gives up after at most three requests when the server is unreachable", async () => {
+    signIn();
+    post.mockRejectedValue(new Error("Network Error"));
+
+    await useStatsStore().loadStats();
+
+    expect(post.mock.calls.length).toBeLessThanOrEqual(3);
+  });
+
+  it("gives up after at most three requests when the server rejects every query", async () => {
+    // A 400 from Directus (which is what the invalid documents actually earned)
+    // is not a reason to keep trying variants of the same broken shape.
+    signIn();
+    post.mockRejectedValue(httpError(400));
+
+    await useStatsStore().loadStats();
+
+    expect(post.mock.calls.length).toBeLessThanOrEqual(3);
+  });
+
+  it("never sends `count { * }`, which no GraphQL server can answer", async () => {
+    signIn();
+    post.mockRejectedValue(new Error("Network Error"));
+
+    await useStatsStore().loadStats();
+
+    const invalid = post.mock.calls
+      .map((call) => (call[1] as GqlBody).query)
+      .filter((query) => /\{\s*\*\s*\}/.test(query));
+    expect(invalid).toHaveLength(0);
+  });
+
+  it("does not re-send a query that has already failed", async () => {
+    // Attempt 2 (`count { id }`, unfiltered) and the first iteration of the
+    // subfield loop were the same document, so one of the nine round-trips was
+    // a verbatim retry of a request that had just failed.
+    signIn();
+    post.mockRejectedValue(new Error("Network Error"));
+
+    await useStatsStore().loadStats();
+
+    // Collapse formatting so two differently-indented copies compare equal.
+    const sent = post.mock.calls.map((call) =>
+      (call[1] as GqlBody).query.replace(/\s+/g, " ").trim(),
+    );
+    expect(new Set(sent).size).toBe(sent.length);
+  });
 
   it("falls back to counting returned ids when every aggregate query fails", async () => {
     signIn();

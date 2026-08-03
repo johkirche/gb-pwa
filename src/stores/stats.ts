@@ -167,79 +167,13 @@ export const useStatsStore = defineStore("stats", () => {
       console.error("Manual GraphQL with count.id (no filter) failed:", error);
     }
 
-    // Try other possible subfields for count
-    const countSubfields = ["id", "*", "all"];
-
-    for (const subfield of countSubfields) {
-      try {
-        console.log(`Trying manual GraphQL query with count.${subfield}...`);
-
-        const manualQuery = {
-          query: `
-            query GetSongCount {
-              gesangbuchlied_aggregated {
-                count {
-                  ${subfield}
-                }
-              }
-            }
-          `,
-          variables: {},
-        };
-
-        const response = await makeGraphQLRequest<{
-          data: {
-            gesangbuchlied_aggregated: Array<{
-              count: { [key: string]: number };
-            }>;
-          };
-        }>(manualQuery);
-
-        const result = response.data?.gesangbuchlied_aggregated[0]?.count?.[subfield];
-        if (typeof result === "number" && result > 0) {
-          return result;
-        }
-      } catch (error) {
-        console.error(`Manual GraphQL with count.${subfield} failed:`, error);
-        continue;
-      }
-    }
-
-    // Try countDistinct with different subfields
-    for (const subfield of countSubfields) {
-      try {
-        console.log(`Trying manual GraphQL query with countDistinct.${subfield}...`);
-
-        const manualQuery = {
-          query: `
-            query GetSongCount {
-              gesangbuchlied_aggregated {
-                countDistinct {
-                  ${subfield}
-                }
-              }
-            }
-          `,
-          variables: {},
-        };
-
-        const response = await makeGraphQLRequest<{
-          data: {
-            gesangbuchlied_aggregated: Array<{
-              countDistinct: { [key: string]: number };
-            }>;
-          };
-        }>(manualQuery);
-
-        const result = response.data?.gesangbuchlied_aggregated[0]?.countDistinct?.[subfield];
-        if (typeof result === "number" && result > 0) {
-          return result;
-        }
-      } catch (error) {
-        console.error(`Manual GraphQL with countDistinct.${subfield} failed:`, error);
-        continue;
-      }
-    }
+    // There used to be two more loops here, trying `count` and `countDistinct`
+    // with each of ["id", "*", "all"] interpolated into the selection set. They
+    // were six unconditionally wasted round-trips: `{ * }` and `{ all }` are not
+    // valid GraphQL selections and can never be answered, and `{ id }` just
+    // repeats the query that failed immediately above under a stricter accept
+    // condition. Sequential, so on a weak connection that is six extra timeouts
+    // before the home-screen tile gives up — precisely the users this app is for.
 
     // Final fallback: try to get all songs and count them (not efficient but works)
     try {
