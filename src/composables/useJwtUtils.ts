@@ -58,12 +58,19 @@ export function decodeJwtPayload(token: string): JwtPayload {
 }
 
 /**
- * Get token expiry time in milliseconds
+ * Get token expiry time in milliseconds.
+ *
+ * A missing or non-numeric `exp` yields 0 — i.e. already expired — rather than
+ * the NaN that `exp * 1000` would produce. Every comparison against NaN is
+ * false, so the token would read as valid forever; 0 fails closed, consistent
+ * with the decode-failure path below.
  */
 export function getTokenExpiry(token: string): number {
   try {
     const payload = decodeJwtPayload(token);
-    return payload.exp * 1000; // Convert to milliseconds
+    return typeof payload.exp === "number" && Number.isFinite(payload.exp)
+      ? payload.exp * 1000 // Convert to milliseconds
+      : 0;
   } catch (error) {
     console.error("Failed to get token expiry:", error);
     return 0;

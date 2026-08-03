@@ -100,6 +100,12 @@ describe("getTokenExpiry", () => {
     expect(getTokenExpiry("garbage")).toBe(0);
     expect(console.error).toHaveBeenCalled();
   });
+
+  it("returns 0 rather than NaN for a missing exp, matching the decode-failure path", () => {
+    // Regression guard for issue #11: `undefined * 1000` is NaN, and every
+    // comparison against NaN is false, so the token read as valid forever.
+    expect(getTokenExpiry(makeJwt({ iat: 1710500000 }))).toBe(0);
+  });
 });
 
 describe("isTokenExpired", () => {
@@ -131,10 +137,19 @@ describe("isTokenExpired", () => {
     expect(isTokenExpired("not-a-jwt")).toBe(true);
   });
 
-  // The missing-`exp` case is a filed defect (issue #11) rather than intended
-  // behaviour, so it is asserted in test/known-issues/ where it fails visibly.
-  // Deliberately not pinned here: a green test asserting the bug would read as
-  // coverage while blessing it.
+  // Regression guard for issue #11 — https://github.com/johkirche/gb-pwa/issues/11
+  //
+  // getTokenExpiry used to compute `payload.exp * 1000`, which is NaN when the
+  // claim is missing, and every comparison against NaN is false — so a
+  // structurally valid token with no expiry information at all read as never
+  // expiring. This path must fail closed like the undecodable one above.
+  it("treats a token with no exp claim as expired", () => {
+    expect(isTokenExpired(makeJwt({ iat: 1710500000, sub: "test-user" }))).toBe(true);
+  });
+
+  it("treats a token with a non-numeric exp as expired", () => {
+    expect(isTokenExpired(makeJwt({ exp: "soon", iat: 1710500000 }))).toBe(true);
+  });
 });
 
 describe("getTimeUntilExpiry", () => {
