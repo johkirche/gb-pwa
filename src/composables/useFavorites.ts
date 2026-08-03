@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { computed, readonly, ref } from "vue";
 
 const FAVORITES_KEY = "gesangbuch-favorites";
 
@@ -42,6 +42,15 @@ const saveFavorites = () => {
 // Initialize favorites on first import
 loadFavorites();
 
+// Another surface changed the list — a second tab, or the installed PWA open
+// alongside a browser tab, which is normal on a shared church tablet. Without
+// this, that tab keeps its stale array and the next local save writes it back
+// whole, silently discarding the other surface's stars. useAuth.ts already
+// gives the session keys the same guarantee.
+window.addEventListener("storage", (event) => {
+  if (event.key === FAVORITES_KEY) loadFavorites();
+});
+
 export const useFavorites = () => {
   // Check if a song is favorited
   const isFavorite = (songId: string): boolean => {
@@ -67,11 +76,13 @@ export const useFavorites = () => {
       console.warn("Invalid songId provided to removeFromFavorites:", songId);
       return;
     }
-    const index = favoriteIds.value.indexOf(songId);
-    if (index > -1) {
-      favoriteIds.value.splice(index, 1);
-      saveFavorites();
-    }
+    if (!favoriteIds.value.includes(songId)) return;
+    // Filter rather than splice a single index: now that this tab hydrates
+    // arrays it did not write, the list can contain the same id twice — and
+    // splicing one occurrence would leave the song starred with no way to
+    // clear it from the UI.
+    favoriteIds.value = favoriteIds.value.filter((id) => id !== songId);
+    saveFavorites();
   };
 
   // Toggle favorite status
@@ -87,8 +98,12 @@ export const useFavorites = () => {
     }
   };
 
-  // Get all favorite IDs
-  const favorites = computed(() => favoriteIds.value);
+  // Get all favorite IDs. `readonly` because `computed` only protects `.value`
+  // from reassignment, not the array behind it: `favorites.value.push(id)`
+  // would mutate module state reactively while never reaching saveFavorites(),
+  // rendering correctly and vanishing on reload. This turns that into a
+  // dev-mode warning instead of silent data loss.
+  const favorites = computed(() => readonly(favoriteIds.value));
 
   // Get count of favorites
   const favoritesCount = computed(() => favoriteIds.value.length);

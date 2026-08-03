@@ -3,6 +3,7 @@ import { type EffectScope, effectScope, nextTick, ref } from "vue";
 
 import { useOfflineAsset } from "@/composables/useOfflineAsset";
 
+import { dispatchStorageEvent } from "../helpers/env";
 import {
   deferred,
   installObjectUrlTracker,
@@ -416,6 +417,18 @@ describe("useFavorites mutations", () => {
     expect(storedFavorites()).toEqual(["song-2"]);
   });
 
+  it("un-favorites a song that the persisted list contains twice", async () => {
+    // Regression guard for issue #23. Hydration takes the stored array
+    // verbatim, and removeFromFavorites used to splice a single index — so a
+    // list this tab did not write (exactly what cross-tab hydration produces)
+    // left the song starred with no way to clear it.
+    const fav = await loadFavorites(JSON.stringify(["song-1", "song-1"]));
+
+    fav.removeFromFavorites("song-1");
+
+    expect(fav.isFavorite("song-1")).toBe(false);
+  });
+
   it("leaves the list untouched when removing a song that is not a favorite", async () => {
     const fav = await loadFavorites(JSON.stringify(["song-1"]));
 
@@ -510,11 +523,65 @@ describe("useFavorites persistence", () => {
     expect(console.error).toHaveBeenCalled();
   });
 
-  // "Cannot remove a song that was persisted twice" was pinned here as if the
-  // dead-end star were the contract. It is a defect: hydration takes the stored
-  // array verbatim and removeFromFavorites splices a single index, so a list
-  // this tab did not write — which is exactly what the cross-tab hydration of
-  // issue #23 produces — leaves the song starred with no way to clear it.
-  // Asserted in test/known-issues/issue-23-favorites-cross-tab.test.ts, where
-  // it fails visibly rather than reading as coverage for the bug.
+  // -------------------------------------------------------------------------
+  // Regression guard for issue #23 — a storage event must re-hydrate the module.
+  // https://github.com/johkirche/gb-pwa/issues/23
+  //
+  // The state is hydrated exactly once, at import, and every save is a
+  // whole-array setItem. With nothing listening for `storage`, a tab open since
+  // before another tab starred a song still held the old array and wrote it
+  // back whole, silently discarding the other tab's stars — two open surfaces
+  // being normal for a PWA on a shared church tablet.
+  // -------------------------------------------------------------------------
+
+  /**
+   * What the browser does when another tab writes the key: the value in
+   * localStorage is already the new one by the time `storage` fires here.
+   */
+  async function otherTabSaves(ids: string[]) {
+    const raw = JSON.stringify(ids);
+    localStorage.setItem(FAVORITES_KEY, raw);
+    dispatchStorageEvent(FAVORITES_KEY, raw);
+    await nextTick();
+  }
+
+  it("adopts a star added in another tab", async () => {
+    const fav = await loadFavorites(JSON.stringify(["song-1"]));
+
+    await otherTabSaves(["song-1", "song-2"]);
+
+    expect(fav.favorites.value).toEqual(["song-1", "song-2"]);
+  });
+
+  it("adopts a star removed in another tab", async () => {
+    const fav = await loadFavorites(JSON.stringify(["song-1", "song-2"]));
+
+    await otherTabSaves(["song-2"]);
+
+    expect(fav.isFavorite("song-1")).toBe(false);
+  });
+
+  it("does not discard the other tab's star on the next local save", async () => {
+    // The data-loss path: this tab's stale array used to be written back whole,
+    // so song-2 disappeared from storage even though nobody un-starred it.
+    const fav = await loadFavorites(JSON.stringify(["song-1"]));
+    await otherTabSaves(["song-1", "song-2"]);
+
+    fav.addToFavorites("song-3");
+
+    expect(storedFavorites()).toEqual(["song-1", "song-2", "song-3"]);
+  });
+
+  it("ignores a storage event for an unrelated key", async () => {
+    // Guards against over-correction: re-hydrating on *every* storage event
+    // would let an unrelated key (language, sort order, the auth tokens) reset
+    // the list on each write.
+    const fav = await loadFavorites(JSON.stringify(["song-1"]));
+
+    localStorage.setItem("preferred-language", "en");
+    dispatchStorageEvent("preferred-language", "en");
+    await nextTick();
+
+    expect(fav.favorites.value).toEqual(["song-1"]);
+  });
 });
