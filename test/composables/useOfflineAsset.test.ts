@@ -4,6 +4,7 @@ import { type EffectScope, effectScope, nextTick, ref } from "vue";
 import { useOfflineAsset } from "@/composables/useOfflineAsset";
 
 import {
+  deferred,
   installObjectUrlTracker,
   type ObjectUrlTracker,
   withFailingStorageWrite,
@@ -211,12 +212,114 @@ describe("useOfflineAsset", () => {
     );
   });
 
-  // The stale-in-flight-read race — an abandoned read overwriting `url` with the
-  // previous asset and leaking its blob URL — is a filed defect (issue #8)
-  // rather than intended behaviour, so it is asserted in
-  // test/known-issues/issue-8-offline-asset-stale-read.test.ts where it fails
-  // visibly. Deliberately not pinned here: a green test asserting the wrong
-  // asset wins would read as coverage while blessing it.
+  // -------------------------------------------------------------------------
+  // Regression guard for issue #8 — the newest asset id must win.
+  // https://github.com/johkirche/gb-pwa/issues/8
+  //
+  // The watchEffect body is async and used to have no stale-response guard. When
+  // the id changed while the first getOfflineAssetBlob was still pending,
+  // onCleanup for the abandoned run fired immediately — while its
+  // createdBlobUrl was still null, so nothing was revoked — and the abandoned
+  // run then resumed and assigned `url.value` with the *old* asset. The
+  // sheet-music dialog showed the previously opened image, and the object URL it
+  // minted was unreachable by any cleanup.
+  // -------------------------------------------------------------------------
+
+  /** The bytes currently served by `url`, resolved through the tracker. */
+  async function servedBytes(url: string | null) {
+    const blob = tracker.blobFor(url ?? "");
+    return blob ? await blob.text() : url;
+  }
+
+  /**
+   * The race: the read for `cover-1` is still pending when the id flips to
+   * `cover-2`, and settles only after `cover-2` has already been rendered.
+   */
+  function startRace(resolveWith: (assetId: string) => Blob | null) {
+    const slow = deferred<Blob | null>();
+    const fast = deferred<Blob | null>();
+    h.getOfflineAssetBlob.mockImplementation((assetId: string) =>
+      assetId === "cover-1" ? slow.promise : fast.promise,
+    );
+    const id = ref("cover-1");
+    const url = mount(() => useOfflineAsset(id));
+    id.value = "cover-2";
+
+    return {
+      url,
+      settleNewest: async () => {
+        await flush();
+        fast.resolve(resolveWith("cover-2"));
+        await flush();
+      },
+      settleAbandoned: async () => {
+        slow.resolve(resolveWith("cover-1"));
+        await flush();
+      },
+    };
+  }
+
+  it("keeps serving the newest asset when an abandoned read settles last", async () => {
+    const race = startRace((assetId) => coverBlob(`${assetId}-bytes`));
+
+    await race.settleNewest();
+    await race.settleAbandoned();
+
+    expect(await servedBytes(race.url.value)).toBe("cover-2-bytes");
+  });
+
+  it("keeps serving the newest asset when the abandoned read finds nothing offline", async () => {
+    // Same race one branch over: a miss falls through to the network URL, and
+    // that assignment is just as unguarded without the flag.
+    const race = startRace(() => null);
+
+    await race.settleNewest();
+    await race.settleAbandoned();
+
+    expect(race.url.value).toBe(`${DIRECTUS}/assets/cover-2`);
+  });
+
+  it("leaves exactly one object URL alive after the race", async () => {
+    // The abandoned run's blob URL used to be created after its cleanup had
+    // already run, so nothing would ever revoke it. Either not minting it or
+    // revoking it in the same branch that mints it satisfies this.
+    const race = startRace((assetId) => coverBlob(`${assetId}-bytes`));
+
+    await race.settleNewest();
+    await race.settleAbandoned();
+
+    expect(tracker.liveUrls()).toHaveLength(1);
+    expect(tracker.liveUrls()).toContain(race.url.value);
+  });
+
+  it("revokes every object URL it minted once the scope is gone", async () => {
+    const race = startRace((assetId) => coverBlob(`${assetId}-bytes`));
+    await race.settleNewest();
+    await race.settleAbandoned();
+
+    for (const scope of scopes.splice(0)) scope.stop();
+
+    expect(tracker.liveUrls()).toEqual([]);
+  });
+
+  it("still follows the id when the reads settle in order", async () => {
+    // Guards against over-correction: a cancellation flag that is set too
+    // eagerly would freeze the URL at the first id it ever saw.
+    h.getOfflineAssetBlob.mockImplementation(async (assetId: string) =>
+      coverBlob(`${assetId}-bytes`),
+    );
+    const id = ref("cover-1");
+
+    const url = mount(() => useOfflineAsset(id));
+    await flush();
+    const first = url.value!;
+
+    id.value = "cover-2";
+    await flush();
+
+    expect(url.value).not.toBe(first);
+    expect(await tracker.blobFor(url.value!)!.text()).toBe("cover-2-bytes");
+  });
 });
 
 // ---------------------------------------------------------------------------

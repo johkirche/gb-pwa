@@ -24,8 +24,14 @@ export function useOfflineAsset(
 
   watchEffect(async (onCleanup) => {
     const fileId = toValue(id);
+    // This body is async, so a run can be abandoned mid-read when `id` changes.
+    // Its onCleanup fires immediately — while createdBlobUrl is still null — so
+    // without this flag the abandoned run would resume, overwrite `url` with the
+    // *previous* asset and mint an object URL no cleanup can ever reach.
+    let cancelled = false;
     let createdBlobUrl: string | null = null;
     onCleanup(() => {
+      cancelled = true;
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     });
 
@@ -36,12 +42,14 @@ export function useOfflineAsset(
 
     try {
       const blob = await getOfflineAssetBlob(fileId);
+      if (cancelled) return; // a newer id already won
       if (blob) {
         createdBlobUrl = URL.createObjectURL(blob);
         url.value = createdBlobUrl;
         return;
       }
     } catch (err) {
+      if (cancelled) return;
       console.warn("useOfflineAsset: IDB read failed, falling back to network", err);
     }
 
