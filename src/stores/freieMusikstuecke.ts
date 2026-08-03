@@ -80,6 +80,36 @@ export const useFreieMusikstueckeStore = defineStore("freieMusikstuecke", () => 
     return res.data.data?.freie_musikstuecke ?? [];
   }
 
+  // Stale-while-revalidate. The IndexedDB list is served instantly — that is
+  // the whole point of the offline-first store — but it has no TTL, and
+  // `forceOnline` has no production caller, so without this a piece added or
+  // renamed after the last download would never reach the device again: the
+  // organist plans a service against a snapshot of unknown age.
+  //
+  // Deliberately silent. A failure here must not raise `error`, because the
+  // user already has a usable list and nothing was asked for.
+  let revalidateInFlight: Promise<void> | null = null;
+
+  function revalidateInBackground(): void {
+    if (revalidateInFlight) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    // No session → the request would 401 and spend a refresh token for a
+    // refresh nobody requested.
+    if (!authStore.accessToken) return;
+
+    revalidateInFlight = fetchFromApi()
+      .then((fresh) => {
+        pieces.value = fresh;
+        isUsingCachedData.value = false;
+      })
+      .catch((err) => {
+        console.warn("Background refresh of freie_musikstuecke failed:", err);
+      })
+      .finally(() => {
+        revalidateInFlight = null;
+      });
+  }
+
   async function fetchPieces(forceOnline = false): Promise<void> {
     if (isLoading.value) return;
     isLoading.value = true;
@@ -93,6 +123,8 @@ export const useFreieMusikstueckeStore = defineStore("freieMusikstuecke", () => 
           pieces.value = offline;
           isUsingCachedData.value = true;
           isLoaded.value = true;
+          // Serve the snapshot now, catch up with the server afterwards.
+          revalidateInBackground();
           return;
         }
       }

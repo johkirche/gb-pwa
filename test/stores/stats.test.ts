@@ -881,12 +881,121 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     expect(store.isUsingCachedData).toBe(false);
   });
 
-  // "Once anything is downloaded the store never refreshes on its own" was
-  // pinned here as if it were the design. It is issue #26 — there is no TTL and
-  // no caller passes forceOnline, so a renamed or deleted Vor-/Nachspiel never
-  // reaches the device again. The behaviour the store should have is asserted
-  // in test/known-issues/issue-26-pieces-never-revalidate.test.ts, where it
-  // fails visibly instead of masquerading as coverage.
+  // -------------------------------------------------------------------------
+  // Regression guard for issue #26 — https://github.com/johkirche/gb-pwa/issues/26
+  //
+  // "Once anything is downloaded the store never refreshes on its own" used to
+  // be pinned here as if it were the design. It was a defect: fetchPieces
+  // returned the IndexedDB list with no TTL and no revalidation, and
+  // `forceOnline` has no production caller — so a piece the music director
+  // added or renamed after the last download never reached the device, and the
+  // organist planned a service against a snapshot of unknown age.
+  //
+  // The shape is stale-while-revalidate: keep serving the cache instantly, but
+  // when online end up reflecting what the server says.
+  // -------------------------------------------------------------------------
+
+  /**
+   * Let a revalidation that was kicked off but not awaited settle.
+   *
+   * Deliberately a fixed number of microtask turns rather than a timer: the
+   * axios stub resolves immediately, so this is deterministic.
+   */
+  async function settleRevalidation() {
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+  }
+
+  it("picks up a piece renamed on the server", async () => {
+    signIn();
+    h.getOfflinePieces.mockResolvedValue([piece({ id: "p-1", name: "Praeludium (alt)" })]);
+    post.mockResolvedValue(
+      ok({ data: { freie_musikstuecke: [piece({ id: "p-1", name: "Präludium in C" })] } }),
+    );
+    const store = useFreieMusikstueckeStore();
+
+    await store.fetchPieces();
+    await settleRevalidation();
+
+    expect(store.pieces.map((p) => p.name)).toEqual(["Präludium in C"]);
+  });
+
+  it("picks up a piece added on the server", async () => {
+    signIn();
+    h.getOfflinePieces.mockResolvedValue([piece({ id: "p-1" })]);
+    post.mockResolvedValue(
+      ok({
+        data: {
+          freie_musikstuecke: [piece({ id: "p-1" }), piece({ id: "p-2", name: "Panis" })],
+        },
+      }),
+    );
+    const store = useFreieMusikstueckeStore();
+
+    await store.fetchPieces();
+    await settleRevalidation();
+
+    expect(store.pieces.map((p) => p.id)).toEqual(["p-1", "p-2"]);
+  });
+
+  it("drops a piece deleted on the server", async () => {
+    signIn();
+    h.getOfflinePieces.mockResolvedValue([
+      piece({ id: "p-1" }),
+      piece({ id: "p-2", name: "Panis" }),
+    ]);
+    post.mockResolvedValue(ok({ data: { freie_musikstuecke: [piece({ id: "p-1" })] } }));
+    const store = useFreieMusikstueckeStore();
+
+    await store.fetchPieces();
+    await settleRevalidation();
+
+    expect(store.pieces.map((p) => p.id)).toEqual(["p-1"]);
+  });
+
+  it("serves the cache without any request while the browser is offline", async () => {
+    // Guards against over-correction: revalidating must never turn into "needs
+    // the network", which is the failure mode this app cannot afford.
+    setOnline(false);
+    signIn();
+    h.getOfflinePieces.mockResolvedValue([piece({ id: "cached" })]);
+    const store = useFreieMusikstueckeStore();
+
+    await store.fetchPieces();
+    await settleRevalidation();
+
+    expect(store.pieces.map((p) => p.id)).toEqual(["cached"]);
+    expect(store.isUsingCachedData).toBe(true);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("keeps the cached list, without an error banner, when revalidation fails", async () => {
+    // The other half of stale-while-revalidate: a failed refresh is invisible,
+    // because the user already has a usable list.
+    signIn();
+    h.getOfflinePieces.mockResolvedValue([piece({ id: "cached" })]);
+    post.mockRejectedValue(new Error("Network Error"));
+    const store = useFreieMusikstueckeStore();
+
+    await store.fetchPieces();
+    await settleRevalidation();
+
+    expect(store.pieces.map((p) => p.id)).toEqual(["cached"]);
+    expect(store.isLoaded).toBe(true);
+    expect(store.error).toBeNull();
+  });
+
+  it("does not revalidate when there is no session to do it with", async () => {
+    // A background request with no token would 401 and spend a refresh token on
+    // a refresh nobody asked for.
+    h.getOfflinePieces.mockResolvedValue([piece({ id: "cached" })]);
+    const store = useFreieMusikstueckeStore();
+
+    await store.fetchPieces();
+    await settleRevalidation();
+
+    expect(post).not.toHaveBeenCalled();
+    expect(store.pieces.map((p) => p.id)).toEqual(["cached"]);
+  });
 
   it("keeps the downloaded pieces when the API request fails", async () => {
     // Offline-first: a rejected request must fall back to IndexedDB and leave
