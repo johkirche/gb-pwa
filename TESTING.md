@@ -46,8 +46,13 @@ describing an open defect.
   after the fix (e.g. "a normal token is still reported valid"), so a fix cannot
   swing past the target. Partly-green files are correct and expected.
 
-Not every issue maps to a unit test. Logging (#12), the untranslated string
-(#10) and the view-level halves of #13 and #19 are tracker-only.
+Not every issue maps to a unit test. Five have no spec — **#10, #12, #13, #19
+and #30** — because they are view-level, config, or not meaningfully testable in
+isolation. They are tracked in issue #31 instead.
+
+Issue #31 also carries the dependency graph and the work batches: several issues
+edit the same function and must be fixed together. Start there, not from the
+issue list.
 
 ## Why the split
 
@@ -157,11 +162,17 @@ guards in the main suite:
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push to `master` and every pull
-request: install → lint → type-check app → type-check tests → test with
-coverage → build. The coverage report is uploaded as an artifact.
+`.github/workflows/ci.yml` runs on every push to `master` or `dev`, and on every
+pull request. It has **two jobs**:
 
-`pnpm ci:verify` runs the same gate locally.
+- **`Lint, type-check, test, build`** — the gate. install → lint → type-check app
+  → type-check tests → main suite with coverage → build. Must pass. The coverage
+  report is uploaded as an artifact.
+- **`Known issues (expected red)`** — runs `pnpm test:known-issues`. It is
+  `continue-on-error: true` and stays red until the backlog is closed, so it
+  never blocks a merge. It exists to keep the open-bug count visible on every PR.
+
+`pnpm ci:verify` runs the gate locally, minus the build step.
 
 Note that `lint` and `ci:lint` differ on purpose: `pnpm lint` auto-fixes,
 `pnpm ci:lint` only reports, because CI must not mutate the tree.
