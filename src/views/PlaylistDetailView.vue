@@ -63,6 +63,9 @@
             </div>
           </CardHeader>
           <CardContent>
+            <p v-if="removeError" class="text-sm text-destructive mb-3" role="alert">
+              {{ removeError }}
+            </p>
             <div v-if="songs.length === 0" class="text-center py-10">
               <ListMusic class="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p class="text-sm text-muted-foreground">{{ t("playlist.noSongs") }}</p>
@@ -153,6 +156,8 @@
           </div>
         </div>
 
+        <p v-if="saveError" class="text-sm text-destructive" role="alert">{{ saveError }}</p>
+
         <div class="flex justify-end gap-2 pt-2">
           <Button variant="outline" @click="editOpen = false">{{ t("playlist.cancel") }}</Button>
           <Button :disabled="!formName.trim()" @click="saveEdit">
@@ -171,6 +176,8 @@
             {{ t("playlist.confirmDeleteDescription", { name: playlist?.name }) }}
           </DialogDescription>
         </DialogHeader>
+        <p v-if="deleteError" class="text-sm text-destructive" role="alert">{{ deleteError }}</p>
+
         <div class="flex justify-end gap-2 pt-2">
           <Button variant="outline" @click="deleteOpen = false">
             {{ t("playlist.cancel") }}
@@ -274,11 +281,21 @@ const formName = ref("");
 const formDescription = ref("");
 const formEmoji = ref<string | undefined>(undefined);
 
+// Every mutation below can reject — a full phone hitting QuotaExceededError is
+// realistic in an app that downloads the whole hymnal, as are Safari and Firefox
+// private modes. Unhandled, the rejection killed the handler mid-way: the dialog
+// stayed open with no message, or the row simply did not disappear, and the only
+// trace was "Uncaught (in promise)" in a console the user cannot see.
+const saveError = ref("");
+const deleteError = ref("");
+const removeError = ref("");
+
 const openEdit = () => {
   if (!playlist.value) return;
   formName.value = playlist.value.name;
   formDescription.value = playlist.value.description ?? "";
   formEmoji.value = playlist.value.emoji;
+  saveError.value = "";
   editOpen.value = true;
 };
 
@@ -286,12 +303,18 @@ const saveEdit = async () => {
   if (!playlist.value) return;
   const name = formName.value.trim();
   if (!name) return;
-  await store.updatePlaylist(playlist.value.id, {
-    name,
-    description: formDescription.value.trim() || undefined,
-    emoji: formEmoji.value,
-  });
-  editOpen.value = false;
+  saveError.value = "";
+  try {
+    await store.updatePlaylist(playlist.value.id, {
+      name,
+      description: formDescription.value.trim() || undefined,
+      emoji: formEmoji.value,
+    });
+    editOpen.value = false;
+  } catch (error) {
+    console.error("Failed to save playlist:", error);
+    saveError.value = t("playlist.saveFailed");
+  }
 };
 
 // Delete dialog
@@ -299,14 +322,29 @@ const deleteOpen = ref(false);
 
 const performDelete = async () => {
   if (!playlist.value) return;
-  await store.deletePlaylist(playlist.value.id);
+  deleteError.value = "";
+  try {
+    await store.deletePlaylist(playlist.value.id);
+  } catch (error) {
+    console.error("Failed to delete playlist:", error);
+    // Leave the dialog open: closing it and staying on a playlist that is still
+    // there would read as "deleted" until the next reload proved otherwise.
+    deleteError.value = t("playlist.saveFailed");
+    return;
+  }
   deleteOpen.value = false;
   router.push({ name: "playlists" });
 };
 
 const removeSong = async (songId: string) => {
   if (!playlist.value) return;
-  await store.removeSongFromPlaylist(playlist.value.id, songId);
+  removeError.value = "";
+  try {
+    await store.removeSongFromPlaylist(playlist.value.id, songId);
+  } catch (error) {
+    console.error("Failed to remove song from playlist:", error);
+    removeError.value = t("playlist.saveFailed");
+  }
 };
 
 onMounted(async () => {

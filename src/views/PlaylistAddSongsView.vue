@@ -30,6 +30,10 @@
           {{ t("playlist.selectedCount", { count: selectedCount }) }}
         </p>
 
+        <p v-if="toggleError" class="text-sm text-destructive" role="alert">
+          {{ toggleError }}
+        </p>
+
         <div class="space-y-2">
           <!-- Selected songs stay in the list with a filled check; tapping a row
                toggles membership so the user can add and remove without losing
@@ -162,12 +166,22 @@ const candidates = computed(() => {
   return [...base].sort((a, b) => (getLiedNumber(a) ?? Infinity) - (getLiedNumber(b) ?? Infinity));
 });
 
+// A rejected write here used to die as an unhandled rejection: the checkmark
+// never appeared and the user had no way to tell the tap had not registered.
+const toggleError = ref("");
+
 const toggleSong = async (songId?: string | null) => {
   if (!playlist.value || !songId) return;
-  if (selectedIds.value.has(songId)) {
-    await store.removeSongFromPlaylist(playlist.value.id, songId);
-  } else {
-    await store.addSongToPlaylist(playlist.value.id, songId);
+  toggleError.value = "";
+  try {
+    if (selectedIds.value.has(songId)) {
+      await store.removeSongFromPlaylist(playlist.value.id, songId);
+    } else {
+      await store.addSongToPlaylist(playlist.value.id, songId);
+    }
+  } catch (error) {
+    console.error("Failed to update playlist:", error);
+    toggleError.value = t("playlist.saveFailed");
   }
 };
 

@@ -41,9 +41,13 @@
               />
             </div>
 
+            <p v-if="saveError" class="text-sm text-destructive" role="alert">
+              {{ saveError }}
+            </p>
+
             <div class="flex justify-end gap-2 pt-2">
               <Button variant="outline" @click="cancel">{{ t("playlist.cancel") }}</Button>
-              <Button :disabled="!formName.trim()" @click="saveCreate">
+              <Button :disabled="!formName.trim() || isSaving" @click="saveCreate">
                 {{ t("playlist.save") }}
               </Button>
             </div>
@@ -87,16 +91,32 @@ const formEmoji = ref<string | undefined>(undefined);
 
 const cancel = () => router.push({ name: "playlists" });
 
+const saveError = ref("");
+const isSaving = ref(false);
+
 const saveCreate = async () => {
   const name = formName.value.trim();
   if (!name) return;
-  const created = await store.createPlaylist(
-    name,
-    formDescription.value || undefined,
-    formEmoji.value,
-  );
-  // Jump straight into the new playlist so the user can add songs. Replace so
-  // the back button returns to the list rather than this create screen.
-  router.replace({ name: "playlist-detail", params: { id: created.id } });
+  // A rejected write used to kill the handler here: no navigation, no message,
+  // just a dead Save button and an unhandled rejection in the console. A full
+  // phone hitting QuotaExceededError is a realistic way to get here, since this
+  // app deliberately downloads the whole hymnal.
+  saveError.value = "";
+  isSaving.value = true;
+  try {
+    const created = await store.createPlaylist(
+      name,
+      formDescription.value || undefined,
+      formEmoji.value,
+    );
+    // Jump straight into the new playlist so the user can add songs. Replace so
+    // the back button returns to the list rather than this create screen.
+    router.replace({ name: "playlist-detail", params: { id: created.id } });
+  } catch (error) {
+    console.error("Failed to create playlist:", error);
+    saveError.value = t("playlist.saveFailed");
+  } finally {
+    isSaving.value = false;
+  }
 };
 </script>

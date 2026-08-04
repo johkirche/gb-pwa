@@ -123,7 +123,10 @@ describe("createPlaylist", () => {
 
   it("rejects when the database cannot be opened", async () => {
     // Unlike loadPlaylists, the write paths do not swallow the failure — the
-    // caller sees the rejection and can tell the user nothing was saved.
+    // caller sees the rejection and can tell the user nothing was saved. Every
+    // mutating view now catches this and renders playlist.saveFailed; before
+    // that it died as an unhandled rejection and the Save button just went dead
+    // (issue #19).
     breakIndexedDB();
     const offlineStore = newStoreInstance();
 
@@ -131,6 +134,25 @@ describe("createPlaylist", () => {
       "IndexedDB unavailable",
     );
     expect(offlineStore.playlists).toEqual([]);
+  });
+
+  it("keeps rejecting for every mutation the views surface", async () => {
+    // The views can only report a failure they are handed, so pin that each of
+    // the write paths behind a catch in PlaylistDetailView / PlaylistAddSongsView
+    // actually rejects rather than resolving quietly.
+    breakIndexedDB();
+    const offlineStore = newStoreInstance();
+
+    await expect(offlineStore.updatePlaylist("pl-1", { name: "x" })).rejects.toThrow(
+      "IndexedDB unavailable",
+    );
+    await expect(offlineStore.deletePlaylist("pl-1")).rejects.toThrow("IndexedDB unavailable");
+    await expect(offlineStore.addSongToPlaylist("pl-1", "song-1")).rejects.toThrow(
+      "IndexedDB unavailable",
+    );
+    await expect(offlineStore.removeSongFromPlaylist("pl-1", "song-1")).rejects.toThrow(
+      "IndexedDB unavailable",
+    );
   });
 });
 
@@ -251,14 +273,28 @@ describe("loadPlaylists", () => {
     expect(console.error).toHaveBeenCalled();
   });
 
-  it("clears stale in-memory playlists when the reload fails", async () => {
-    await store.createPlaylist("Advent");
-    expect(store.playlists).toHaveLength(1);
+  it("keeps the playlists it already had when a reload fails", async () => {
+    // A failed refresh used to blank the list. Every mutation and every mount of
+    // the detail view triggers a reload, so a database that goes away mid-service
+    // — an eviction, a locked profile — would take the visible playlists with it
+    // even though they are still on disk and still usable.
     breakIndexedDB();
     const brokenStore = newStoreInstance();
+    brokenStore.playlists = [
+      {
+        id: "pl-1",
+        name: "Advent",
+        songIds: ["song-1"],
+        createdAt: T0,
+        updatedAt: T0,
+      },
+    ];
+
     await brokenStore.loadPlaylists();
 
-    expect(brokenStore.playlists).toEqual([]);
+    expect(brokenStore.playlists.map((p) => p.name)).toEqual(["Advent"]);
+    expect(brokenStore.isLoading).toBe(false);
+    expect(console.error).toHaveBeenCalled();
   });
 });
 
@@ -312,11 +348,69 @@ describe("updatePlaylist", () => {
     expect((await readPersisted(created.id))?.description).toBeUndefined();
   });
 
-  // updatePlaylist not trimming the name and description that createPlaylist
-  // does trim is a filed defect (issue #20) rather than intended behaviour, so
-  // it is asserted in test/known-issues/ where it fails visibly. Deliberately
-  // not pinned here: a green test asserting the bug would read as coverage while
-  // blessing it.
+  // Regression guards for issue #20 (b). createPlaylist stored `name.trim()`
+  // while updatePlaylist wrote the patch verbatim, so the same padded input was
+  // cleaned on create and preserved on rename — leaving a name that sorts and
+  // renders differently from the one the user typed.
+  it("trims surrounding whitespace from a patched name", async () => {
+    const created = await store.createPlaylist("Advent");
+
+    await store.updatePlaylist(created.id, { name: "  Advent 2026  " });
+
+    expect(store.getPlaylist(created.id)?.name).toBe("Advent 2026");
+  });
+
+  it("trims surrounding whitespace from a patched description", async () => {
+    const created = await store.createPlaylist("Advent", "Vier Sonntage");
+
+    await store.updatePlaylist(created.id, { description: "  Vier Sonntage im Advent  " });
+
+    expect(store.getPlaylist(created.id)?.description).toBe("Vier Sonntage im Advent");
+  });
+
+  it("persists the trimmed name rather than the padded one", async () => {
+    // The padded string is what a later app start reads back and sorts on, so
+    // pin the durable copy too.
+    const created = await store.createPlaylist("Advent");
+
+    await store.updatePlaylist(created.id, { name: "\tAdvent 2026\n" });
+
+    expect((await readPersisted(created.id))?.name).toBe("Advent 2026");
+  });
+
+  it("clears a description patched to nothing but whitespace", async () => {
+    // Same rule createPlaylist has always applied: a blank description is
+    // undefined, not "  ", so the detail view does not render an empty box.
+    const created = await store.createPlaylist("Advent", "Vier Sonntage");
+
+    await store.updatePlaylist(created.id, { description: "   " });
+
+    expect(store.getPlaylist(created.id)?.description).toBeUndefined();
+    expect((await readPersisted(created.id))?.description).toBeUndefined();
+  });
+
+  it("leaves whitespace inside a name alone", async () => {
+    // Trim, not collapse. German hymn titles legitimately contain runs of
+    // spaces around punctuation.
+    const created = await store.createPlaylist("Advent");
+
+    await store.updatePlaylist(created.id, { name: "Advent  2026" });
+
+    expect(store.getPlaylist(created.id)?.name).toBe("Advent  2026");
+  });
+
+  it("leaves a patch that omits name and description alone", async () => {
+    // Trimming is applied to the patch, not to `undefined` — an emoji-only
+    // patch must not blank the name.
+    const created = await store.createPlaylist("Advent", "Vier Sonntage");
+
+    await store.updatePlaylist(created.id, { emoji: "🕯️" });
+
+    const after = store.getPlaylist(created.id)!;
+    expect(after.name).toBe("Advent");
+    expect(after.description).toBe("Vier Sonntage");
+    expect(after.emoji).toBe("🕯️");
+  });
 
   it("is a silent no-op for an unknown id", async () => {
     const created = await store.createPlaylist("Advent");
@@ -328,15 +422,24 @@ describe("updatePlaylist", () => {
     expect(await readPersistedPlaylists()).toHaveLength(1);
   });
 
-  it("does nothing when the playlist exists on disk but was never loaded", async () => {
-    // updatePlaylist resolves the target through in-memory state, so an
-    // un-hydrated store drops the edit without an error.
+  it("applies an edit to a playlist that exists on disk but was never loaded", async () => {
+    // The target used to be resolved through in-memory state alone, so before
+    // loadPlaylists() resolved every mutation was a silent no-op — a tap in the
+    // few ms between first paint and hydration was simply swallowed. The store
+    // now falls back to reading the row from IndexedDB.
     const created = await store.createPlaylist("Advent");
     const restarted = newStoreInstance();
 
     await restarted.updatePlaylist(created.id, { name: "Advent 2026" });
 
-    expect((await readPersisted(created.id))?.name).toBe("Advent");
+    expect((await readPersisted(created.id))?.name).toBe("Advent 2026");
+  });
+
+  it("warns rather than staying silent when the playlist exists nowhere", async () => {
+    // A dropped write must leave a trace; the caller still sees a quiet resolve.
+    await expect(store.updatePlaylist("no-such-id", { name: "Ghost" })).resolves.toBeUndefined();
+
+    expect(console.warn).toHaveBeenCalledWith("Ignoring update for unknown playlist no-such-id");
   });
 });
 
@@ -522,13 +625,15 @@ describe("addSongToPlaylist", () => {
     expect((await readPersistedPlaylists())[0].songIds).toEqual([]);
   });
 
-  it("does nothing when the playlist was never loaded into state", async () => {
+  it("adds the song to a playlist that was never loaded into state", async () => {
+    // Same un-hydrated no-op as updatePlaylist: the add-songs view could swallow
+    // a tap made before loadPlaylists() had resolved.
     const created = await store.createPlaylist("Advent");
     const restarted = newStoreInstance();
 
     await restarted.addSongToPlaylist(created.id, "song-1");
 
-    expect((await readPersisted(created.id))?.songIds).toEqual([]);
+    expect((await readPersisted(created.id))?.songIds).toEqual(["song-1"]);
   });
 
   it("adds the same song only once when it is tapped twice at once", async () => {
@@ -546,11 +651,82 @@ describe("addSongToPlaylist", () => {
     expect((await readPersisted(created.id))?.songIds).toEqual(["song-1"]);
   });
 
-  // Two concurrent adds of *different* songs dropping one of them is a filed
-  // defect (issue #18) rather than intended behaviour, so the correct outcome is
-  // asserted in test/known-issues/ where it fails visibly. Deliberately not
-  // pinned here: a green test asserting the bug would read as coverage while
-  // blessing it.
+  // Regression guards for issue #18. addSongToPlaylist read `pl.songIds`, then
+  // awaited an IndexedDB write and a full reload before the new array was
+  // visible in state — so two calls started before either write landed both
+  // built their array from the same snapshot and the second overwrote the first.
+  // A rapid double tap in the add-songs picker is exactly that interleaving, and
+  // the first song disappeared with no error. Mutations are now serialised, so
+  // each one re-reads only after the previous write has landed.
+  it("keeps both songs when two adds are started before either resolves", async () => {
+    const created = await store.createPlaylist("Advent");
+
+    await Promise.all([
+      store.addSongToPlaylist(created.id, "song-1"),
+      store.addSongToPlaylist(created.id, "song-2"),
+    ]);
+
+    // Sorted, because the interleaving decides the append order and only
+    // membership is guaranteed behaviour.
+    const songIds = [...(store.getPlaylist(created.id)?.songIds ?? [])].sort();
+    expect(songIds).toEqual(["song-1", "song-2"]);
+  });
+
+  it("persists both songs to IndexedDB, not just the last writer's", async () => {
+    // This is the copy the user gets back after the phone locks mid-service.
+    const created = await store.createPlaylist("Advent");
+
+    await Promise.all([
+      store.addSongToPlaylist(created.id, "song-1"),
+      store.addSongToPlaylist(created.id, "song-2"),
+    ]);
+
+    const persisted = [...((await readPersisted(created.id))?.songIds ?? [])].sort();
+    expect(persisted).toEqual(["song-1", "song-2"]);
+  });
+
+  it("keeps every song when four adds are fired at once", async () => {
+    // A drag across the selection grid produces more than two taps.
+    const created = await store.createPlaylist("Advent");
+
+    await Promise.all([
+      store.addSongToPlaylist(created.id, "song-1"),
+      store.addSongToPlaylist(created.id, "song-2"),
+      store.addSongToPlaylist(created.id, "song-3"),
+      store.addSongToPlaylist(created.id, "song-4"),
+    ]);
+
+    const songIds = [...(store.getPlaylist(created.id)?.songIds ?? [])].sort();
+    expect(songIds).toEqual(["song-1", "song-2", "song-3", "song-4"]);
+  });
+
+  it("ignores concurrent adds to a playlist that does not exist", async () => {
+    // An unknown id stays a no-op rather than being queued into existence.
+    const created = await store.createPlaylist("Advent");
+
+    await Promise.all([
+      store.addSongToPlaylist("no-such-id", "song-1"),
+      store.addSongToPlaylist("no-such-id", "song-2"),
+    ]);
+
+    expect(store.playlists).toHaveLength(1);
+    expect((await readPersisted(created.id))?.songIds).toEqual([]);
+  });
+
+  it("does not let one failed mutation skip the ones queued behind it", async () => {
+    // Serialising is only safe if a rejection cannot poison the chain: the
+    // caller sees its own write fail, but the next tap must still go through.
+    // Were the queue left holding a rejected promise, the second call would be
+    // rejected without its task ever running.
+    breakIndexedDB();
+    const brokenStore = newStoreInstance();
+    await expect(brokenStore.createPlaylist("Advent")).rejects.toBeTruthy();
+
+    installFreshIndexedDB();
+
+    await expect(brokenStore.createPlaylist("Ostern")).resolves.toMatchObject({ name: "Ostern" });
+    expect(brokenStore.playlists.map((p) => p.name)).toEqual(["Ostern"]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -577,13 +753,11 @@ describe("removeSongFromPlaylist", () => {
     expect(store.hasAnyPlaylist).toBe(true);
   });
 
+  // Regression guards for issue #20 (a). removeSongFromPlaylist had no
+  // membership guard, unlike its addSongToPlaylist sibling: `filter` returned an
+  // equal-but-new array, so removing a song that was never there still wrote and
+  // still stamped a new updatedAt — the sort key of the overview.
   it("leaves the song list alone when the song is not in the playlist", async () => {
-    // Whatever the write path does, removing an id that was never there must not
-    // change the songs. The missing early return that lets this still bump
-    // updatedAt is a filed defect (issue #20) and is asserted in
-    // test/known-issues/ where it fails visibly — deliberately not pinned here,
-    // because a green test asserting the bumped updatedAt would read as coverage
-    // while blessing it.
     setNow(T0);
     const created = await store.createPlaylist("Advent");
     setNow(T1);
@@ -594,6 +768,59 @@ describe("removeSongFromPlaylist", () => {
 
     expect(store.getPlaylist(created.id)?.songIds).toEqual(["song-1"]);
     expect((await readPersisted(created.id))?.songIds).toEqual(["song-1"]);
+  });
+
+  it("leaves updatedAt untouched when the song is not in the playlist", async () => {
+    setNow(T0);
+    const created = await store.createPlaylist("Advent");
+    setNow(T1);
+    await store.addSongToPlaylist(created.id, "song-1");
+
+    setNow(T2);
+    await store.removeSongFromPlaylist(created.id, "song-999");
+
+    expect(store.getPlaylist(created.id)?.updatedAt).toBe(T1);
+    expect((await readPersisted(created.id))?.updatedAt).toBe(T1);
+  });
+
+  it("does not reorder the overview when a no-op remove runs on an older playlist", async () => {
+    // The user-visible symptom: playlists are sorted by updatedAt, newest first,
+    // so a remove that changes nothing must not push one past a newer one.
+    setNow(T0);
+    const first = await store.createPlaylist("Advent");
+    setNow(T1);
+    await store.createPlaylist("Ostern");
+
+    setNow(T2);
+    await store.removeSongFromPlaylist(first.id, "song-999");
+
+    expect(store.playlists.map((p) => p.name)).toEqual(["Ostern", "Advent"]);
+  });
+
+  it("still removes a song that IS in the playlist, and still bumps updatedAt", async () => {
+    // The membership guard must gate only the miss, never the hit.
+    setNow(T0);
+    const created = await store.createPlaylist("Advent");
+    setNow(T1);
+    await store.addSongToPlaylist(created.id, "song-1");
+    await store.addSongToPlaylist(created.id, "song-2");
+
+    setNow(T2);
+    await store.removeSongFromPlaylist(created.id, "song-2");
+
+    const after = store.getPlaylist(created.id)!;
+    expect(after.songIds).toEqual(["song-1"]);
+    expect(after.updatedAt).toBe(T2);
+    expect((await readPersisted(created.id))?.songIds).toEqual(["song-1"]);
+  });
+
+  it("resolves quietly for both kinds of miss", async () => {
+    // Neither miss may start throwing — the detail view calls this straight from
+    // a swipe handler.
+    const created = await store.createPlaylist("Advent");
+
+    await expect(store.removeSongFromPlaylist("no-such-id", "song-1")).resolves.toBeUndefined();
+    await expect(store.removeSongFromPlaylist(created.id, "song-999")).resolves.toBeUndefined();
   });
 
   it("is a silent no-op for an unknown playlist id", async () => {

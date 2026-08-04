@@ -23,6 +23,7 @@
   "selectedCount": "{count} ausgewählt",
   "addToPlaylist": "Zur Playlist hinzufügen",
   "remove": "Entfernen",
+  "saveFailed": "Speichern fehlgeschlagen. Möglicherweise ist der Gerätespeicher voll oder der private Modus des Browsers blockiert die Datenbank.",
   "save": "Speichern",
   "cancel": "Abbrechen",
   "confirmDelete": "Playlist löschen",

@@ -23,6 +23,7 @@
   "selectedCount": "{count} selected",
   "addToPlaylist": "Add to playlist",
   "remove": "Remove",
+  "saveFailed": "Could not save. Your device may be out of storage, or your browser's private mode is blocking the database.",
   "save": "Save",
   "cancel": "Cancel",
   "confirmDelete": "Delete playlist",
