@@ -56,16 +56,26 @@ const META_STORE = "metadata";
 // Shape of a row in the `assets` store. The blob is the raw bytes returned by
 // Directus for that asset id — we never transform (no width/height query
 // params), so the same blob serves thumbnails and full-size renders.
+//
+// `size` is the blob's byte length, persisted at write time so getStorageInfo()
+// can report what the hymnal occupies without reading the media library back.
 export interface OfflineAsset {
   id: string;
   type?: string;
   blob: Blob;
+  size?: number;
+}
+
+// Bytes one asset row occupies. Rows written before `size` existed still carry
+// their Blob, and `Blob.size` is metadata — reading it does not read the bytes.
+function assetByteSize(row: OfflineAsset): number {
+  return row.size ?? row.blob?.size ?? 0;
 }
 
 interface IndexedDBStore {
   put(storeName: string, data: unknown, key?: string): Promise<void>;
   get(storeName: string, key: string): Promise<unknown>;
-  delete(storeName: string, key: string): Promise<void>;
+  delete(storeName: string, key: IDBValidKey): Promise<void>;
   clear(storeName: string): Promise<void>;
 }
 
@@ -134,7 +144,7 @@ class IndexedDBManager implements IndexedDBStore {
     });
   }
 
-  async delete(storeName: string, key: string): Promise<void> {
+  async delete(storeName: string, key: IDBValidKey): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -324,7 +334,7 @@ export async function cacheAssetById(id: string, type?: string): Promise<void> {
   const res = await fetch(`${directusUrl}/assets/${id}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const blob = await res.blob();
-  await dbManager.put(ASSETS_STORE, { id, type, blob } satisfies OfflineAsset);
+  await dbManager.put(ASSETS_STORE, { id, type, blob, size: blob.size } satisfies OfflineAsset);
 }
 
 export const useOfflineDownload = () => {
@@ -349,6 +359,11 @@ export const useOfflineDownload = () => {
     total: 0,
     percentage: 0,
   });
+  // True when the last run could not store what it downloaded. The song text
+  // lives in a different store written earlier, so without this the UI reports
+  // a successful download and the missing sheet music is only discovered in the
+  // service, offline, at the moment it is needed.
+  const assetPrecacheFailed = ref(false);
 
   // Check if offline content exists
   const checkOfflineContent = async () => {
@@ -487,6 +502,31 @@ export const useOfflineDownload = () => {
         await dbManager.put(PIECES_STORE, piece);
       }
 
+      // Drop rows the server no longer returns. Assets are already pruned at
+      // the end of precacheAssets; letting songs and pieces accumulate meant a
+      // withdrawn hymn stayed in the offline search and still opened, with the
+      // sheet music and MIDI that the same run had just deleted.
+      //
+      // Runs after the puts, so a download that failed partway cannot empty the
+      // hymnal — and is skipped entirely when the incoming set is empty, since
+      // an empty result is far likelier to be a filter or transport failure
+      // than a collection that really shrank to nothing. precacheAssets guards
+      // itself the same way.
+      if (content.songs.length > 0) {
+        const keep = new Set(content.songs.map((song) => song.id));
+        const stored = (await dbManager.getAllFromStore(SONGS_STORE)) as Gesangbuchlied[];
+        for (const song of stored) {
+          if (!keep.has(song.id)) await dbManager.delete(SONGS_STORE, song.id);
+        }
+      }
+      if (content.pieces.length > 0) {
+        const keep = new Set(content.pieces.map((piece) => piece.id));
+        const stored = (await dbManager.getAllFromStore(PIECES_STORE)) as FreiesMusikstueck[];
+        for (const piece of stored) {
+          if (!keep.has(piece.id)) await dbManager.delete(PIECES_STORE, piece.id);
+        }
+      }
+
       // Store metadata
       const meta: OfflineMeta = {
         count: content.songs.length,
@@ -525,6 +565,7 @@ export const useOfflineDownload = () => {
       if (typeof window === "undefined") return;
 
       isPrecachingAssets.value = true;
+      assetPrecacheFailed.value = false;
       const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
 
       if (!directusUrl) {
@@ -593,19 +634,44 @@ export const useOfflineDownload = () => {
         return;
       }
 
+      // What the store already holds, read once. It answers both questions this
+      // run has of it: which assets can be skipped ("Inhalte aktualisieren"
+      // otherwise re-transfers the whole media library over a phone tethered in
+      // a parish hall), and which rows are no longer referenced and should be
+      // pruned at the end. A failed read degrades to "the cache is empty",
+      // which costs bandwidth but never correctness.
+      let existing: OfflineAsset[] = [];
+      try {
+        existing = (await dbManager.getAllFromStore(ASSETS_STORE)) as OfflineAsset[];
+      } catch (err) {
+        console.warn("Could not read the cached assets, refetching all of them:", err);
+      }
+      const have = new Set(existing.map((row) => row.id));
+      const toFetch = desiredList.filter(({ id }) => !have.has(id));
+      const alreadyCached = totalAssets - toFetch.length;
+
+      // Progress spans the full desired set, not just the missing ones, so the
+      // bar reads as "how much of the hymnal is on this device".
       assetPrecacheProgress.value = {
-        current: 0,
+        current: alreadyCached,
         total: totalAssets,
-        percentage: 0,
+        percentage: Math.round((alreadyCached / totalAssets) * 100),
         currentAsset: "Starting asset precaching...",
       };
 
-      console.log(`Starting to precache ${totalAssets} assets into IndexedDB`);
+      console.log(
+        `Starting to precache ${totalAssets} assets into IndexedDB (${toFetch.length} missing)`,
+      );
+
+      // Writes that were rejected — quota exceeded, an evicted database, Safari
+      // private mode. Counted separately from dropped downloads because a run
+      // that stored nothing must not end up claiming it cached the hymnal.
+      let failedWrites = 0;
 
       // Fetch in batches so the browser/Directus aren't slammed with a wave.
       const batchSize = 5;
-      for (let i = 0; i < desiredList.length; i += batchSize) {
-        const batch = desiredList.slice(i, i + batchSize);
+      for (let i = 0; i < toFetch.length; i += batchSize) {
+        const batch = toFetch.slice(i, i + batchSize);
 
         await Promise.allSettled(
           batch.map(async ({ id, type }) => {
@@ -621,7 +687,21 @@ export const useOfflineDownload = () => {
                 return;
               }
               const blob = await response.blob();
-              await dbManager.put(ASSETS_STORE, { id, type, blob } satisfies OfflineAsset);
+
+              // The write gets its own catch: storage failing is a different
+              // thing from a download failing, and the outer one exists to
+              // tolerate the latter.
+              try {
+                await dbManager.put(ASSETS_STORE, {
+                  id,
+                  type,
+                  blob,
+                  size: blob.size,
+                } satisfies OfflineAsset);
+              } catch (error) {
+                failedWrites++;
+                console.warn(`Failed to store asset ${id}:`, error);
+              }
             } catch (error) {
               console.warn(`Error precaching asset ${id}:`, error);
             } finally {
@@ -633,15 +713,15 @@ export const useOfflineDownload = () => {
           }),
         );
 
-        if (i + batchSize < desiredList.length) {
+        if (i + batchSize < toFetch.length) {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 
       // Prune stale entries — anything in IDB that's no longer referenced by
-      // a song or piece is dead weight.
+      // a song or piece is dead weight. The snapshot above is reused: every row
+      // written by this run is desired by construction.
       try {
-        const existing = (await dbManager.getAllFromStore(ASSETS_STORE)) as OfflineAsset[];
         for (const row of existing) {
           if (!desired.has(row.id)) {
             await dbManager.delete(ASSETS_STORE, row.id);
@@ -651,10 +731,18 @@ export const useOfflineDownload = () => {
         console.warn("Asset pruning failed:", err);
       }
 
+      if (failedWrites > 0) {
+        assetPrecacheFailed.value = true;
+        assetPrecacheProgress.value.currentAsset = `Precaching incomplete — ${failedWrites}/${totalAssets} assets could not be stored`;
+        console.warn(`${failedWrites}/${totalAssets} assets could not be stored in IndexedDB`);
+        return;
+      }
+
       assetPrecacheProgress.value.currentAsset = `Completed precaching ${totalAssets} assets`;
       console.log(`Completed precaching ${totalAssets} assets into IndexedDB`);
     } catch (error) {
       console.error("Error precaching assets:", error);
+      assetPrecacheFailed.value = true;
       assetPrecacheProgress.value.currentAsset = "Asset precaching failed";
     } finally {
       isPrecachingAssets.value = false;
@@ -772,15 +860,15 @@ export const useOfflineDownload = () => {
 
       await storeOfflineContent(offlineContent);
 
-      // Mark songs download as complete
-      downloadProgress.value.isComplete = true;
-      downloadProgress.value.currentItem = `Downloaded ${allSongs.length} songs and ${allPieces.length} pieces successfully!`;
-
-      // Start asset precaching after content is downloaded
+      // Start asset precaching after content is downloaded. The assets are the
+      // bulk of the transfer, so `isComplete` stays false until they are in:
+      // flipping it here would tell anything bound to it that the download had
+      // finished while hundreds of MB were still on the wire.
       downloadProgress.value.currentItem = "Starting asset precaching...";
       await precacheAssets(allSongs, allPieces);
 
       // Final completion message
+      downloadProgress.value.isComplete = true;
       downloadProgress.value.currentItem = `Download complete! ${allSongs.length} songs, ${allPieces.length} pieces and assets cached.`;
 
       return allSongs.length;
@@ -883,26 +971,30 @@ export const useOfflineDownload = () => {
     }
   };
 
-  // Get storage usage info. Asset blob sizes are far more accurate when read
-  // from `navigator.storage.estimate()` than `JSON.stringify(blob).length`,
-  // which doesn't include binary payloads — so we use the browser estimate
-  // when available and fall back to JSON serialization of metadata only.
+  // Get storage usage info — the size of the *hymnal*: the stored songs and
+  // pieces plus the bytes of their asset blobs.
+  //
+  // `navigator.storage.estimate().usage` is deliberately not used here. It
+  // reports what the whole origin occupies — the service worker's precached app
+  // shell, every Cache Storage entry, localStorage, any other database — so it
+  // reads as the download's footprint under a label that says IndexedDB, and it
+  // does not drop to zero after clearing offline content. StorageInformation.vue
+  // calls estimate() itself for the quota tiles, where that number belongs.
+  //
+  // Reading the asset rows does not read their bytes: IndexedDB hands back a
+  // Blob referencing its backing store, and `size` is metadata.
   const getStorageInfo = async () => {
     try {
       if (typeof window === "undefined") return null;
 
       const songs = (await dbManager.getAllFromStore(SONGS_STORE)) as Gesangbuchlied[];
       const pieces = (await dbManager.getAllFromStore(PIECES_STORE)) as FreiesMusikstueck[];
-      const assetCount = await dbManager.count(ASSETS_STORE);
+      const assets = (await dbManager.getAllFromStore(ASSETS_STORE)) as OfflineAsset[];
 
-      let sizeInBytes: number;
-      if (navigator.storage?.estimate) {
-        const est = await navigator.storage.estimate();
-        sizeInBytes = est.usage ?? 0;
-      } else {
-        sizeInBytes =
-          JSON.stringify(songs).length + JSON.stringify(pieces).length;
-      }
+      const sizeInBytes =
+        JSON.stringify(songs).length +
+        JSON.stringify(pieces).length +
+        assets.reduce((total, row) => total + assetByteSize(row), 0);
       const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
 
       return {
@@ -910,7 +1002,7 @@ export const useOfflineDownload = () => {
         sizeInMB,
         itemCount: songs.length,
         pieceCount: pieces.length,
-        assetCount,
+        assetCount: assets.length,
       };
     } catch (error) {
       console.error("Error getting storage info:", error);
@@ -934,6 +1026,7 @@ export const useOfflineDownload = () => {
     offlineContentInfo: readonly(offlineContentInfo),
     isPrecachingAssets: readonly(isPrecachingAssets),
     assetPrecacheProgress: readonly(assetPrecacheProgress),
+    assetPrecacheFailed: readonly(assetPrecacheFailed),
 
     // Actions
     downloadAllContent,

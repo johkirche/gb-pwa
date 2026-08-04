@@ -700,12 +700,6 @@ describe("storeOfflineContent / checkOfflineContent", () => {
     expect(console.error).toHaveBeenCalledWith("Error checking offline content:", expect.any(Error));
   });
 
-  // The songs/pieces stores never being pruned — so a withdrawn hymn survives
-  // every later download and `getOfflineSongCount()` drifts above `meta.count` —
-  // is a filed defect (issue #14) rather than intended behaviour. It is asserted
-  // in test/known-issues/ where it fails visibly. Deliberately not pinned here:
-  // a green test asserting the bug would read as coverage while blessing it.
-
   it("overwrites a song that changed since the last download", async () => {
     const { mod, dl } = await loadComposable();
     h.queryGesangbuchlied.mockResolvedValue([makeSong("s1", { titel: "Alter Titel" })]);
@@ -726,6 +720,99 @@ describe("storeOfflineContent / checkOfflineContent", () => {
     await expect(
       dl.downloadAllContent(),
     ).rejects.toThrow("Failed to store offline content. Your device may be out of storage space.");
+  });
+});
+
+// ===========================================================================
+// Regression guard for issue #14. storeOfflineContent only ever `put`, never
+// deleted, so a hymn withdrawn from the Gesangbuch survived every later
+// download: it kept appearing in the offline search and still opened, while
+// precacheAssets — which has always pruned — had just deleted its sheet music
+// and MIDI. `meta.count` meanwhile tracked the new, smaller download, so the
+// home screen and the offline page showed two different totals.
+describe("pruning withdrawn songs and pieces", () => {
+  it("stops serving a hymn the server no longer returns", async () => {
+    const { mod, dl } = await loadComposable();
+    h.queryGesangbuchlied.mockResolvedValue(
+      asSongs([
+        makeSong("s1", { titel: "Lobe den Herren" }),
+        makeSong("s2", { titel: "Zurückgezogenes Lied" }),
+      ]),
+    );
+    await dl.downloadAllContent();
+
+    // "s2" has been withdrawn from the Gesangbuch since the last download.
+    h.queryGesangbuchlied.mockResolvedValue(asSongs([makeSong("s1", { titel: "Lobe den Herren" })]));
+    await dl.downloadAllContent();
+
+    await expect(mod.getOfflineSongCount()).resolves.toBe(1);
+    await expect(dl.getOfflineSongs("zurückgezogenes")).resolves.toEqual([]);
+    await expect(dl.getOfflineSongById("s2")).resolves.toBeNull();
+    // The metadata count is what the Settings page shows the user ("42 Lieder
+    // offline verfügbar"); the row count is what the offline search reads. The
+    // two describing different numbers was the visible symptom.
+    expect(dl.offlineContentInfo.value?.count).toBe(1);
+  });
+
+  it("prunes withdrawn pieces as well", async () => {
+    const { dl } = await loadComposable();
+    piecesReply = [makePiece("p1"), makePiece("p2")];
+    h.queryGesangbuchlied.mockResolvedValue(asSongs([makeSong("s1")]));
+    await dl.downloadAllContent();
+
+    piecesReply = [makePiece("p1")];
+    await dl.downloadAllContent();
+
+    const pieces = (await dl.getOfflinePieces()) as FreiesMusikstueck[];
+    expect(pieces.map((p) => p.id)).toEqual(["p1"]);
+  });
+
+  it("still keeps — and updates — a song that is still published", async () => {
+    // Guards against over-correction: pruning must not turn into "clear the
+    // store and re-add", which would leave the hymnal empty for the duration of
+    // every update, nor may it drop rows that are still current.
+    const { mod, dl } = await loadComposable();
+    h.queryGesangbuchlied.mockResolvedValue(
+      asSongs([makeSong("s1", { titel: "Alter Titel" }), makeSong("s2")]),
+    );
+    await dl.downloadAllContent();
+
+    h.queryGesangbuchlied.mockResolvedValue(asSongs([makeSong("s1", { titel: "Neuer Titel" })]));
+    await dl.downloadAllContent();
+
+    const song = await dl.getOfflineSongById("s1");
+    expect(song?.titel).toBe("Neuer Titel");
+    await expect(mod.hasOfflineContentAvailable()).resolves.toBe(true);
+  });
+
+  it("leaves the downloaded hymnal alone when a download returns no songs at all", async () => {
+    // The prune is skipped on an empty result: zero songs is far likelier to be
+    // a broken filter or a GraphQL error served with HTTP 200 than a Gesangbuch
+    // that really shrank to nothing, and a device wiped on a bad update cannot
+    // be re-downloaded in a church with no signal.
+    const { mod, dl } = await loadComposable();
+    h.queryGesangbuchlied.mockResolvedValue(asSongs([makeSong("s1"), makeSong("s2")]));
+    await dl.downloadAllContent();
+
+    h.queryGesangbuchlied.mockResolvedValue([]);
+    await dl.downloadAllContent();
+
+    await expect(mod.getOfflineSongCount()).resolves.toBe(2);
+  });
+
+  it("keeps the stored pieces when the pieces request fails", async () => {
+    // A failed pieces query is tolerated and yields [] — which must not read as
+    // "every Vor-/Nachspiel was withdrawn".
+    const { dl } = await loadComposable();
+    piecesReply = [makePiece("p1"), makePiece("p2")];
+    h.queryGesangbuchlied.mockResolvedValue(asSongs([makeSong("s1")]));
+    await dl.downloadAllContent();
+
+    piecesReply = new Error("pieces endpoint down");
+    await dl.downloadAllContent();
+
+    const pieces = (await dl.getOfflinePieces()) as FreiesMusikstueck[];
+    expect(pieces.map((p) => p.id)).toEqual(["p1", "p2"]);
   });
 });
 
@@ -989,9 +1076,11 @@ describe("precacheAssets", () => {
     expect((await mod.getOfflineAssetBlob("f-satz"))?.type).toBe("");
   });
 
-  it("preserves the Directus mime type alongside the blob", async () => {
+  it("preserves the Directus mime type and the byte size alongside the blob", async () => {
+    // The size is persisted so getStorageInfo can total up what the hymnal
+    // occupies without reading every blob back in.
     const { dl } = await loadComposable();
-    assetReplies.set("f-midi", { bytes: [1], type: "audio/midi" });
+    assetReplies.set("f-midi", { bytes: [1, 2, 3], type: "audio/midi" });
 
     await dl.precacheAssets(
       asSongs([makeSong("s1", { midiMain: { id: "f-midi", type: "audio/midi" } })]),
@@ -1002,6 +1091,7 @@ describe("precacheAssets", () => {
     expect(await rawGet(db, ASSETS_STORE, "f-midi")).toMatchObject({
       id: "f-midi",
       type: "audio/midi",
+      size: 3,
     });
     db.close();
   });
@@ -1021,6 +1111,7 @@ describe("precacheAssets", () => {
       currentAsset: "Completed precaching 3 assets",
     });
     expect(dl.isPrecachingAssets.value).toBe(false);
+    expect(dl.assetPrecacheFailed.value).toBe(false);
   });
 
   it("keeps going when individual assets fail partway through a batch", async () => {
@@ -1127,7 +1218,14 @@ describe("precacheAssets", () => {
     );
   });
 
-  it("stores nothing and releases the flag when IndexedDB is unavailable", async () => {
+  it("stores nothing, reports the failure and releases the flag when IndexedDB is unavailable", async () => {
+    // Regression guard for issue #15. The `put` used to sit inside the same
+    // try/catch as the fetch, so a rejected write was logged as a dropped
+    // download and the `finally` advanced the counter regardless: with storage
+    // dead the run ended at a green 100% and "Completed precaching 1 assets"
+    // having stored nothing. The song *text* is written to a different store
+    // earlier and still worked, so the gap was discovered in the service,
+    // offline, at the moment the organist needed the sheet music.
     const { mod, dl } = await loadComposable();
     const songs = [makeSong("s1", { noten: [{ id: "f-1" }] })];
     breakIndexedDb();
@@ -1136,16 +1234,124 @@ describe("precacheAssets", () => {
 
     // The run must not hang the UI on a dead database...
     expect(dl.isPrecachingAssets.value).toBe(false);
-    // ...and must not have written anything.
+    // ...must not have written anything...
     restoreIndexedDb();
     await expect(mod.getOfflineAssetBlob("f-1")).resolves.toBeNull();
     expect(console.warn).toHaveBeenCalled();
+    // ...and must say so rather than claim it cached the hymnal.
+    expect(dl.assetPrecacheFailed.value).toBe(true);
+    expect(dl.assetPrecacheProgress.value.currentAsset).not.toContain("Completed precaching");
+    expect(dl.assetPrecacheProgress.value.currentAsset).toBe(
+      "Precaching incomplete — 1/1 assets could not be stored",
+    );
+  });
 
-    // What such a run *reports* is a filed defect (issue #15): it currently ends
-    // at 100% with "Completed precaching 1 assets" having stored nothing, so the
-    // completion message is asserted in test/known-issues/ where it fails
-    // visibly. Deliberately not pinned here: a green test asserting the bug
-    // would read as coverage while blessing it.
+  it("keeps a rejected write apart from a dropped download", async () => {
+    // The two failure modes have different fixes for the user — free up space
+    // versus find a signal — so they must not share a message or a counter.
+    const { mod, dl } = await loadComposable();
+    assetReplies.set("bad-http", { status: 404 });
+
+    await dl.precacheAssets(asSongs([makeSong("s1", { noten: [{ id: "bad-http" }] })]), []);
+
+    await expect(mod.getOfflineAssetBlob("bad-http")).resolves.toBeNull();
+    // A 404 is a lost asset, not a broken device: the run still completed.
+    expect(dl.assetPrecacheFailed.value).toBe(false);
+    expect(dl.assetPrecacheProgress.value.currentAsset).toBe("Completed precaching 1 assets");
+  });
+
+  it("skips the assets it already has instead of re-downloading them", async () => {
+    // Regression guard for issue #16. ASSETS_STORE was only consulted *after*
+    // the fetch loop, and only to prune, so "Inhalte aktualisieren" re-transfe-
+    // rred every PDF, PNG, MP3 and MIDI in the hymnal — hundreds of MB, often
+    // on a metered phone in a parish hall — to pick up a handful of new hymns.
+    const { dl } = await loadComposable();
+    const library = () =>
+      asSongs([
+        makeSong("s1", {
+          noten: [{ id: "f-noten", type: "image/png" }],
+          midiMain: { id: "f-midi", type: "audio/midi" },
+        }),
+      ]);
+
+    await dl.precacheAssets(library(), []);
+    // Baseline: the first run does have to fetch everything.
+    expect(fetchedUrls.sort()).toEqual([assetUrl("f-midi"), assetUrl("f-noten")].sort());
+
+    fetchedUrls.length = 0;
+    await dl.precacheAssets(library(), []);
+
+    expect(fetchedUrls).toEqual([]);
+  });
+
+  it("fetches only the assets that are new since the last run", async () => {
+    const { mod, dl } = await loadComposable();
+    await dl.precacheAssets(
+      asSongs([makeSong("s1", { noten: [{ id: "f-noten" }], midiMain: { id: "f-midi" } })]),
+      [],
+    );
+    fetchedUrls.length = 0;
+
+    // A new Satz has been added to the same song.
+    await dl.precacheAssets(
+      asSongs([
+        makeSong("s1", {
+          noten: [{ id: "f-noten" }],
+          satz: [{ id: "f-neu" }],
+          midiMain: { id: "f-midi" },
+        }),
+      ]),
+      [],
+    );
+
+    // Guards both directions: skipping cached ids must not turn into skipping
+    // the run, or a newly added Satz would never become available offline.
+    expect(fetchedUrls).toEqual([assetUrl("f-neu")]);
+    expect(await bytesOf(await mod.getOfflineAssetBlob("f-neu"))).toEqual(bytesFor("f-neu"));
+    // ...and a skipped fetch must not cost the row it skipped.
+    expect(await bytesOf(await mod.getOfflineAssetBlob("f-noten"))).toEqual(bytesFor("f-noten"));
+    await expect(mod.hasOfflineAsset("f-midi")).resolves.toBe(true);
+  });
+
+  it("still reports 100% on a run where everything was already cached", async () => {
+    // Progress spans the whole desired set, not just the missing ones, so the
+    // bar reads "how much of the hymnal is on this device" rather than sitting
+    // at 0% through an update that had nothing to do.
+    const { dl } = await loadComposable();
+    const library = () => asSongs([makeSong("s1", { noten: [{ id: "a" }, { id: "b" }] })]);
+    await dl.precacheAssets(library(), []);
+
+    await dl.precacheAssets(library(), []);
+
+    expect(dl.assetPrecacheProgress.value).toEqual({
+      current: 2,
+      total: 2,
+      percentage: 100,
+      currentAsset: "Completed precaching 2 assets",
+    });
+    expect(dl.isPrecachingAssets.value).toBe(false);
+  });
+
+  it("refetches everything rather than skipping when the cache cannot be read", async () => {
+    // The store is read once for both the skip set and the prune. If that read
+    // fails the run must degrade to "cache is empty" — costing bandwidth, never
+    // the download.
+    const { mod, dl } = await loadComposable();
+    await dl.precacheAssets(asSongs([makeSong("s1", { noten: [{ id: "f-1" }] })]), []);
+
+    const next = await loadOffline({ keepDb: true });
+    const nextDl = next.mod.useOfflineDownload();
+    breakIndexedDb();
+    await nextDl.precacheAssets(asSongs([makeSong("s1", { noten: [{ id: "f-1" }] })]), []);
+    restoreIndexedDb();
+
+    expect(fetchedUrls).toEqual([assetUrl("f-1"), assetUrl("f-1")]);
+    expect(console.warn).toHaveBeenCalledWith(
+      "Could not read the cached assets, refetching all of them:",
+      expect.any(Error),
+    );
+    // The blob written by the first run is untouched.
+    expect(await bytesOf(await mod.getOfflineAssetBlob("f-1"))).toEqual(bytesFor("f-1"));
   });
 
   it("marks the progress as failed and clears the flag when the run itself throws", async () => {
@@ -1352,6 +1558,31 @@ describe("downloadAllContent", () => {
     );
   });
 
+  it("marks the download complete only once the assets have been precached", async () => {
+    // Regression guard for issue #15. `isComplete` used to be set before
+    // precacheAssets was awaited, so anything binding it would claim the
+    // download had finished while hundreds of MB of sheet music and MIDI were
+    // still on the wire — and a user who closed the app on that signal got a
+    // hymnal with no sheet music.
+    const { dl } = await loadComposable();
+    h.queryGesangbuchlied.mockResolvedValue(asSongs([makeSong("s1", { noten: [{ id: "f-1" }] })]));
+
+    // fetch() is only ever called for assets, so this samples isComplete at the
+    // exact moment the media library is still downloading.
+    const completeWhileFetchingAssets: boolean[] = [];
+    h.fetch.mockImplementation(async (input: string) => {
+      completeWhileFetchingAssets.push(dl.downloadProgress.value.isComplete);
+      const id = String(input).slice(`${DIRECTUS_URL}/assets/`.length);
+      return okResponse(makeBlob(bytesFor(id)));
+    });
+
+    await dl.downloadAllContent();
+
+    expect(completeWhileFetchingAssets).toEqual([false]);
+    // ...and it is of course complete once the whole run has finished.
+    expect(dl.downloadProgress.value.isComplete).toBe(true);
+  });
+
   it("precaches the assets referenced by the downloaded songs and pieces", async () => {
     const { mod, dl } = await loadComposable();
     piecesReply = [makePiece("p1", { id: "f-piece", type: "audio/midi" })];
@@ -1427,9 +1658,38 @@ describe("clearOfflineContent", () => {
 });
 
 // ===========================================================================
+// Regression guard for issue #17. The byte figure used to be
+// `navigator.storage.estimate().usage` — what the *whole origin* occupies: the
+// service worker's precached app shell, every Cache Storage entry, localStorage
+// and any other database. The Settings page prints it next to the downloaded-hymn
+// count and StorageInformation.vue prints it under a heading that says
+// IndexedDB, so it read as "your hymnal takes 480 MB" and never dropped to zero
+// after clearing offline content.
 describe("getStorageInfo", () => {
-  it("counts the songs, pieces and assets it stored and renders the size in MB", async () => {
-    setStorageManager({ estimate: vi.fn().mockResolvedValue({ usage: 5 * 1024 * 1024 }) });
+  const MB = 1024 * 1024;
+
+  /**
+   * getStorageInfo only reads the three stores back, so most of these seed rows
+   * directly rather than driving a full download for them. `dl.getStorageInfo()`
+   * is called first purely to make the composable open its connection, which is
+   * what creates the schema.
+   */
+  async function seed(
+    dl: { getStorageInfo: () => Promise<unknown> },
+    rows: { songs?: unknown[]; pieces?: unknown[]; assets?: unknown[] },
+  ) {
+    await dl.getStorageInfo();
+    const db = await openRaw();
+    for (const song of rows.songs ?? []) await rawPut(db, SONGS_STORE, song);
+    for (const piece of rows.pieces ?? []) await rawPut(db, PIECES_STORE, piece);
+    for (const asset of rows.assets ?? []) await rawPut(db, ASSETS_STORE, asset);
+    db.close();
+  }
+
+  it("reports what the download occupies, not what the origin does", async () => {
+    // 480 MB of Cache Storage, other databases and the app shell — none of it
+    // the hymnal, which here is one song and one small image.
+    setStorageManager({ estimate: vi.fn().mockResolvedValue({ usage: 480 * MB }) });
     const { dl } = await loadComposable();
     h.queryGesangbuchlied.mockResolvedValue([makeSong("s1", { noten: [{ id: "f-1" }] })]);
     await dl.downloadAllContent();
@@ -1437,33 +1697,74 @@ describe("getStorageInfo", () => {
     const info = await dl.getStorageInfo();
 
     expect(info).toMatchObject({ itemCount: 1, pieceCount: 0, assetCount: 1 });
-    // Whatever the byte figure ends up describing, the MB string is its
-    // rendering — the Settings page prints the two side by side.
-    expect(info?.sizeInMB).toBe((info!.sizeInBytes / (1024 * 1024)).toFixed(2));
-
-    // That the byte figure is `navigator.storage.estimate().usage` — the whole
-    // origin rather than the stored hymnal — is a filed defect (issue #17) and
-    // is asserted in test/known-issues/ where it fails visibly. Deliberately
-    // not pinned here: a green test asserting the bug would read as coverage
-    // while blessing it.
+    expect(info!.sizeInBytes).toBeLessThan(1 * MB);
+    // The MB string is the byte figure's rendering — the Settings page prints
+    // the two side by side.
+    expect(info?.sizeInMB).toBe((info!.sizeInBytes / MB).toFixed(2));
   });
 
-  it("still returns a usable report when the browser cannot produce a usage figure", async () => {
-    setStorageManager({ estimate: vi.fn().mockResolvedValue({}) });
+  it("reports the same size no matter what else the origin has stored", async () => {
+    // Same rows, two very different origin totals: whatever the number means,
+    // it cannot depend on data this app did not store.
+    setStorageManager({
+      estimate: vi
+        .fn()
+        .mockResolvedValueOnce({ usage: 5 * MB })
+        .mockResolvedValueOnce({ usage: 400 * MB }),
+    });
     const { dl } = await loadComposable();
+    await seed(dl, { songs: [makeSong("s1")] });
+
+    const before = await dl.getStorageInfo();
+    const after = await dl.getStorageInfo();
+
+    expect(after?.sizeInBytes).toBe(before?.sizeInBytes);
+  });
+
+  it("grows when a second song is stored and not before", async () => {
+    // The number is only useful if it tracks the thing it labels.
+    const { dl } = await loadComposable();
+    await seed(dl, { songs: [makeSong("s1")] });
+    const small = await dl.getStorageInfo();
+
+    await seed(dl, {
+      songs: [makeSong("s2", { strophen: ["Eine zweite Strophe voller Text".repeat(20)] })],
+    });
+    const larger = await dl.getStorageInfo();
+
+    expect(larger!.sizeInBytes).toBeGreaterThan(small!.sizeInBytes);
+  });
+
+  it("counts the bytes of the stored asset blobs", async () => {
+    // A size computed from JSON.stringify(songs) alone would be honest but
+    // useless — the blobs are where essentially all of the space goes.
+    const { dl } = await loadComposable();
+    await seed(dl, {
+      assets: [{ id: "f-1", blob: makeBlob([1, 2, 3, 4]), size: 2048 }],
+    });
 
     const info = await dl.getStorageInfo();
 
-    expect(info).not.toBeNull();
-    expect(info).toMatchObject({ itemCount: 0, pieceCount: 0, assetCount: 0 });
-    expect(info?.sizeInMB).toBe((info!.sizeInBytes / (1024 * 1024)).toFixed(2));
+    // "[]" + "[]" for the two empty stores, then the asset's persisted size.
+    expect(info).toMatchObject({ assetCount: 1, sizeInBytes: 4 + 2048 });
   });
 
-  it("falls back to the JSON size of the metadata when there is no estimate API", async () => {
+  it("counts an asset row written before the size field existed", async () => {
+    // Rows from an earlier version carry no `size`, and their Blob's `size` is
+    // metadata — reading it does not read the media library back in.
     const { dl } = await loadComposable();
-    piecesReply = [makePiece("p1")];
-    h.queryGesangbuchlied.mockResolvedValue([makeSong("s1")]);
-    await dl.downloadAllContent();
+    await seed(dl, {
+      assets: [{ id: "legacy", blob: makeBlob([1, 2, 3, 4]) }, { id: "degraded" }],
+    });
+
+    const info = await dl.getStorageInfo();
+
+    expect(info).toMatchObject({ assetCount: 2, sizeInBytes: 4 + 4 });
+  });
+
+  it("sums the serialised songs and pieces when no assets are stored", async () => {
+    const { dl } = await loadComposable();
+    await seed(dl, { songs: [makeSong("s1")], pieces: [makePiece("p1")] });
 
     const info = await dl.getStorageInfo();
 
@@ -1471,8 +1772,17 @@ describe("getStorageInfo", () => {
     const pieces = await dl.getOfflinePieces();
     const expected = JSON.stringify(songs).length + JSON.stringify(pieces).length;
     expect(info?.sizeInBytes).toBe(expected);
-    expect(info?.itemCount).toBe(1);
-    expect(info?.pieceCount).toBe(1);
+    expect(info).toMatchObject({ itemCount: 1, pieceCount: 1, assetCount: 0 });
+  });
+
+  it("reports zeroes rather than null for an empty database", async () => {
+    const { dl } = await loadComposable();
+
+    const info = await dl.getStorageInfo();
+
+    expect(info).not.toBeNull();
+    expect(info).toMatchObject({ itemCount: 0, pieceCount: 0, assetCount: 0 });
+    expect(info?.sizeInMB).toBe((info!.sizeInBytes / MB).toFixed(2));
   });
 
   it("returns null and logs when the read fails", async () => {

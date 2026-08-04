@@ -79,6 +79,7 @@
 
     "downloadSuccess": "Successfully downloaded {count} songs for offline use",
     "downloadError": "Failed to download content. Please check your connection and try again.",
+    "assetCachingFailed": "The song texts were saved, but not all sheet music and audio files could be stored. Your device is probably out of space — free some up and download again.",
     "confirmClearContent": "Are you sure you want to clear all offline content? This will free up storage space but require re-downloading for offline access.",
     "offlineContentCleared": "All offline content has been cleared",
     "failedToClearContent": "Failed to clear offline content",

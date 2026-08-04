@@ -79,6 +79,7 @@
 
     "downloadSuccess": "{count} Lieder erfolgreich für die Offline-Nutzung heruntergeladen",
     "downloadError": "Download fehlgeschlagen. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "assetCachingFailed": "Die Liedtexte wurden gespeichert, aber nicht alle Noten und Klangdateien konnten abgelegt werden. Vermutlich ist der Gerätespeicher voll — bitte Speicherplatz freigeben und erneut herunterladen.",
     "confirmClearContent": "Sind Sie sicher, dass Sie alle Offline-Inhalte löschen möchten? Dies gibt Speicherplatz frei, erfordert aber ein erneutes Herunterladen für den Offline-Zugriff.",
     "offlineContentCleared": "Alle Offline-Inhalte wurden gelöscht",
     "failedToClearContent": "Löschen der Offline-Inhalte fehlgeschlagen",

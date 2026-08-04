@@ -235,6 +235,7 @@ const {
   offlineContentInfo,
   isPrecachingAssets,
   assetPrecacheProgress,
+  assetPrecacheFailed,
   downloadAllContent,
   clearOfflineContent,
   checkOfflineContent,
@@ -283,11 +284,19 @@ const startDownload = async () => {
     successMessage.value = "";
 
     const songCount = await downloadAllContent();
+    await updateStorageInfo();
+
+    // The songs are stored before the assets, so a run can get this far having
+    // saved the text of every hymn and none of its sheet music. Reporting that
+    // as a success is how the gap survives until the service.
+    if (assetPrecacheFailed.value) {
+      errorMessage.value = t("offline.contentManager.assetCachingFailed");
+      return;
+    }
 
     successMessage.value = t("offline.contentManager.downloadSuccess", {
       count: songCount,
     });
-    await updateStorageInfo();
 
     setTimeout(() => {
       successMessage.value = "";
