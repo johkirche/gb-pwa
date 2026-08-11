@@ -87,7 +87,7 @@ import SongNotationCard from "@/components/song/NotationCard.vue";
 import SongMetadata from "@/components/song/SongMetadata.vue";
 import SongTextDisplay from "@/components/song/TextDisplay.vue";
 
-import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
+import { NoSessionError, useGesangbuchlied } from "@/composables/useGesangbuchlied";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
 
 const { t } = useI18n();
@@ -168,6 +168,10 @@ const fetchLied = async () => {
     // Handle offline errors gracefully
     if (typeof window !== "undefined" && !navigator.onLine) {
       queryError.value = t("song.notAvailableOffline");
+    } else if (err instanceof NoSessionError) {
+      // Translatable session-expiry prompt rather than the data layer's raw
+      // English "No access token available. Please log in.".
+      queryError.value = t(err.i18nKey);
     } else {
       queryError.value = err instanceof Error ? err.message : t("utils.unknownError");
     }

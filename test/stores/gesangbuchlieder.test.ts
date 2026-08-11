@@ -32,7 +32,11 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("@/composables/useGesangbuchlied", () => ({
+// Only the composable factory is stubbed. The module's real exports are spread
+// back in so `NoSessionError` stays the same class the store imports — an
+// `instanceof` against a mock-shaped stand-in would never match.
+vi.mock("@/composables/useGesangbuchlied", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/composables/useGesangbuchlied")>()),
   useGesangbuchlied: () => ({
     queryGesangbuchlied: h.queryGesangbuchlied,
     queryGesangbuchliedByIds: h.queryGesangbuchliedByIds,
@@ -561,12 +565,113 @@ describe("loadMore", () => {
     });
   });
 
-  // loadMore's page size and its hasMore comparison are hard-coded to 50 instead
-  // of following currentLimit, and it has no hasMore/isLoadingMore re-entry
-  // guard — a filed defect (issue #21), not intended behaviour. Asserted in
-  // test/known-issues/issue-21-loadmore-drifted-from-fetchlieder.test.ts, where
-  // it fails visibly. Deliberately not pinned here: a green test asserting the
-  // bug would read as coverage while blessing it.
+  // Regression guards for issue #21. loadMore built its own request rather than
+  // sharing fetchLieder's, and the two had already drifted: the page size and
+  // the hasMore comparison were hard-coded to 50 while fetchLieder followed
+  // currentLimit, and the sort-field map existed twice.
+  describe("pages with the configured page size", () => {
+    async function seedWithLimit(
+      store: ReturnType<typeof useGesangbuchliedStore>,
+      limit: number,
+      returned = limit,
+    ) {
+      store.setPreferOfflineData(false);
+      store.currentLimit = limit;
+      h.queryGesangbuchlied.mockResolvedValueOnce(makePage(returned, "first"));
+      await store.fetchLieder();
+      h.queryGesangbuchlied.mockClear();
+    }
+
+    it("requests currentLimit rather than a hard-coded 50", async () => {
+      const store = useGesangbuchliedStore();
+      await seedWithLimit(store, 25);
+      h.queryGesangbuchlied.mockResolvedValue(makePage(25, "second"));
+
+      await store.loadMore();
+
+      expect(queryVars().limit).toBe(25);
+    });
+
+    it("keeps hasMore set when the page comes back full at that size", async () => {
+      // With currentLimit at 25 a 25-row page is a *full* page. Comparing
+      // against 50 read it as the end of the list and stopped the scroll early.
+      const store = useGesangbuchliedStore();
+      await seedWithLimit(store, 25);
+      h.queryGesangbuchlied.mockResolvedValue(makePage(25, "second"));
+
+      await store.loadMore();
+
+      expect(store.hasMore).toBe(true);
+    });
+
+    it("clears hasMore when a short page comes back at that size", async () => {
+      const store = useGesangbuchliedStore();
+      await seedWithLimit(store, 25);
+      h.queryGesangbuchlied.mockResolvedValue(makePage(9, "second"));
+
+      await store.loadMore();
+
+      expect(store.hasMore).toBe(false);
+    });
+
+    it("does not request another page once hasMore is false", async () => {
+      const store = useGesangbuchliedStore();
+      // A short first page means the API has already said the list is complete.
+      await seedWithLimit(store, 50, 10);
+      expect(store.hasMore).toBe(false);
+
+      await store.loadMore();
+
+      expect(h.queryGesangbuchlied).not.toHaveBeenCalled();
+    });
+
+    it("ignores a second call while the first page request is still in flight", async () => {
+      // The scroll listener fires repeatedly. Without the guard both calls read
+      // the same lieder.length, request the same offset and append twice. Both
+      // current callers happen to guard themselves; the next one may not.
+      const store = useGesangbuchliedStore();
+      await seedWithLimit(store, 50);
+
+      let release!: (value: Gesangbuchlied[]) => void;
+      h.queryGesangbuchlied.mockReturnValueOnce(
+        new Promise<Gesangbuchlied[]>((resolve) => {
+          release = resolve;
+        }),
+      );
+      h.queryGesangbuchlied.mockResolvedValue(makePage(50, "third"));
+
+      const first = store.loadMore();
+      const second = store.loadMore();
+      release(makePage(50, "second"));
+      await Promise.all([first, second]);
+
+      expect(h.queryGesangbuchlied).toHaveBeenCalledOnce();
+      expect(store.lieder).toHaveLength(100);
+    });
+
+    it("drops its page when a refetch replaced the list while it was in flight", async () => {
+      // fetchLieder *replaces* the array; loadMore *appends* to it. The
+      // debounced search in the playlist picker is exactly this interleave, and
+      // it used to splice the previous query's songs under the new results.
+      const store = useGesangbuchliedStore();
+      await seedWithLimit(store, 50);
+
+      let release!: (value: Gesangbuchlied[]) => void;
+      h.queryGesangbuchlied.mockReturnValueOnce(
+        new Promise<Gesangbuchlied[]>((resolve) => {
+          release = resolve;
+        }),
+      );
+
+      const paging = store.loadMore();
+      h.queryGesangbuchlied.mockResolvedValue(makePage(3, "fresh"));
+      await store.fetchLieder();
+      release(makePage(50, "stale"));
+      await paging;
+
+      expect(ids(store.lieder)).toEqual(["fresh-0", "fresh-1", "fresh-2"]);
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -674,13 +779,66 @@ describe("filteredLieder — search", () => {
     expect(store.filteredLieder).toHaveLength(4);
   });
 
-  // A padded query ("  lobe  ") matching nothing is a filed defect (issue #5):
-  // the guard trims, the needle does not, so the same keystrokes give two
-  // different result sets depending on whether the list came from Directus or
-  // IndexedDB. Asserted in
-  // test/known-issues/issue-5-search-query-not-trimmed.test.ts, where it fails
-  // visibly. Deliberately not pinned here: a green test asserting the bug would
-  // read as coverage while blessing it.
+  // Regression guards for issue #5. The guard tested the trimmed query while
+  // the needle was built from the raw one, so a pasted "  lobe  " cleared the
+  // guard and then matched nothing — and buildApiFilters() *did* trim, so the
+  // same keystrokes returned different sets from Directus and from IndexedDB.
+  it("matches a title when the query is padded on both sides", () => {
+    const store = useGesangbuchliedStore();
+    store.lieder = corpus;
+
+    store.setFilter("searchQuery", " lobe ");
+
+    expect(ids(store.filteredLieder)).toEqual(["1"]);
+  });
+
+  it("matches a verse when the query has a trailing space", () => {
+    const store = useGesangbuchliedStore();
+    store.lieder = corpus;
+
+    store.setFilter("searchQuery", "einsam wacht ");
+
+    expect(ids(store.filteredLieder)).toEqual(["2"]);
+  });
+
+  it("matches an author when the query has a leading space", () => {
+    // The author haystack is "Philipp Nicolai", so a leading space only shows
+    // the bug against the *first* name — " nicolai" happens to match the space
+    // that joins the two names.
+    const store = useGesangbuchliedStore();
+    store.lieder = corpus;
+
+    store.setFilter("searchQuery", " Philipp");
+
+    expect(ids(store.filteredLieder)).toEqual(["3"]);
+  });
+
+  it("gives the padded and the unpadded query identical results", () => {
+    // The property, stated without naming a song: surrounding whitespace is not
+    // part of what the user searched for.
+    const store = useGesangbuchliedStore();
+    store.lieder = corpus;
+
+    store.setFilter("searchQuery", "lobe");
+    const unpadded = ids(store.filteredLieder);
+
+    store.setFilter("searchQuery", "\t lobe \n");
+
+    expect(ids(store.filteredLieder)).toEqual(unpadded);
+  });
+
+  it("keeps whitespace inside the query significant", () => {
+    // Guard against over-correction: trimming the ends is not the same as
+    // stripping or collapsing every space.
+    const store = useGesangbuchliedStore();
+    store.lieder = corpus;
+
+    store.setFilter("searchQuery", "lobeden");
+    expect(store.filteredLieder).toEqual([]);
+
+    store.setFilter("searchQuery", "den Herren");
+    expect(ids(store.filteredLieder)).toEqual(["1"]);
+  });
 
   it("ignores songs with no title, verses or authors instead of throwing", () => {
     const store = useGesangbuchliedStore();
@@ -1029,13 +1187,52 @@ describe("shouldShowDataSourceControl", () => {
     expect(store.shouldShowDataSourceControl).toBe(false);
   });
 
-  // The escape hatch that forces the control on is currently keyed off
-  // `window.location.hostname === "localhost"`, a runtime check that ships to
-  // production — a filed defect (issue #22), not intended behaviour. The
-  // build-flag behaviour it should have is asserted in
-  // test/known-issues/issue-22-datasource-control-hostname-check.test.ts, where
-  // it fails visibly. Deliberately not pinned here: a green test asserting the
-  // bug would read as coverage while blessing it.
+  // Regression guards for issue #22. The escape hatch that forces the control
+  // on used to be `window.location.hostname === "localhost"` — a runtime check,
+  // so the branch shipped in the production bundle and fired for any production
+  // build served from loopback (a kiosk install, `vite preview`), offering an
+  // offline/online toggle with nothing downloaded to toggle to.
+  it("stays hidden in a production build served from localhost", () => {
+    setPageUrl("http://localhost:3000/songs");
+    const store = useGesangbuchliedStore();
+    store.lieder = [makeLied({ id: "1" })];
+
+    expect(hasOfflineContentRef().value).toBe(false);
+    expect(store.shouldShowDataSourceControl).toBe(false);
+  });
+
+  it("stays hidden in a production build served from 127.0.0.1", () => {
+    // Same deployment, different loopback spelling. A hostname allow-list is
+    // the wrong shape of check no matter how many spellings it enumerates.
+    setPageUrl("http://127.0.0.1:4173/songs");
+    const store = useGesangbuchliedStore();
+    store.lieder = [makeLied({ id: "1" })];
+
+    expect(store.shouldShowDataSourceControl).toBe(false);
+  });
+
+  it("is available in a dev build regardless of the host it is served from", () => {
+    // The flip side: the escape hatch has to survive `vite dev --host`, where
+    // the page is opened from another device over the LAN hostname.
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("PROD", false);
+    setPageUrl("https://gesangbuch.example/songs");
+    const store = useGesangbuchliedStore();
+    store.lieder = [makeLied({ id: "1" })];
+
+    expect(store.shouldShowDataSourceControl).toBe(true);
+  });
+
+  it("stays hidden while no songs are on screen, even in a dev build", () => {
+    // The `lieder.length > 0` condition is independent of both branches.
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("PROD", false);
+    const store = useGesangbuchliedStore();
+    hasOfflineContentRef().value = true;
+
+    expect(store.lieder).toEqual([]);
+    expect(store.shouldShowDataSourceControl).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,49 @@ import type { Gesangbuchlied, Gesangbuchlied_Filter } from "@/gql/graphql";
 
 import { useDirectusApi } from "@/composables/useDirectusApi";
 
+/**
+ * The session is gone and a re-login is the only fix.
+ *
+ * Carries a translation key rather than a user-facing string: this is thrown
+ * deep in the data layer, which has no `useI18n`, and the message used to reach
+ * the German UI as raw English. Whoever renders it maps `i18nKey` through `t()`.
+ */
+export class NoSessionError extends Error {
+  readonly i18nKey = "auth.sessionExpired";
+
+  constructor() {
+    super("No access token available");
+    this.name = "NoSessionError";
+  }
+}
+
+/**
+ * A GraphQL response that carried `errors`.
+ *
+ * Directus answers a rejected query with HTTP 200 and `{ data: null, errors }`,
+ * so nothing below the transport layer would notice without this.
+ */
+export class GraphQLRequestError extends Error {
+  constructor(errors: { message?: string }[]) {
+    super(errors.map((e) => e?.message ?? "Unknown GraphQL error").join("; "));
+    this.name = "GraphQLRequestError";
+  }
+}
+
+/**
+ * Throw if a 200 response body carries GraphQL errors.
+ *
+ * `errors` is only ever present and non-empty when something went wrong — but
+ * an `errors: []` written by a proxy or a mock is *truthy*, so the length check
+ * is what keeps a healthy response healthy.
+ */
+function assertNoGraphQLErrors(payload: unknown): void {
+  const errors = (payload as { errors?: { message?: string }[] } | null)?.errors;
+  if (Array.isArray(errors) && errors.length > 0) {
+    throw new GraphQLRequestError(errors);
+  }
+}
+
 export const useGesangbuchlied = () => {
   const directusApi = useDirectusApi();
   const authStore = useAuthStore();
@@ -35,7 +78,7 @@ export const useGesangbuchlied = () => {
     variables?: Record<string, unknown>;
   }): Promise<T> => {
     if (!authStore.accessToken) {
-      throw new Error("No access token available. Please log in.");
+      throw new NoSessionError();
     }
 
     try {
@@ -43,18 +86,29 @@ export const useGesangbuchlied = () => {
         headers: createAuthHeaders(),
       });
 
+      // A rejected query still comes back 200, so the envelope is the only place
+      // the failure is visible. Checking it here — the one funnel every query
+      // goes through — is what makes the callers' `|| []` safe and lets their
+      // catch blocks (and the offline fallback behind them) engage at all.
+      assertNoGraphQLErrors(response.data);
+
       return response.data;
     } catch (error: unknown) {
       // If we get a 401 error, try using the directusApi's authenticated request
       // which handles token refresh automatically
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        return await directusApi.authenticatedRequest<T>(graphqlEndpoint, {
+        const retried = await directusApi.authenticatedRequest<T>(graphqlEndpoint, {
           method: "POST",
           data: queryBuilder,
           headers: {
             "Content-Type": "application/json",
           },
         });
+
+        // The retry is a fresh response and can carry errors of its own.
+        assertNoGraphQLErrors(retried);
+
+        return retried;
       }
 
       throw error;

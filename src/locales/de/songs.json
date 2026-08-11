@@ -31,6 +31,8 @@
   "viewDetails": "Details anzeigen",
   "noSongsFound": "Keine Lieder gefunden",
   "noSongsDescription": "Es sind keine Lieder verfügbar oder sie wurden noch nicht geladen.",
+  "noMatchingSongs": "Keine passenden Lieder",
+  "noMatchingSongsDescription": "Kein Lied entspricht der aktuellen Suche und den gewählten Filtern. Passe die Suche an oder setze die Filter zurück.",
   "loadSongs": "Lieder laden",
   "errorLoadingSongs": "Fehler beim Laden der Lieder",
   "retry": "Wiederholen",

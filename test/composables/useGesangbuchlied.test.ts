@@ -3,7 +3,11 @@ import { createPinia, setActivePinia } from "pinia";
 import { type MockInstance, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
-import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
+import {
+  GraphQLRequestError,
+  NoSessionError,
+  useGesangbuchlied,
+} from "@/composables/useGesangbuchlied";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 
@@ -382,11 +386,77 @@ describe("response mapping", () => {
     await expect(useGesangbuchlied().queryGesangbuchlied({})).resolves.toEqual([]);
   });
 
-  // A 200 whose body carries a non-empty `errors` array is a filed defect
-  // (issue #6) rather than intended behaviour, so it is asserted in
-  // test/known-issues/issue-6-graphql-errors-200.test.ts where it fails visibly.
-  // Deliberately not pinned here: a green test asserting the empty list would
-  // read as coverage while blessing it.
+  // Regression guards for issue #6. Directus answers a rejected query — a
+  // permission change, a renamed field — with HTTP 200 and
+  // `{ data: null, errors: [...] }`. The envelope used to be returned untouched
+  // and every caller coalesced the null away, so a server-side rejection was
+  // indistinguishable from "no results"; and because the status was 200, the
+  // catch blocks behind which the offline fallback lives never ran either.
+  describe("a 200 carrying GraphQL errors", () => {
+    it("throws instead of returning an empty song list", async () => {
+      signIn();
+      post.mockResolvedValue(
+        gqlResponse({ data: null, errors: [{ message: "You don't have permission" }] }),
+      );
+
+      await expect(useGesangbuchlied().queryGesangbuchlied({})).rejects.toThrow(
+        "You don't have permission",
+      );
+    });
+
+    it("throws instead of reporting the song as not found", async () => {
+      signIn();
+      post.mockResolvedValue(
+        gqlResponse({ data: null, errors: [{ message: "You don't have permission" }] }),
+      );
+
+      await expect(useGesangbuchlied().queryGesangbuchliedById("42")).rejects.toThrow(
+        GraphQLRequestError,
+      );
+    });
+
+    it("throws on the batch lookup that backs the favorites list", async () => {
+      // fetchMissingFavorites feeds this; swallowing here empties a user's stars.
+      signIn();
+      post.mockResolvedValue(gqlResponse({ data: null, errors: [{ message: "Unknown field" }] }));
+
+      await expect(useGesangbuchlied().queryGesangbuchliedByIds(["42"])).rejects.toThrow(
+        GraphQLRequestError,
+      );
+    });
+
+    it("throws from makeGraphQLRequest itself, not only from its callers", async () => {
+      // The check belongs in the one place every query funnels through, so a
+      // query added elsewhere later inherits it.
+      signIn();
+      post.mockResolvedValue(gqlResponse({ errors: [{ message: "Unknown field" }] }));
+
+      await expect(
+        useGesangbuchlied().makeGraphQLRequest({ query: "{ ping }" }),
+      ).rejects.toThrow(GraphQLRequestError);
+    });
+
+    it("joins every message so the log names all of them", async () => {
+      signIn();
+      post.mockResolvedValue(
+        gqlResponse({ errors: [{ message: "first" }, { message: "second" }] }),
+      );
+
+      await expect(
+        useGesangbuchlied().makeGraphQLRequest({ query: "{ ping }" }),
+      ).rejects.toThrow("first; second");
+    });
+
+    it("does not treat an empty errors array as a failure", async () => {
+      // GraphQL only sends `errors` when it is non-empty, but a check written
+      // as `if (data.errors) throw` would reject this healthy response — `[]`
+      // is truthy.
+      signIn();
+      post.mockResolvedValue(gqlResponse({ data: { gesangbuchlied: [lied] }, errors: [] }));
+
+      await expect(useGesangbuchlied().queryGesangbuchlied({})).resolves.toEqual([lied]);
+    });
+  });
 
   it("returns the single song for a by-id lookup", async () => {
     signIn();
@@ -413,19 +483,29 @@ describe("response mapping", () => {
 // ---------------------------------------------------------------------------
 describe("makeGraphQLRequest — authentication guard", () => {
   it("refuses to fire a request when there is no access token", async () => {
-    await expect(useGesangbuchlied().queryGesangbuchlied({})).rejects.toThrow(
-      "No access token available. Please log in.",
-    );
+    await expect(useGesangbuchlied().queryGesangbuchlied({})).rejects.toThrow(NoSessionError);
 
     expect(post).not.toHaveBeenCalled();
   });
 
   it("also guards the by-id path", async () => {
     await expect(useGesangbuchlied().queryGesangbuchliedById("42")).rejects.toThrow(
-      "No access token available. Please log in.",
+      NoSessionError,
     );
 
     expect(post).not.toHaveBeenCalled();
+  });
+
+  it("carries a translation key rather than a user-facing English string", async () => {
+    // Regression guard for issue #10: the raw "No access token available.
+    // Please log in." used to reach the German UI verbatim, via the SongsView
+    // error banner and LiedView's queryError. Both now map `i18nKey` through t().
+    const error = await useGesangbuchlied()
+      .queryGesangbuchlied({})
+      .catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(NoSessionError);
+    expect((error as NoSessionError).i18nKey).toBe("auth.sessionExpired");
   });
 
   it("returns the raw envelope when called directly", async () => {

@@ -84,6 +84,16 @@
           @clear-favorites-filter="() => setFilter('showFavoritesOnly', false)"
         />
 
+        <!-- Nothing matched the active filters. Without this branch the page
+             renders *nothing at all*: filteredLieder is empty but `lieder` is
+             not, so neither the grid nor the no-songs state applies. -->
+        <SongsEmptyState
+          v-else-if="!isLoading && lieder.length > 0"
+          :title="t('songs.noMatchingSongs')"
+          :description="t('songs.noMatchingSongsDescription')"
+          :show-load-button="false"
+        />
+
         <!-- No Results -->
         <SongsEmptyState v-else-if="!isLoading && lieder.length === 0" @load-songs="fetchLieder" />
       </main>
@@ -96,7 +106,7 @@ import { useGesangbuchliedStore } from "@/stores/gesangbuchlieder";
 import { InfoIcon } from "lucide-vue-next";
 import { storeToRefs } from "pinia";
 
-import { computed, onMounted, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 
@@ -148,19 +158,10 @@ const {
   setFilter,
   clearFilters,
   toggleSortDirection,
-  setPreferOfflineData,
 } = store;
 
 // Composables
 const { checkOfflineContent } = useOfflineDownload();
-
-// Computed
-const preferOfflineDataModel = computed({
-  get: () => preferOfflineData,
-  set: (value: boolean) => {
-    setPreferOfflineData(value);
-  },
-});
 
 // Methods
 const navigateToLied = (id: string) => {
@@ -209,7 +210,13 @@ watch(
   { deep: true },
 );
 
-// Watch for search and filter changes to refetch data
+// Watch for search and filter changes to refetch data.
+//
+// The search box writes a filter per keystroke, so the refetch is debounced —
+// the same 300 ms the playlist song picker uses. Category/sort changes are
+// single events and simply ride along.
+let refetchDebounce: ReturnType<typeof setTimeout> | undefined;
+
 watch(
   [
     () => filters.value.searchQuery,
@@ -219,27 +226,34 @@ watch(
     () => filters.value.sortDirection,
     () => filters.value.showFavoritesOnly,
   ],
-  async (newValues, oldValues) => {
-    // Only refetch if we're not using cached data (IndexedDB)
-    if (!isUsingCachedData) {
-      // Skip refetching when switching to favorites-only mode online
-      // Let the specific favorites watcher handle fetching missing favorites
-      const [, , , , , newShowFavoritesOnly] = newValues;
-      const [, , , , , oldShowFavoritesOnly] = oldValues || [];
+  (newValues, oldValues) => {
+    // Only refetch if we're not using cached data (IndexedDB).
+    // `.value` is load-bearing: `!isUsingCachedData` on the Ref object itself
+    // is always false, which made this whole branch — and every server-side
+    // search — unreachable.
+    if (isUsingCachedData.value) return;
 
-      if (newShowFavoritesOnly && !oldShowFavoritesOnly && navigator.onLine) {
-        console.log("Skipping refetch - favorites watcher will handle missing favorites");
-        return;
-      }
+    // Skip refetching when switching to favorites-only mode online
+    // Let the specific favorites watcher handle fetching missing favorites
+    const [, , , , , newShowFavoritesOnly] = newValues;
+    const [, , , , , oldShowFavoritesOnly] = oldValues || [];
 
-      await fetchLieder();
+    if (newShowFavoritesOnly && !oldShowFavoritesOnly && navigator.onLine) {
+      console.log("Skipping refetch - favorites watcher will handle missing favorites");
+      return;
     }
+
+    clearTimeout(refetchDebounce);
+    refetchDebounce = setTimeout(() => void fetchLieder(), 300);
   },
   { deep: true },
 );
 
-// Watch for changes to the data source preference
-watch(preferOfflineDataModel, async (newValue, oldValue) => {
+// Watch for changes to the data source preference.
+// Watched directly rather than through a computed wrapper: a getter returning
+// the ref itself never changes identity, so the wrapper's watcher never fired
+// and flipping the switch never refetched.
+watch(preferOfflineData, async (newValue, oldValue) => {
   console.log("Data source preference changed:", oldValue, "->", newValue);
   console.log("Force online (forceOnline parameter):", !newValue);
   // Only refetch if the value actually changed (not on initial load)
@@ -253,7 +267,7 @@ watch(
   () => filters.value.showFavoritesOnly,
   async (newValue, oldValue) => {
     // Only act when favorites filter is turned ON and we're online
-    if (newValue && !oldValue && !isUsingCachedData && navigator.onLine) {
+    if (newValue && !oldValue && !isUsingCachedData.value && navigator.onLine) {
       await fetchMissingFavorites();
     }
   },
@@ -275,8 +289,12 @@ onMounted(async () => {
   await fetchLieder();
 
   // Check if we need to fetch missing favorites after initial load
-  if (filters.value.showFavoritesOnly && !isUsingCachedData && navigator.onLine) {
+  if (filters.value.showFavoritesOnly && !isUsingCachedData.value && navigator.onLine) {
     await fetchMissingFavorites();
   }
+});
+
+onBeforeUnmount(() => {
+  clearTimeout(refetchDebounce);
 });
 </script>

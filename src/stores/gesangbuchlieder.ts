@@ -7,8 +7,18 @@ import type { Strophe } from "@/gql";
 import type { Gesangbuchlied } from "@/gql/graphql";
 
 import { useFavorites } from "@/composables/useFavorites";
-import { useGesangbuchlied } from "@/composables/useGesangbuchlied";
+import { NoSessionError, useGesangbuchlied } from "@/composables/useGesangbuchlied";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
+
+// UI sort keys mapped onto the Directus column names. Module scope because both
+// the first page and every subsequent one build their request from it — keeping
+// two copies is what let loadMore drift away from fetchLieder.
+const SORT_FIELD_MAP: Record<string, string> = {
+  title: "titel",
+  date_updated: "date_updated",
+  liednummer2000: "liednummer2000",
+  liednummer2026: "liednummer2026",
+};
 
 export interface GesangbuchliedFilters {
   searchQuery: string;
@@ -58,11 +68,12 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
 
   // Computed
   const shouldShowDataSourceControl = computed(() => {
-    return (
-      (hasOfflineContent.value ||
-        (typeof window !== "undefined" && window.location.hostname === "localhost")) &&
-      lieder.value.length > 0
-    );
+    // `import.meta.env.DEV` is replaced at build time, so the dev escape hatch
+    // is eliminated from the production bundle entirely. The hostname check it
+    // replaces was evaluated at runtime and therefore still fired for a
+    // production build served from localhost — a kiosk install or `vite
+    // preview` — offering a toggle with nothing downloaded to toggle to.
+    return (hasOfflineContent.value || import.meta.env.DEV) && lieder.value.length > 0;
   });
 
   const availableCategories = computed(() => {
@@ -104,9 +115,13 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       filtered = filtered.filter((lied) => favorites.value.includes(lied.id || ""));
     }
 
-    // Search filter
-    if (filters.value.searchQuery.trim()) {
-      const query = filters.value.searchQuery.toLowerCase();
+    // Search filter. Trim once and reuse: the guard used to test the trimmed
+    // value while the needle below was built from the raw one, so a pasted
+    // " Lobe " cleared the guard and then matched nothing — while
+    // buildApiFilters() trimmed, giving the same keystrokes two different
+    // result sets depending on which path served the list.
+    const query = filters.value.searchQuery.trim().toLowerCase();
+    if (query) {
       filtered = filtered.filter((lied) => {
         // Search in title
         if (lied.titel?.toLowerCase().includes(query)) return true;
@@ -289,12 +304,40 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
     return baseFilters;
   };
 
+  // The one place a list request is built. fetchLieder and loadMore used to
+  // assemble the same variables independently and had already drifted: the page
+  // size was hard-coded to 50 here and read from currentLimit there, and the
+  // sort map existed twice.
+  const buildListRequest = (offset: number) => {
+    const dbSortField = SORT_FIELD_MAP[filters.value.sortBy] || filters.value.sortBy;
+    const sortField =
+      filters.value.sortDirection === "desc" ? `-${dbSortField}` : dbSortField;
+
+    return {
+      limit: currentLimit.value,
+      offset,
+      filter: buildApiFilters(),
+      sort: [sortField],
+    };
+  };
+
+  // Bumped by every fetchLieder. loadMore captures it before awaiting and drops
+  // its page if it changed in the meantime: fetchLieder *replaces* the list
+  // while loadMore *appends* to it, so a debounced search landing mid-page
+  // would otherwise splice the previous query's songs onto the new results.
+  let requestGeneration = 0;
+
   const fetchLieder = async (forceOnline = false) => {
+    requestGeneration++;
     try {
       console.log("fetchLieder called with forceOnline:", forceOnline);
       console.log("preferOfflineData:", preferOfflineData.value);
       isLoading.value = true;
       error.value = null;
+      // Re-derived below on the one path that can page. Clearing it up front
+      // means no terminal path can leave a stale "there is more" behind for
+      // loadMore to act on after a filter change.
+      hasMore.value = false;
 
       // If user prefers offline data (and not forcing online), try offline first
       if (preferOfflineData.value && !forceOnline) {
@@ -328,24 +371,7 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       }
 
       console.log("Fetching songs from API");
-      // Map sort fields to actual database column names
-      const sortFieldMap: Record<string, string> = {
-        title: "titel",
-        date_updated: "date_updated",
-        liednummer2000: "liednummer2000",
-        liednummer2026: "liednummer2026",
-      };
-      const dbSortField = sortFieldMap[filters.value.sortBy] || filters.value.sortBy;
-      const sortField = filters.value.sortDirection === "desc" ? `-${dbSortField}` : dbSortField;
-
-      const variables = {
-        limit: currentLimit.value,
-        offset: 0,
-        filter: buildApiFilters(),
-        sort: [sortField],
-      };
-
-      const result = await queryGesangbuchlied(variables);
+      const result = await queryGesangbuchlied(buildListRequest(0));
 
       if (result) {
         console.log(`Loaded ${result.length} songs from API`);
@@ -373,6 +399,10 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       // Handle offline errors gracefully
       if (typeof window !== "undefined" && !navigator.onLine) {
         error.value = t("songs.noOfflineContentAvailableConnect");
+      } else if (err instanceof NoSessionError) {
+        // The only error the user can actually resolve — say so in their own
+        // language instead of surfacing the data layer's English.
+        error.value = t(err.i18nKey);
       } else {
         error.value = err instanceof Error ? err.message : t("utils.unknownError");
       }
@@ -382,35 +412,32 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
   };
 
   const loadMore = async () => {
+    // Guard before touching the flag, and in the store rather than in each
+    // view: the scroll listener fires repeatedly, and both current callers
+    // happening to check `!isLoadingMore && hasMore` themselves is not
+    // something the next caller will remember to do.
+    if (isLoadingMore.value || !hasMore.value) return;
+
+    // If we're using cached data, don't load more (IndexedDB contains all songs)
+    if (isUsingCachedData.value) {
+      hasMore.value = false;
+      return;
+    }
+
+    const generation = requestGeneration;
+
     try {
       isLoadingMore.value = true;
 
-      // If we're using cached data, don't load more (IndexedDB contains all songs)
-      if (isUsingCachedData.value) {
-        hasMore.value = false;
-        return;
-      }
+      const result = await queryGesangbuchlied(buildListRequest(lieder.value.length));
 
-      // Only load more from API if we're using fresh data
-      const sortFieldMap: Record<string, string> = {
-        title: "titel",
-        date_updated: "date_updated",
-        liednummer2000: "liednummer2000",
-        liednummer2026: "liednummer2026",
-      };
-      const dbSortField = sortFieldMap[filters.value.sortBy] || filters.value.sortBy;
-      const sortField = filters.value.sortDirection === "desc" ? `-${dbSortField}` : dbSortField;
+      // A fetchLieder landed while this page was in flight and replaced the
+      // list. Appending now would put the previous query's songs under the new
+      // results.
+      if (generation !== requestGeneration) return;
 
-      const variables = {
-        limit: 50,
-        offset: lieder.value.length,
-        filter: buildApiFilters(),
-        sort: [sortField],
-      };
-
-      const result = await queryGesangbuchlied(variables);
       lieder.value.push(...result);
-      hasMore.value = result.length === 50;
+      hasMore.value = result.length === currentLimit.value;
     } catch (err) {
       console.error("Error loading more songs:", err);
     } finally {

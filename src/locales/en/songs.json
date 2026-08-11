@@ -31,6 +31,8 @@
   "viewDetails": "View Details",
   "noSongsFound": "No songs found",
   "noSongsDescription": "There are no songs available or they haven't been loaded yet.",
+  "noMatchingSongs": "No matching songs",
+  "noMatchingSongsDescription": "No song matches the current search and filters. Adjust the search or clear the filters.",
   "loadSongs": "Load Songs",
   "errorLoadingSongs": "Error loading songs",
   "retry": "Retry",
