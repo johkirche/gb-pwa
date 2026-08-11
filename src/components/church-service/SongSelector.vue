@@ -482,9 +482,11 @@ const clearSelection = () => {
   emit("songSelected", null);
 };
 
+// TODO: Implement audio preview. Until then this is a no-op and the Play button
+// above does nothing — tracked separately. The signature is kept because the
+// implementation will need the song.
 const previewSong = (song: Gesangbuchlied) => {
-  // TODO: Implement audio preview
-  console.log("Preview song:", song.titel);
+  void song;
 };
 
 // Helper functions

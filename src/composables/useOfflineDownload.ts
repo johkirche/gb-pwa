@@ -630,7 +630,6 @@ export const useOfflineDownload = () => {
       const totalAssets = desiredList.length;
 
       if (totalAssets === 0) {
-        console.log("No assets found to precache");
         return;
       }
 
@@ -658,10 +657,6 @@ export const useOfflineDownload = () => {
         percentage: Math.round((alreadyCached / totalAssets) * 100),
         currentAsset: "Starting asset precaching...",
       };
-
-      console.log(
-        `Starting to precache ${totalAssets} assets into IndexedDB (${toFetch.length} missing)`,
-      );
 
       // Writes that were rejected — quota exceeded, an evicted database, Safari
       // private mode. Counted separately from dropped downloads because a run
@@ -739,7 +734,6 @@ export const useOfflineDownload = () => {
       }
 
       assetPrecacheProgress.value.currentAsset = `Completed precaching ${totalAssets} assets`;
-      console.log(`Completed precaching ${totalAssets} assets into IndexedDB`);
     } catch (error) {
       console.error("Error precaching assets:", error);
       assetPrecacheFailed.value = true;
@@ -769,8 +763,7 @@ export const useOfflineDownload = () => {
       // browsers that don't support the API.
       if (navigator.storage?.persist) {
         try {
-          const persisted = await navigator.storage.persist();
-          console.log(`navigator.storage.persist() → ${persisted}`);
+          await navigator.storage.persist();
         } catch (err) {
           console.warn("Failed to request persistent storage:", err);
         }

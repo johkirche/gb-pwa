@@ -244,8 +244,6 @@ export const useGesangbuchlied = () => {
       sort: variables.sort || null,
     });
 
-    console.log(queryBuilder);
-
     try {
       const response = await makeGraphQLRequest<{
         data: {

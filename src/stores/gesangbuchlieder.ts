@@ -330,8 +330,6 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
   const fetchLieder = async (forceOnline = false) => {
     requestGeneration++;
     try {
-      console.log("fetchLieder called with forceOnline:", forceOnline);
-      console.log("preferOfflineData:", preferOfflineData.value);
       isLoading.value = true;
       error.value = null;
       // Re-derived below on the one path that can page. Clearing it up front
@@ -341,12 +339,9 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
 
       // If user prefers offline data (and not forcing online), try offline first
       if (preferOfflineData.value && !forceOnline) {
-        console.log("Trying offline data first...");
         const offlineSongs = await getOfflineSongs();
-        console.log("offlineSongs", offlineSongs);
 
         if (offlineSongs.length > 0) {
-          console.log(`Found ${offlineSongs.length} songs in IndexedDB`);
           lieder.value = offlineSongs;
           isUsingCachedData.value = true;
           hasMore.value = false; // IndexedDB contains all songs
@@ -359,7 +354,6 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
         // Try offline as fallback if online isn't available
         const offlineSongs = await getOfflineSongs();
         if (offlineSongs.length > 0) {
-          console.log(`Using offline songs as fallback (${offlineSongs.length} available)`);
           lieder.value = offlineSongs;
           isUsingCachedData.value = true;
           hasMore.value = false;
@@ -370,11 +364,9 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
         return;
       }
 
-      console.log("Fetching songs from API");
       const result = await queryGesangbuchlied(buildListRequest(0));
 
       if (result) {
-        console.log(`Loaded ${result.length} songs from API`);
         lieder.value = result;
         isUsingCachedData.value = false;
         hasMore.value = result.length === currentLimit.value;
@@ -387,9 +379,6 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       // Try offline as fallback on API error
       const offlineSongs = await getOfflineSongs();
       if (offlineSongs.length > 0) {
-        console.log(
-          `Using offline songs as fallback after API error (${offlineSongs.length} available)`,
-        );
         lieder.value = offlineSongs;
         isUsingCachedData.value = true;
         hasMore.value = false;
@@ -451,17 +440,11 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       const missingFavoriteIds = favorites.value.filter((id) => !currentlyLoadedIds.has(id));
 
       if (missingFavoriteIds.length > 0) {
-        console.log(
-          `Fetching ${missingFavoriteIds.length} missing favorite songs:`,
-          missingFavoriteIds,
-        );
-
         const missingFavorites = await queryGesangbuchliedByIds(missingFavoriteIds);
 
         if (missingFavorites.length > 0) {
           // Add the missing favorites to the main array
           lieder.value = [...lieder.value, ...missingFavorites];
-          console.log(`Added ${missingFavorites.length} missing favorite songs to the list`);
         }
       }
     } catch (error) {

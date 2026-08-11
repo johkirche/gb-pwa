@@ -117,7 +117,6 @@
           :alt="selectedImage.title || selectedImage.filename_download || 'Image'"
           class="max-w-full max-h-full object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
           @error="handleDialogImageError"
-          @load="handleDialogImageLoad"
           @click="openFullscreenImage"
         />
         <div v-else class="text-white">{{ t("song.noImageSelected") }}</div>
@@ -131,7 +130,6 @@
     :image-alt="fullScreenImage?.title || fullScreenImage?.filename_download || 'Image'"
     @close="handleFullscreenClose"
     @image-error="handleDialogImageError"
-    @image-load="handleDialogImageLoad"
   />
 </template>
 
@@ -239,24 +237,16 @@ const handleImageLoad = (event: Event) => {
   const fileId = img.src.match(/assets\/([^?]+)/)?.[1];
   if (fileId) {
     imageErrors.value.delete(fileId);
-    console.log("Image loaded successfully:", img.src);
   }
 };
 
 const openImagePreview = (file: Directus_Files) => {
-  console.log("Opening image preview for:", file);
-  console.log("Image URL:", `${props.directusUrl}/assets/${file.id}`);
   selectedImage.value = file;
 };
 
 const handleDialogImageError = (event: Event) => {
   const img = event.target as HTMLImageElement;
   console.error("Dialog image failed to load:", img.src);
-};
-
-const handleDialogImageLoad = (event: Event) => {
-  const img = event.target as HTMLImageElement;
-  console.log("Dialog image loaded successfully:", img.src);
 };
 
 const openFullscreenImage = () => {

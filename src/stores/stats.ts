@@ -101,8 +101,6 @@ export const useStatsStore = defineStore("stats", () => {
     // Based on the GraphQL validation errors, we know the structure should be nested
     // Let's try the manual GraphQL approach first since we know the correct structure
     try {
-      console.log("Trying manual GraphQL query with count.id and rangfolge filter...");
-
       const manualQuery = {
         query: `
           query GetSongCount($filter: gesangbuchlied_filter) {
@@ -138,8 +136,6 @@ export const useStatsStore = defineStore("stats", () => {
 
     // Fallback: try without filter if the filtered query fails
     try {
-      console.log("Trying manual GraphQL query with count.id (no filter)...");
-
       const manualQuery = {
         query: `
           query GetSongCount {
@@ -179,8 +175,6 @@ export const useStatsStore = defineStore("stats", () => {
 
     // Final fallback: try to get all songs and count them (not efficient but works)
     try {
-      console.log("All aggregated approaches failed, falling back to fetching all songs...");
-
       const allSongsQuery = query({
         operation: "gesangbuchlied",
         fields: ["id"],
@@ -218,8 +212,6 @@ export const useStatsStore = defineStore("stats", () => {
 
       // Try manual GraphQL query for category counts with proper structure
       try {
-        console.log("Trying manual GraphQL query for category counts...");
-
         const categoryCountQuery = {
           query: `
             query GetCategoryCounts($filter: gesangbuchlied_kategorie_filter, $groupBy: [String]) {
@@ -272,8 +264,6 @@ export const useStatsStore = defineStore("stats", () => {
 
         // Fallback: try without the nested filter
         try {
-          console.log("Trying simplified manual GraphQL query for category counts...");
-
           const simpleCategoryCountQuery = {
             query: `
               query GetCategoryCounts($groupBy: [String]) {

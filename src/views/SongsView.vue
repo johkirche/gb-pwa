@@ -239,7 +239,6 @@ watch(
     const [, , , , , oldShowFavoritesOnly] = oldValues || [];
 
     if (newShowFavoritesOnly && !oldShowFavoritesOnly && navigator.onLine) {
-      console.log("Skipping refetch - favorites watcher will handle missing favorites");
       return;
     }
 
@@ -254,8 +253,6 @@ watch(
 // the ref itself never changes identity, so the wrapper's watcher never fired
 // and flipping the switch never refetched.
 watch(preferOfflineData, async (newValue, oldValue) => {
-  console.log("Data source preference changed:", oldValue, "->", newValue);
-  console.log("Force online (forceOnline parameter):", !newValue);
   // Only refetch if the value actually changed (not on initial load)
   if (oldValue !== undefined && oldValue !== newValue) {
     await fetchLieder(!newValue); // Force online if switching to online mode

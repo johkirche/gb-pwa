@@ -133,7 +133,6 @@ const handleImageError = (event: Event) => {
 };
 
 const handleImageLoad = (event: Event) => {
-  console.log("Pan-zoom image loaded, initializing panzoom...");
   emit("imageLoad", event);
   // Initialize panzoom when the image is loaded
   nextTick(() => {
@@ -143,8 +142,8 @@ const handleImageLoad = (event: Event) => {
 
 // Panzoom functions
 const initializePanzoom = () => {
+  // Refs may not be mounted yet on the first call; retry until they are.
   if (!panZoomImage.value || !imageContainer.value) {
-    console.log("Refs not ready, retrying in 50ms...");
     setTimeout(() => {
       initializePanzoom();
     }, 50);
@@ -154,7 +153,6 @@ const initializePanzoom = () => {
   // Check if panZoomImage.value is actually a DOM element
   const imageEl = panZoomImage.value as HTMLElement;
   if (!imageEl || imageEl.nodeType !== 1) {
-    console.log("Still not a valid DOM element, retrying...");
     setTimeout(() => {
       initializePanzoom();
     }, 50);
@@ -164,7 +162,6 @@ const initializePanzoom = () => {
   if (!panzoomInstance) {
     // Get the actual DOM element
     const imageElement = panZoomImage.value as HTMLElement;
-    console.log("Initializing panzoom for:", imageElement);
 
     panzoomInstance = Panzoom(imageElement, {
       maxScale: 4,
@@ -196,8 +193,6 @@ const initializePanzoom = () => {
 
     // Reset zoom level to match panzoom's initial state
     zoomLevel.value = 1;
-
-    console.log("Panzoom initialized successfully");
   }
 };
 

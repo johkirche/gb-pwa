@@ -111,12 +111,10 @@ const setupPWAUpdates = async () => {
         onNeedRefresh() {
           updateAvailable.value = true;
         },
-        onOfflineReady() {
-          console.log("PWA ready to work offline");
-        },
       });
     } catch (error) {
-      console.log("PWA register not available:", error);
+      // Not fatal, but the user will never be offered an update from here.
+      console.warn("PWA register not available:", error);
     }
   }
 };

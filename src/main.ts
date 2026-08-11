@@ -27,15 +27,11 @@ const updateSW = registerSW({
       updateSW(true);
     }
   },
-  onOfflineReady() {
-    console.log("App ready to work offline");
-    // You could show a toast notification here
-  },
-  onRegistered(r: ServiceWorkerRegistration | undefined) {
-    console.log("SW registered: ", r);
-  },
+  // onOfflineReady / onRegistered are intentionally not handled: they only
+  // narrated the service-worker lifecycle to the console. A failed registration
+  // is a real fault — it means no offline mode — so that one stays, as an error.
   onRegisterError(error: Error) {
-    console.log("SW registration error", error);
+    console.error("SW registration error", error);
   },
 });
 

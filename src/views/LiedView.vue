@@ -115,7 +115,6 @@ const fetchLied = async () => {
   try {
     isLoading.value = true;
     queryError.value = null;
-    console.log("fetchLied", liedId);
 
     const { getOfflineSongById } = useOfflineDownload();
 
@@ -123,7 +122,6 @@ const fetchLied = async () => {
     const offlineSong = await getOfflineSongById(liedId);
 
     if (offlineSong) {
-      console.log("Found song in IndexedDB:", offlineSong.titel);
       lied.value = offlineSong;
       isUsingCachedData.value = true;
 
@@ -134,7 +132,6 @@ const fetchLied = async () => {
           const freshResult = await queryGesangbuchliedById(liedId);
 
           if (freshResult) {
-            console.log("Updated with fresh data from API");
             lied.value = freshResult;
             isUsingCachedData.value = false;
           }
@@ -145,8 +142,6 @@ const fetchLied = async () => {
       }
     } else {
       // No cached version found, try API
-      console.log("Song not found in IndexedDB, fetching from API");
-
       if (typeof window !== "undefined" && !navigator.onLine) {
         queryError.value = t("song.notAvailableOffline");
         return;

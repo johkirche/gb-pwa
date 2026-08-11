@@ -23,6 +23,13 @@ import { defineConfig } from "vitest/config";
  * should also guard against over-correction (e.g. "a normal token is still
  * valid"), so a fix cannot swing past the target. What matters is that every
  * file contains at least one assertion that is red today.
+ *
+ * The backlog is currently EMPTY — every filed defect has been fixed and its
+ * spec promoted. `passWithNoTests` is what makes that state read as green:
+ * vitest's default is to exit 1 on "No test files found", which would leave the
+ * CI job red for an infrastructure reason rather than because a bug is open.
+ * The directory and this config stay in place — the next filed defect gets its
+ * spec here, and the job goes red again on its own. See test/known-issues/README.md.
  */
 export default defineConfig({
   plugins: [vue()],
@@ -36,6 +43,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./test/setup.ts"],
     include: ["test/known-issues/**/*.test.ts"],
+    // An empty backlog is a success, not a failure. See the note above.
+    passWithNoTests: true,
     env: {
       VITE_PUBLIC_DIRECTUS_URL: "https://directus.test",
     },

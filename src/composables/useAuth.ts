@@ -61,7 +61,6 @@ export const useAuth = () => {
 
     if (timeUntilRefresh > 0) {
       refreshTimer = setTimeout(async () => {
-        console.log("Auto-refreshing token before expiry");
         await refreshAuth();
       }, timeUntilRefresh);
     }
@@ -236,13 +235,11 @@ export const useAuth = () => {
     if (!startToken) return false;
 
     try {
-      console.log("Refreshing auth tokens...");
       const res = await directusApi.refresh({
         refresh_token: startToken,
         mode: "json",
       });
       await applyRefreshedSession(res.access_token, res.refresh_token);
-      console.log("Auth tokens refreshed successfully");
       return true;
     } catch (error: unknown) {
       // Transient/offline: keep the session entirely intact and retry later.
