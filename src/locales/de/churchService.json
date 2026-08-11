@@ -152,6 +152,52 @@
       "ready": "Bereit"
     }
   },
+  "toast": {
+    "started": {
+      "title": "Gottesdienst gestartet",
+      "description": "Der Ablauf wird jetzt abgespielt."
+    },
+    "completed": {
+      "title": "Gottesdienst beendet",
+      "description": "Alle Lieder des Gottesdienstes wurden gespielt."
+    },
+    "saved": {
+      "title": "Gottesdienst gespeichert",
+      "description": "„{name}“ wurde im Verlauf gespeichert."
+    },
+    "saveFailed": {
+      "title": "Speichern fehlgeschlagen",
+      "description": "Der Gottesdienst konnte nicht gespeichert werden. Er ist noch da – bitte erneut versuchen."
+    },
+    "loaded": {
+      "title": "Gottesdienst geladen",
+      "description": "„{name}“ wurde geladen."
+    },
+    "deleted": {
+      "title": "Gottesdienst gelöscht",
+      "description": "Der Gottesdienst wurde aus dem Verlauf entfernt."
+    },
+    "deleteFailed": {
+      "title": "Löschen fehlgeschlagen",
+      "description": "Der Gottesdienst konnte nicht gelöscht werden. Bitte erneut versuchen."
+    },
+    "preparedSaved": {
+      "title": "Für später gespeichert",
+      "description": "„{name}“ steht jetzt unter „Vorbereitete Gottesdienste“."
+    },
+    "preparedSaveFailed": {
+      "title": "Speichern fehlgeschlagen",
+      "description": "Der vorbereitete Gottesdienst konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "preparedDeleted": {
+      "title": "Vorbereiteter Gottesdienst gelöscht",
+      "description": "Der vorbereitete Gottesdienst wurde entfernt."
+    },
+    "preparedDeleteFailed": {
+      "title": "Löschen fehlgeschlagen",
+      "description": "Der vorbereitete Gottesdienst konnte nicht gelöscht werden. Bitte erneut versuchen."
+    }
+  },
   "save": {
     "title": "Gottesdienst speichern?",
     "description": "{count} Lieder wurden gespielt. Möchtest du diesen Gottesdienst im Verlauf speichern?",

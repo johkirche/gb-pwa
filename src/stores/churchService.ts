@@ -5,6 +5,8 @@ import { computed, ref } from "vue";
 import type { FreiesMusikstueck, GesangbuchliedWithMidi } from "@/gql/extra-types";
 import type { Gesangbuchlied } from "@/gql/graphql";
 
+import { useToast } from "@/composables/useToast";
+
 // A "main" entry: one of the hymns in the service body. Has selectable verses
 // and is played via the full MIDI trio (intro / main × verses / outro).
 //
@@ -33,6 +35,11 @@ export const SPEED_MAX = 2.0;
 export const SPEED_STEP = 0.05;
 export const PITCH_MIN = -12;
 export const PITCH_MAX = 12;
+
+// How many verses to offer when the text carries no verse breakdown at all.
+// Shared with VerseSelector so the picker can never offer a different count
+// than the one the store preselected.
+export const DEFAULT_VERSE_COUNT = 4;
 
 // Discriminated union over the flat playlist. Intro/outro slots hold a single
 // standalone MIDI file (`FreiesMusikstueck`) from the `freie_musikstuecke`
@@ -186,13 +193,21 @@ function emptyService(): ChurchService {
   };
 }
 
+// A Vorspiel/Nachspiel is only playable if it actually carries a MIDI file.
+// The schema requires one, but stored records predate that guarantee — and a
+// piece whose file is missing dead-ends the run step with a greyed-out play
+// button and no explanation, so it is dropped at the door instead.
+function hasMidiFile(piece: FreiesMusikstueck | null | undefined): boolean {
+  return !!piece?.midi_file;
+}
+
 // Older saved services stored intro/outro as a bare `FreiesMusikstueck`; newer
 // ones wrap it in a `ChurchServicePiece` with speed/pitch. Accept both and
 // always return the wrapped shape (or null).
 function normalizePiece(raw: unknown): ChurchServicePiece | null {
   if (!raw || typeof raw !== "object") return null;
   // Already wrapped — backfill any missing tempo/pitch fields.
-  if ("piece" in raw && (raw as ChurchServicePiece).piece) {
+  if ("piece" in raw && hasMidiFile((raw as ChurchServicePiece).piece)) {
     const wrapped = raw as ChurchServicePiece;
     return {
       piece: wrapped.piece,
@@ -201,8 +216,9 @@ function normalizePiece(raw: unknown): ChurchServicePiece | null {
         typeof wrapped.pitchSemitones === "number" ? wrapped.pitchSemitones : 0,
     };
   }
-  // Legacy bare piece (has its own midi_file/name) — wrap at neutral playback.
-  if ("midi_file" in raw || "name" in raw) {
+  // Legacy bare piece — only accept it if it really carries a MIDI file. A bare
+  // `name` used to be enough, which admitted `{ midi_file: null }` too.
+  if (hasMidiFile(raw as FreiesMusikstueck)) {
     return { piece: raw as FreiesMusikstueck, speed: 1, pitchSemitones: 0 };
   }
   return null;
@@ -224,10 +240,10 @@ function normalizeService<T extends ChurchService>(svc: T): T {
 }
 
 export const useChurchServiceStore = defineStore("churchService", () => {
-  // Simple toast replacement with console.log for now
-  const toast = (options: { title: string; description: string; variant?: string }) => {
-    console.log(`${options.title}: ${options.description}`);
-  };
+  // Queues i18n keys; <Toaster> renders them. A store has no component
+  // instance, so it cannot translate — see useToast for why keys travel instead
+  // of finished strings.
+  const { toast } = useToast();
 
   // State
   const currentService = ref<ChurchService>(emptyService());
@@ -246,7 +262,11 @@ export const useChurchServiceStore = defineStore("churchService", () => {
 
   // Database manager
   const dbManager = new ServiceDBManager();
-  let dbInitialized = false;
+  // Memoised open. A boolean flag set *after* the await let two callers that
+  // start in the same tick — loadHistory() and loadPreparedServices() are
+  // dispatched together from ChurchServiceView's onMounted — each open their
+  // own connection, the second of which orphaned the first.
+  let dbReady: Promise<void> | null = null;
 
   // A main song is playable iff it carries the full MIDI trio (intro/main/outro).
   const hasMidiTrio = (song: Gesangbuchlied | null): boolean => {
@@ -307,23 +327,30 @@ export const useChurchServiceStore = defineStore("churchService", () => {
   });
 
   // Computed: every main entry must have verses + MIDI trio, and the playlist
-  // must be non-empty. Pieces only need their midi_file to be present, which
-  // the schema guarantees.
+  // must be non-empty. Intro/outro pieces need their midi_file — normalizePiece
+  // already drops fileless ones on load, but a piece can also arrive through
+  // setIntroPiece, and an unplayable prelude must block "Weiter" rather than
+  // surface as a greyed-out play button mid-service.
   const canPlayService = computed(() => {
     if (playlist.value.length === 0) return false;
-    return currentService.value.songs.every(
-      (s) => s.song && s.verses.length > 0 && hasMidiTrio(s.song),
-    );
+    const { intro, outro, songs } = currentService.value;
+    if (intro && !hasMidiFile(intro.piece)) return false;
+    if (outro && !hasMidiFile(outro.piece)) return false;
+    return songs.every((s) => s.song && s.verses.length > 0 && hasMidiTrio(s.song));
   });
 
   const canAdvanceToDevice = computed(() => canPlayService.value);
 
   // Actions
-  const initDB = async () => {
-    if (!dbInitialized) {
-      await dbManager.init();
-      dbInitialized = true;
-    }
+  const initDB = (): Promise<void> => {
+    // Clearing the memo on failure keeps the retry-on-next-action behaviour
+    // loadHistory / deleteService rely on: a database that was unavailable once
+    // must not stay unavailable for the rest of the session.
+    dbReady ??= dbManager.init().catch((error: unknown) => {
+      dbReady = null;
+      throw error;
+    });
+    return dbReady;
   };
 
   // ── Song-list mutations (main list) ──────────────────────────────────────
@@ -404,18 +431,16 @@ export const useChurchServiceStore = defineStore("churchService", () => {
   // ── Verse helpers ────────────────────────────────────────────────────────
 
   const getAllVerses = (song: Gesangbuchlied): number[] => {
-    // Try to determine number of verses from the song text
-    const verses: number[] = [];
+    const strophen = song.textId?.strophenEinzeln;
 
-    if (song.textId?.strophenEinzeln && Array.isArray(song.textId.strophenEinzeln)) {
-      // Count actual verses from strophenEinzeln
-      verses.push(...song.textId.strophenEinzeln.map((_, index) => index + 1));
-    } else {
-      // Default to 4 verses if we can't determine
-      verses.push(1, 2, 3, 4);
+    // An *empty* array means the text was never split into verses — it is not a
+    // hymn with zero verses. Taking it as authoritative selected nothing, which
+    // silently blocked playback with no way out of the setup step.
+    if (Array.isArray(strophen) && strophen.length > 0) {
+      return strophen.map((_, index) => index + 1);
     }
 
-    return verses;
+    return Array.from({ length: DEFAULT_VERSE_COUNT }, (_, index) => index + 1);
   };
 
   // ── Wizard navigation ────────────────────────────────────────────────────
@@ -444,8 +469,8 @@ export const useChurchServiceStore = defineStore("churchService", () => {
     currentPlayingIndex.value = 0;
 
     toast({
-      title: "Service Started",
-      description: "Playing service audio...",
+      titleKey: "churchService.toast.started.title",
+      descriptionKey: "churchService.toast.started.description",
     });
   };
 
@@ -455,11 +480,13 @@ export const useChurchServiceStore = defineStore("churchService", () => {
     // dialog handlers below (confirmSave / discardService) reset state.
     isPlayingService.value = false;
     wizardStep.value = "idle";
-    saveDialogOpen.value = true;
+    // Nothing was played, so there is nothing worth offering to save — mirrors
+    // the `playlist.length > 0` guard SetupStep uses for "save for later".
+    saveDialogOpen.value = playlist.value.length > 0;
 
     toast({
-      title: "Service Completed",
-      description: "All songs in the service have been played.",
+      titleKey: "churchService.toast.completed.title",
+      descriptionKey: "churchService.toast.completed.description",
     });
   };
 
@@ -474,7 +501,24 @@ export const useChurchServiceStore = defineStore("churchService", () => {
       minute: "2-digit",
     })}`;
 
+  const discardService = () => {
+    saveDialogOpen.value = false;
+    currentService.value = emptyService();
+    currentPlayingIndex.value = 0;
+
+    wizardStep.value = "idle";
+  };
+
   const confirmSave = async (name?: string) => {
+    // Nothing to persist. Unreachable from the wizard (the run step cannot be
+    // entered without a playable playlist), but confirmSave is exposed on the
+    // store, and writing an empty record to the history is never what a caller
+    // meant — close up as if the prompt had been dismissed.
+    if (playlist.value.length === 0) {
+      discardService();
+      return;
+    }
+
     try {
       await initDB();
 
@@ -482,6 +526,9 @@ export const useChurchServiceStore = defineStore("churchService", () => {
 
       const serviceToSave: ServiceHistoryItem = {
         ...currentService.value,
+        // The history is append-only: every row is one service that was
+        // actually played, so a loaded service played again is a new row.
+        // Only the prepared list re-uses the loaded id (see saveAsPrepared).
         id: crypto.randomUUID(),
         name: serviceName,
         createdAt: new Date().toISOString(),
@@ -493,29 +540,28 @@ export const useChurchServiceStore = defineStore("churchService", () => {
       await loadHistory();
 
       toast({
-        title: "Service Saved",
-        description: `"${serviceName}" has been saved to history.`,
+        titleKey: "churchService.toast.saved.title",
+        descriptionKey: "churchService.toast.saved.description",
+        params: { name: serviceName },
       });
-    } catch (error) {
-      console.error("Failed to save service:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save service. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
+
+      // Only clear on success. This used to live in a `finally`, so a failed
+      // IndexedDB write wiped the just-played service from memory as well —
+      // the operator was left with nothing saved and nothing to retry with.
       saveDialogOpen.value = false;
       currentService.value = emptyService();
       currentPlayingIndex.value = 0;
+      wizardStep.value = "idle";
+    } catch (error) {
+      console.error("Failed to save service:", error);
+      // The dialog deliberately stays open: it is the retry, and closing it
+      // would read as "saved".
+      toast({
+        titleKey: "churchService.toast.saveFailed.title",
+        descriptionKey: "churchService.toast.saveFailed.description",
+        variant: "destructive",
+      });
     }
-  };
-
-  const discardService = () => {
-    saveDialogOpen.value = false;
-    currentService.value = emptyService();
-    currentPlayingIndex.value = 0;
-
-    wizardStep.value = "idle";
   };
 
   // ── History ──────────────────────────────────────────────────────────────
@@ -523,6 +569,11 @@ export const useChurchServiceStore = defineStore("churchService", () => {
   const loadService = (service: ServiceHistoryItem) => {
     const normalized = normalizeService(service);
     currentService.value = {
+      // Carry the record's identity into the editor. Without it every save
+      // minted a fresh UUID, so editing a prepared service stored a duplicate
+      // beside the original instead of updating it.
+      id: normalized.id,
+      name: normalized.name,
       intro: normalized.intro,
       songs: normalized.songs,
       outro: normalized.outro,
@@ -531,8 +582,9 @@ export const useChurchServiceStore = defineStore("churchService", () => {
     wizardStep.value = "setup";
 
     toast({
-      title: "Service Loaded",
-      description: `"${service.name}" has been loaded.`,
+      titleKey: "churchService.toast.loaded.title",
+      descriptionKey: "churchService.toast.loaded.description",
+      params: { name: service.name },
     });
   };
 
@@ -543,14 +595,14 @@ export const useChurchServiceStore = defineStore("churchService", () => {
       await loadHistory();
 
       toast({
-        title: "Service Deleted",
-        description: "Service has been removed from history.",
+        titleKey: "churchService.toast.deleted.title",
+        descriptionKey: "churchService.toast.deleted.description",
       });
     } catch (error) {
       console.error("Failed to delete service:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete service. Please try again.",
+        titleKey: "churchService.toast.deleteFailed.title",
+        descriptionKey: "churchService.toast.deleteFailed.description",
         variant: "destructive",
       });
     }
@@ -598,7 +650,12 @@ export const useChurchServiceStore = defineStore("churchService", () => {
 
       const serviceToSave: ServiceHistoryItem = {
         ...currentService.value,
-        id: crypto.randomUUID(),
+        // A prepared service is a reusable template, so re-saving one the
+        // operator loaded updates that row (`put` upserts on the id keyPath)
+        // instead of leaving a near-identical duplicate in the list. Anything
+        // built from scratch still gets a fresh id — startSetup() hands back an
+        // editor with no identity, so this only fires after loadService().
+        id: currentService.value.id ?? crypto.randomUUID(),
         name: serviceName,
         createdAt: new Date().toISOString(),
       };
@@ -609,14 +666,15 @@ export const useChurchServiceStore = defineStore("churchService", () => {
       await loadPreparedServices();
 
       toast({
-        title: "Prepared service saved",
-        description: `"${serviceName}" has been saved for later.`,
+        titleKey: "churchService.toast.preparedSaved.title",
+        descriptionKey: "churchService.toast.preparedSaved.description",
+        params: { name: serviceName },
       });
     } catch (error) {
       console.error("Failed to save prepared service:", error);
       toast({
-        title: "Error",
-        description: "Failed to save prepared service. Please try again.",
+        titleKey: "churchService.toast.preparedSaveFailed.title",
+        descriptionKey: "churchService.toast.preparedSaveFailed.description",
         variant: "destructive",
       });
     } finally {
@@ -631,14 +689,14 @@ export const useChurchServiceStore = defineStore("churchService", () => {
       await loadPreparedServices();
 
       toast({
-        title: "Prepared service deleted",
-        description: "Prepared service has been removed.",
+        titleKey: "churchService.toast.preparedDeleted.title",
+        descriptionKey: "churchService.toast.preparedDeleted.description",
       });
     } catch (error) {
       console.error("Failed to delete prepared service:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete prepared service. Please try again.",
+        titleKey: "churchService.toast.preparedDeleteFailed.title",
+        descriptionKey: "churchService.toast.preparedDeleteFailed.description",
         variant: "destructive",
       });
     }

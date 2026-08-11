@@ -102,6 +102,8 @@ import type { Gesangbuchlied } from "@/gql/graphql";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { DEFAULT_VERSE_COUNT } from "@/stores/churchService";
+
 interface Props {
   song: Gesangbuchlied;
   modelValue: number[];
@@ -132,17 +134,17 @@ const sortedSelectedVerses = computed(() => {
 });
 
 const availableVerses = computed(() => {
-  const verses: number[] = [];
+  const strophen = props.song.textId?.strophenEinzeln;
 
-  if (props.song.textId?.strophenEinzeln && Array.isArray(props.song.textId.strophenEinzeln)) {
-    // Count actual verses from strophenEinzeln
-    verses.push(...props.song.textId.strophenEinzeln.map((_, index) => index + 1));
-  } else {
-    // Default to 6 verses if we can't determine
-    verses.push(1, 2, 3, 4, 5, 6);
+  // Same rule as the store's getAllVerses, down to the fallback count: an empty
+  // array means "not split into verses yet", not "no verses". Offering a
+  // different number here than the store preselected is what left the picker
+  // showing six boxes for a service the store had filled with four.
+  if (Array.isArray(strophen) && strophen.length > 0) {
+    return strophen.map((_, index) => index + 1);
   }
 
-  return verses;
+  return Array.from({ length: DEFAULT_VERSE_COUNT }, (_, index) => index + 1);
 });
 
 const isVerseSelected = (verseNumber: number): boolean => {

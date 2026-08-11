@@ -71,11 +71,13 @@ const defaultName = computed(() =>
   }),
 );
 
-// Pre-fill the input when the dialog opens, clear it when it closes.
+// Pre-fill the input when the dialog opens, clear it when it closes. A service
+// loaded from the history or the prepared list offers its own name back, since
+// that is what the operator recognises it by.
 watch(
   () => store.saveDialogOpen,
   (open) => {
-    if (open) name.value = defaultName.value;
+    if (open) name.value = store.currentService.name || defaultName.value;
     else name.value = "";
   },
 );

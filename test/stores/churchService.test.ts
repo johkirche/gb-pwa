@@ -39,12 +39,59 @@ function makePiece(overrides: Partial<FreiesMusikstueck> = {}): FreiesMusikstuec
   } as unknown as FreiesMusikstueck;
 }
 
+/** The same hymn, but its text was never split into verses. */
+function songWithEmptyStrophen(): Gesangbuchlied {
+  return makeSong({
+    titel: "Ohne Strophenaufteilung",
+    textId: { strophenEinzeln: [] } as never,
+  });
+}
+
+/** A saved history/prepared record with the given intro and outro slots. */
+function savedService(slots: {
+  intro?: unknown;
+  outro?: unknown;
+  songs?: unknown[];
+}): ServiceHistoryItem {
+  return {
+    id: "svc-1",
+    name: "Gespeicherter Gottesdienst",
+    createdAt: "2025-01-01T00:00:00.000Z",
+    intro: slots.intro ?? null,
+    outro: slots.outro ?? null,
+    songs: slots.songs ?? [],
+  } as unknown as ServiceHistoryItem;
+}
+
 /** Store sitting in the setup step with one complete, playable hymn. */
 function playableStore() {
   const store = useChurchServiceStore();
   store.startSetup();
   store.addSong(makeSong());
   return store;
+}
+
+/** A service that has just finished playing and is waiting on the save prompt. */
+function playedService() {
+  const store = useChurchServiceStore();
+  store.startSetup();
+  store.setIntroPiece(makePiece({ id: "p-vor", name: "Vorspiel" }));
+  store.addSong(makeSong({ titel: "Ostersonntag-Lied" }));
+  store.updateSongVerses(0, [1, 3]);
+  store.updateSongSpeed(0, 0.8);
+  store.startService();
+  store.finishService();
+  return store;
+}
+
+/** Prepare and stash one service, then hand back the store and the saved row. */
+async function withOnePreparedService() {
+  const store = useChurchServiceStore();
+  store.startSetup();
+  store.addSong(makeSong({ titel: "Advent-Lied" }));
+  await store.saveAsPrepared("Advent I");
+
+  return { store, original: store.preparedServices[0] };
 }
 
 /** Make every IndexedDB call fail before the store ever opened the database. */
@@ -181,10 +228,59 @@ describe("getAllVerses", () => {
     expect(store.getAllVerses(song)).toEqual([1, 2, 3, 4]);
   });
 
-  // The empty-`strophenEinzeln` case is a filed defect (issue #29) rather than
-  // intended behaviour, so it is asserted in test/known-issues/ where it fails
-  // visibly. Deliberately not pinned here: a green test asserting the bug would
-  // read as coverage while blessing it.
+  // Regression guard for issue #29. `[]` is truthy, so an empty verse array
+  // used to take the "we know the verses" branch and spread nothing: the hymn
+  // was added with no verses selected, canPlayService stayed false, and the
+  // verse picker rendered an empty grid — nothing to click, no way forward.
+  describe("a hymn whose text was never split into verses", () => {
+    it("numbers four verses for an empty array, exactly as for an absent one", () => {
+      const store = useChurchServiceStore();
+
+      expect(store.getAllVerses(songWithEmptyStrophen())).toEqual([1, 2, 3, 4]);
+    });
+
+    it("preselects those four verses when the hymn is added to a service", () => {
+      const store = useChurchServiceStore();
+
+      store.startSetup();
+      store.addSong(songWithEmptyStrophen());
+
+      expect(store.currentService.songs[0].verses).toEqual([1, 2, 3, 4]);
+    });
+
+    it("is not flagged as broken in the setup step", () => {
+      const store = useChurchServiceStore();
+
+      store.startSetup();
+      store.addSong(songWithEmptyStrophen());
+
+      expect(store.invalidSetupSongs).toEqual([]);
+    });
+
+    it("does not block playback of a service built from it", () => {
+      const store = useChurchServiceStore();
+
+      store.startSetup();
+      store.addSong(songWithEmptyStrophen());
+
+      expect(store.canPlayService).toBe(true);
+    });
+
+    it("can still have its selection cleared by hand, which blocks playback", () => {
+      // The fallback must stay a fallback: it fills an unknown verse count, it
+      // does not override the operator.
+      const store = useChurchServiceStore();
+      store.startSetup();
+      store.addSong(songWithEmptyStrophen());
+
+      store.updateSongVerses(0, []);
+
+      expect(store.canPlayService).toBe(false);
+      expect(store.invalidSetupSongs).toEqual([
+        { label: "Ohne Strophenaufteilung", reason: "no-verses" },
+      ]);
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -640,6 +736,24 @@ describe("canPlayService", () => {
     expect(store.canPlayService).toBe(false);
   });
 
+  // Regression guard for issue #9. A prelude with no MIDI file used to pass
+  // every validation step and then present a permanently greyed-out play button
+  // in the run step, with no explanation anywhere.
+  it("is false when the prelude carries no MIDI file", () => {
+    const store = useChurchServiceStore();
+    store.setIntroPiece(makePiece({ midi_file: null } as never));
+
+    expect(store.canPlayService).toBe(false);
+  });
+
+  it("is false when the postlude carries no MIDI file", () => {
+    const store = useChurchServiceStore();
+    store.addSong(makeSong());
+    store.setOutroPiece(makePiece({ midi_file: null } as never));
+
+    expect(store.canPlayService).toBe(false);
+  });
+
   it("canAdvanceToDevice mirrors it exactly", () => {
     const store = useChurchServiceStore();
     expect(store.canAdvanceToDevice).toBe(false);
@@ -734,6 +848,18 @@ describe("wizard navigation", () => {
     // The service must survive until the dialog is answered, otherwise there
     // would be nothing left to save.
     expect(store.currentService.songs).toHaveLength(1);
+  });
+
+  it("finishService does not offer to save a service with nothing in it", () => {
+    // Issue #30: mirrors the `playlist.length > 0` guard SetupStep already
+    // uses for "save for later".
+    const store = useChurchServiceStore();
+    store.startSetup();
+
+    store.finishService();
+
+    expect(store.saveDialogOpen).toBe(false);
+    expect(store.wizardStep).toBe("idle");
   });
 });
 
@@ -837,6 +963,20 @@ describe("confirmSave", () => {
     expect(store.currentPlayingIndex).toBe(0);
   });
 
+  it("returns the wizard to idle, exactly as discardService does", async () => {
+    // Issue #30: only discardService used to reset the step. Harmless while
+    // finishService was the sole entry point, but a "save and keep editing"
+    // button would have left the wizard pointing at an emptied service.
+    const store = playableStore();
+    store.startService();
+    store.finishService();
+    store.wizardStep = "setup";
+
+    await store.confirmSave("Fertig");
+
+    expect(store.wizardStep).toBe("idle");
+  });
+
   it("falls back to a generated name when the given one is only whitespace", async () => {
     const store = playableStore();
 
@@ -870,16 +1010,19 @@ describe("confirmSave", () => {
     expect(store.serviceHistory.map((s) => s.name)).toEqual(["Einziger"]);
   });
 
-  it("happily saves a completely empty service", async () => {
-    // No guard exists: finishService opens the save prompt unconditionally, so
-    // confirming it right after startSetup writes an empty record to history.
+  // Regression guard for issue #30's empty-service guard. There used to be
+  // none, so confirming the prompt right after startSetup wrote an empty record
+  // to the history.
+  it("refuses to write an empty service to the history", async () => {
     const store = useChurchServiceStore();
     store.startSetup();
+    store.saveDialogOpen = true;
 
     await store.confirmSave("Leerer Gottesdienst");
 
-    expect(store.serviceHistory).toHaveLength(1);
-    expect(store.serviceHistory[0].songs).toEqual([]);
+    expect(store.serviceHistory).toEqual([]);
+    expect(store.saveDialogOpen).toBe(false);
+    expect(store.wizardStep).toBe("idle");
   });
 
   it("swallows a database failure instead of rejecting, and writes nothing", async () => {
@@ -893,13 +1036,67 @@ describe("confirmSave", () => {
     expect(store.serviceHistory).toEqual([]);
   });
 
-  // What the failure path does to the *editor* is a filed defect (issue #27):
-  // the `finally` block wipes currentService, so a failed write destroys the
-  // just-played service instead of leaving it there to retry with. That is
-  // asserted in test/known-issues/ where it fails visibly, together with the
-  // save dialog's fate, which the fix has to decide on. Deliberately not pinned
-  // here: a green test asserting the bug would read as coverage while blessing
-  // it.
+  // Regression guards for issue #27. The reset used to live in a `finally`, so
+  // a failed IndexedDB write wiped the just-played service from memory as well:
+  // nothing on disk, nothing in the editor, and no on-screen warning either.
+  describe("when the database write fails", () => {
+    it("keeps the played service in the editor", async () => {
+      const store = playedService();
+      breakIndexedDB();
+
+      await store.confirmSave("Geht nicht");
+
+      expect(store.currentService.songs).toHaveLength(1);
+    });
+
+    it("keeps the prelude and every tempo/verse choice, not just the song rows", async () => {
+      const store = playedService();
+      breakIndexedDB();
+
+      await store.confirmSave("Geht nicht");
+
+      expect(store.currentService.intro?.piece.id).toBe("p-vor");
+      expect(store.currentService.songs[0]?.verses).toEqual([1, 3]);
+      expect(store.currentService.songs[0]?.speed).toBe(0.8);
+    });
+
+    it("leaves the dialog open, since it is the retry", async () => {
+      const store = playedService();
+      breakIndexedDB();
+
+      await store.confirmSave("Geht nicht");
+
+      expect(store.saveDialogOpen).toBe(true);
+    });
+
+    it("saves the real service, not an empty one, when the retry succeeds", async () => {
+      const store = playedService();
+      breakIndexedDB();
+      await store.confirmSave("Ostern 2026");
+
+      // The database comes back (e.g. the private-mode quota error clears) and
+      // the operator presses save again.
+      vi.stubGlobal("indexedDB", new IDBFactory());
+      await store.confirmSave("Ostern 2026");
+
+      expect(store.serviceHistory).toHaveLength(1);
+      expect(store.serviceHistory[0].songs).toHaveLength(1);
+      expect(store.serviceHistory[0].songs[0].song?.titel).toBe("Ostersonntag-Lied");
+    });
+
+    it("still clears the editor after a successful save", async () => {
+      // Keeping the service on the failure path must not keep it on the happy
+      // path too, or every following service starts pre-filled with the last.
+      const store = playedService();
+
+      await store.confirmSave("Fertig");
+
+      expect(store.serviceHistory).toHaveLength(1);
+      expect(store.currentService.songs).toEqual([]);
+      expect(store.currentService.intro).toBeNull();
+      expect(store.currentPlayingIndex).toBe(0);
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1033,12 +1230,35 @@ describe("loadService", () => {
     expect(store.canPlayService).toBe(true);
   });
 
-  // loadService dropping the record's id and name — so re-saving an edited
-  // service mints a fresh UUID and stores a duplicate beside the original — is
-  // a filed defect (issue #28) rather than intended behaviour, so it is
-  // asserted in test/known-issues/ where it fails visibly. Deliberately not
-  // pinned here: a green test asserting the bug would read as coverage while
-  // blessing it.
+  // Regression guard for issue #28. loadService used to copy only
+  // intro/songs/outro/createdAt, dropping the record's identity, so every
+  // re-save minted a fresh UUID and filed a near-identical duplicate.
+  it("carries the record's id into the editor", async () => {
+    const { store, original } = await withOnePreparedService();
+
+    store.loadService(original);
+
+    expect(store.currentService.id).toBe(original.id);
+  });
+
+  it("carries the record's name into the editor", async () => {
+    const { store, original } = await withOnePreparedService();
+
+    store.loadService(original);
+
+    expect(store.currentService.name).toBe("Advent I");
+  });
+
+  it("startSetup hands back a blank editor with no carried-over identity", async () => {
+    const { store, original } = await withOnePreparedService();
+    store.loadService(original);
+
+    store.startSetup();
+
+    expect(store.currentService.id).toBeUndefined();
+    expect(store.currentService.name).toBeUndefined();
+    expect(store.currentService.songs).toEqual([]);
+  });
 
   it("backfills tempo and pitch on songs saved before those fields existed", () => {
     const store = useChurchServiceStore();
@@ -1127,11 +1347,60 @@ describe("loadService", () => {
     expect(store.canPlayService).toBe(false);
   });
 
-  // A prelude/postlude blob with no `midi_file` being accepted — and counted as
-  // playable — is a filed defect (issue #9) rather than intended behaviour, so
-  // it is asserted in test/known-issues/ where it fails visibly. Deliberately
-  // not pinned here: a green test asserting the bug would read as coverage
-  // while blessing it.
+  // Regression guard for issue #9. normalizePiece's legacy branch used to
+  // accept anything carrying a `name` key — `"midi_file" in raw || "name" in
+  // raw` — so a blob with no file, or with `midi_file: null`, was wrapped as a
+  // playable piece and handed to the runner with nothing to play.
+  it("discards a legacy blob that carries only a name", () => {
+    const store = useChurchServiceStore();
+
+    store.loadService(savedService({ intro: { name: "Nur ein Name" } }));
+
+    expect(store.currentService.intro).toBeNull();
+    expect(store.canPlayService).toBe(false);
+  });
+
+  it("discards a piece whose midi_file is explicitly null", () => {
+    const store = useChurchServiceStore();
+
+    store.loadService(
+      savedService({ intro: { id: "p-kaputt", name: "Ohne Datei", midi_file: null } }),
+    );
+
+    expect(store.currentService.intro).toBeNull();
+  });
+
+  it("discards a fileless postlude too, and refuses to play the service", () => {
+    const store = useChurchServiceStore();
+
+    store.loadService(savedService({ outro: { name: "Nachspiel ohne Datei" } }));
+
+    expect(store.currentService.outro).toBeNull();
+    expect(store.canPlayService).toBe(false);
+  });
+
+  it("refuses to advance to the device step for such a service", () => {
+    const store = useChurchServiceStore();
+
+    store.loadService(savedService({ intro: { id: "p-x", midi_file: null } }));
+    store.goToDevice();
+
+    expect(store.canAdvanceToDevice).toBe(false);
+    expect(store.wizardStep).toBe("setup");
+  });
+
+  it("still accepts a legacy bare piece that does have a MIDI file", () => {
+    const store = useChurchServiceStore();
+
+    store.loadService(savedService({ intro: makePiece({ id: "p-alt" }) }));
+
+    expect(store.currentService.intro).toEqual({
+      piece: expect.objectContaining({ id: "p-alt" }),
+      speed: 1,
+      pitchSemitones: 0,
+    });
+    expect(store.canPlayService).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1271,5 +1540,105 @@ describe("prepared services", () => {
     await expect(store.deletePreparedService("any-id")).resolves.toBeUndefined();
 
     expect(console.error).toHaveBeenCalled();
+  });
+
+  // Regression guards for issue #28. A prepared service is a reusable template:
+  // loading "Advent I", changing a verse and saving used to leave two "Advent
+  // I" rows, and the operator had to remember which one to delete.
+  describe("re-saving one that was loaded", () => {
+    it("leaves exactly one row rather than a near-identical duplicate", async () => {
+      const { store, original } = await withOnePreparedService();
+
+      store.loadService(original);
+      store.updateSongVerses(0, [1, 2]);
+      vi.setSystemTime(new Date("2026-03-16T09:30:00.000Z"));
+      await store.saveAsPrepared("Advent I");
+
+      expect(store.preparedServices.map((s) => s.id)).toEqual([original.id]);
+      expect(store.preparedServices[0].songs[0].verses).toEqual([1, 2]);
+    });
+
+    it("survives a reload rather than only looking right in memory", async () => {
+      const { store, original } = await withOnePreparedService();
+
+      store.loadService(original);
+      store.updateSongVerses(0, [3]);
+      vi.setSystemTime(new Date("2026-03-16T09:30:00.000Z"));
+      await store.saveAsPrepared("Advent I");
+
+      setActivePinia(createPinia());
+      const reloaded = useChurchServiceStore();
+      await reloaded.loadPreparedServices();
+
+      expect(reloaded.preparedServices.map((s) => s.name)).toEqual(["Advent I"]);
+    });
+
+    it("still mints a fresh record for a service that was never loaded", async () => {
+      // Re-using the loaded id must not turn every save into an overwrite.
+      const store = useChurchServiceStore();
+
+      store.startSetup();
+      store.addSong(makeSong());
+      await store.saveAsPrepared("Erster");
+
+      vi.setSystemTime(new Date("2026-03-16T09:30:00.000Z"));
+      store.startSetup();
+      store.addSong(makeSong());
+      await store.saveAsPrepared("Zweiter");
+
+      expect(store.preparedServices.map((s) => s.name)).toEqual(["Zweiter", "Erster"]);
+      expect(new Set(store.preparedServices.map((s) => s.id)).size).toBe(2);
+    });
+
+    it("does not overwrite the history row a played service came from", async () => {
+      // The history is append-only — each row is one service that was actually
+      // played — so only the prepared list re-uses the loaded id.
+      const store = playableStore();
+      await store.confirmSave("Erster Advent");
+      const original = store.serviceHistory[0];
+
+      store.loadService(original);
+      vi.setSystemTime(new Date("2026-03-16T09:30:00.000Z"));
+      store.startService();
+      store.finishService();
+      await store.confirmSave("Erster Advent");
+
+      expect(store.serviceHistory).toHaveLength(2);
+      expect(new Set(store.serviceHistory.map((s) => s.id)).size).toBe(2);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression guards for issue #30's robustness items.
+describe("initDB", () => {
+  it("opens the database once for callers that start in the same tick", async () => {
+    // ChurchServiceView's onMounted dispatches both loads together. A boolean
+    // flag set only *after* the await let each open its own connection, and the
+    // second onsuccess orphaned the first IDBDatabase handle.
+    const factory = new IDBFactory();
+    const open = vi.spyOn(factory, "open");
+    vi.stubGlobal("indexedDB", factory);
+
+    const store = useChurchServiceStore();
+    await Promise.all([store.loadHistory(), store.loadPreparedServices()]);
+
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-opens on the next action after a failure instead of replaying it", async () => {
+    // Clearing the memo on failure is what keeps a database that was briefly
+    // unavailable from staying unavailable for the rest of the session.
+    const store = useChurchServiceStore();
+    breakIndexedDB();
+    await store.loadHistory();
+    expect(store.serviceHistory).toEqual([]);
+
+    vi.stubGlobal("indexedDB", new IDBFactory());
+    store.startSetup();
+    store.addSong(makeSong());
+    await store.confirmSave("Nach dem Ausfall");
+
+    expect(store.serviceHistory.map((s) => s.name)).toEqual(["Nach dem Ausfall"]);
   });
 });

@@ -152,6 +152,52 @@
       "ready": "Ready"
     }
   },
+  "toast": {
+    "started": {
+      "title": "Service started",
+      "description": "The service is now playing."
+    },
+    "completed": {
+      "title": "Service completed",
+      "description": "All songs in the service have been played."
+    },
+    "saved": {
+      "title": "Service saved",
+      "description": "\"{name}\" has been saved to history."
+    },
+    "saveFailed": {
+      "title": "Saving failed",
+      "description": "The service could not be saved. It is still here — please try again."
+    },
+    "loaded": {
+      "title": "Service loaded",
+      "description": "\"{name}\" has been loaded."
+    },
+    "deleted": {
+      "title": "Service deleted",
+      "description": "The service has been removed from the history."
+    },
+    "deleteFailed": {
+      "title": "Deleting failed",
+      "description": "The service could not be deleted. Please try again."
+    },
+    "preparedSaved": {
+      "title": "Saved for later",
+      "description": "\"{name}\" is now in the prepared services list."
+    },
+    "preparedSaveFailed": {
+      "title": "Saving failed",
+      "description": "The prepared service could not be saved. Please try again."
+    },
+    "preparedDeleted": {
+      "title": "Prepared service deleted",
+      "description": "The prepared service has been removed."
+    },
+    "preparedDeleteFailed": {
+      "title": "Deleting failed",
+      "description": "The prepared service could not be deleted. Please try again."
+    }
+  },
   "save": {
     "title": "Save service?",
     "description": "{count} songs were played. Save this service to history?",

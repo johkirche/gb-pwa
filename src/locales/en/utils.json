@@ -34,5 +34,6 @@
     "instructions": "Scroll to zoom • Drag to pan"
   },
   "cancel": "Cancel",
+  "close": "Close",
   "delete": "Delete"
 }
