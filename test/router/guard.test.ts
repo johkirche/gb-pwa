@@ -40,6 +40,7 @@ vi.mock("@/views/SongsView.vue", h.stubView);
 vi.mock("@/views/LiedView.vue", h.stubView);
 vi.mock("@/views/LoginView.vue", h.stubView);
 vi.mock("@/views/OfflineView.vue", h.stubView);
+vi.mock("@/views/ConfigErrorView.vue", h.stubView);
 vi.mock("@/views/ChurchServiceView.vue", h.stubView);
 vi.mock("@/views/PlaylistsView.vue", h.stubView);
 vi.mock("@/views/PlaylistCreateView.vue", h.stubView);
@@ -98,6 +99,64 @@ beforeEach(() => {
 
 afterEach(() => {
   restoreOnline();
+});
+
+// ---------------------------------------------------------------------------
+// The guard's first branch, ahead of every auth decision. `vitest.config.ts`
+// pins VITE_PUBLIC_DIRECTUS_URL to a real URL, so these stub it back out;
+// `unstubEnvs: true` undoes that after each test.
+describe("backend configuration", () => {
+  it("routes everything to /config-error when the backend URL is unset", async () => {
+    vi.stubEnv("VITE_PUBLIC_DIRECTUS_URL", "");
+    seedLiveSession(); // even a valid session cannot help without a backend
+    const router = await loadRouter();
+
+    const route = await go(router, "/songs");
+
+    expect(route.name).toBe("config-error");
+  });
+
+  it("treats the .env.example placeholder as unconfigured", async () => {
+    // A fresh clone that copied .env.example without editing it. The old
+    // truthiness check let this through and failed later, deep in a request.
+    vi.stubEnv("VITE_PUBLIC_DIRECTUS_URL", "YOUR_DIRECTUS_BACKEND");
+    const router = await loadRouter();
+
+    const route = await go(router, "/songs");
+
+    expect(route.name).toBe("config-error");
+  });
+
+  it("does not touch the auth layer when unconfigured", async () => {
+    // useAuth()/useDirectusApi() would throw without a backend URL, and a throw
+    // inside the guard aborts navigation and leaves a blank page.
+    vi.stubEnv("VITE_PUBLIC_DIRECTUS_URL", "");
+    const router = await loadRouter();
+
+    await go(router, "/home");
+
+    expect(h.checkAuth).not.toHaveBeenCalled();
+    expect(h.hasOfflineContentAvailable).not.toHaveBeenCalled();
+  });
+
+  it("serves /config-error itself instead of redirecting onto it forever", async () => {
+    vi.stubEnv("VITE_PUBLIC_DIRECTUS_URL", "");
+    const router = await loadRouter();
+
+    const route = await go(router, "/config-error");
+
+    expect(route.path).toBe("/config-error");
+  });
+
+  it("bounces /config-error back to the landing route once configured", async () => {
+    // The pinned test env is a valid URL, so the screen is meaningless here and
+    // "/" resolves onward through the index guard — to /login with no session.
+    const router = await loadRouter();
+
+    const route = await go(router, "/config-error");
+
+    expect(route.path).toBe("/login");
+  });
 });
 
 // ---------------------------------------------------------------------------

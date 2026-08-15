@@ -1,0 +1,10 @@
+{
+  "title": "Konfigurationsfehler",
+  "description": "Die App ist nicht korrekt konfiguriert und kann nicht gestartet werden.",
+  "missingVarLabel": "Fehlende oder ungültige Umgebungsvariable:",
+  "fixTitle": "So beheben Sie das Problem",
+  "step1": "Erstellen Sie im Projektstamm eine Datei .env (Vorlage: .env.example).",
+  "step2": "Setzen Sie {var} auf die URL Ihres Directus-Backends, z. B. https://directus.example.com.",
+  "step3": "Starten Sie den Dev-Server neu (pnpm dev) – Umgebungsvariablen werden nur beim Start gelesen.",
+  "retry": "Erneut versuchen"
+}

@@ -708,6 +708,42 @@ describe("useDirectusApi", () => {
 });
 
 // ---------------------------------------------------------------------------
+describe("isDirectusConfigured", () => {
+  /** Re-import so the helper reads the freshly stubbed env. */
+  async function withUrl(value: string | undefined) {
+    vi.resetModules();
+    vi.stubEnv("VITE_PUBLIC_DIRECTUS_URL", value as string);
+    const mod = await import("@/composables/useDirectusApi");
+    return mod.isDirectusConfigured();
+  }
+
+  it("accepts an http(s) URL", async () => {
+    expect(await withUrl("https://directus.example.com")).toBe(true);
+    expect(await withUrl("http://localhost:8055")).toBe(true);
+  });
+
+  it("tolerates surrounding whitespace", async () => {
+    // A stray newline in .env is a copy-paste artefact, not a misconfiguration.
+    expect(await withUrl("  https://directus.example.com  ")).toBe(true);
+  });
+
+  it("rejects an unset or empty value", async () => {
+    expect(await withUrl("")).toBe(false);
+    expect(await withUrl(undefined)).toBe(false);
+  });
+
+  it("rejects the .env.example placeholder", async () => {
+    // The reason a truthiness check is not enough: this is a non-empty string
+    // that would sail through and produce "YOUR_DIRECTUS_BACKEND/auth/login".
+    expect(await withUrl("YOUR_DIRECTUS_BACKEND")).toBe(false);
+  });
+
+  it("rejects a non-http scheme", async () => {
+    expect(await withUrl("ftp://directus.example.com")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Regression guard for issue #7 — concurrent 401s must share one refresh.
 // https://github.com/johkirche/gb-pwa/issues/7
 //

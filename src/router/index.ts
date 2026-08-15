@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+import { isDirectusConfigured } from "@/composables/useDirectusApi";
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -36,6 +38,13 @@ const router = createRouter({
       path: "/offline",
       name: "offline",
       component: () => import("@/views/OfflineView.vue"),
+    },
+    {
+      // Misconfiguration screen (e.g. VITE_PUBLIC_DIRECTUS_URL not set). Kept
+      // dependency-free so it renders even when the backend is unconfigured.
+      path: "/config-error",
+      name: "config-error",
+      component: () => import("@/views/ConfigErrorView.vue"),
     },
     {
       path: "/church-service",
@@ -95,6 +104,24 @@ const router = createRouter({
 // genuinely nothing to show (no session AND no offline content), or after an
 // explicit logout.
 router.beforeEach(async (to, _from, next) => {
+  // Hard stop: without a usable backend URL the app can do nothing. Surface a
+  // clear error screen instead of letting useAuth()/useDirectusApi() throw
+  // below — an unhandled throw here aborts navigation and leaves a blank page.
+  if (!isDirectusConfigured()) {
+    if (to.name === "config-error") {
+      next();
+    } else {
+      next({ name: "config-error" });
+    }
+    return;
+  }
+  // Backend is configured, so the error screen is meaningless — bounce to the
+  // landing route, which then resolves to home/login as usual.
+  if (to.name === "config-error") {
+    next({ name: "index" });
+    return;
+  }
+
   // Import lazily to avoid circular dependencies at module-eval time.
   const { useAuth } = await import("@/composables/useAuth");
   const { useAuthStore } = await import("@/stores/auth");

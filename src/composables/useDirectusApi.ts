@@ -230,6 +230,16 @@ export class DirectusApiClient {
 // Singleton instance
 let apiClient: DirectusApiClient | null = null;
 
+// Whether the backend URL is set to a usable value. The app is non-functional
+// without it, so the router guard checks this up front and routes to the
+// config-error screen instead of letting useDirectusApi() throw (which would
+// abort navigation and leave a blank page). Also rejects the placeholder from
+// .env.example (e.g. "YOUR_DIRECTUS_BACKEND"), which isn't a real URL.
+export function isDirectusConfigured(): boolean {
+  const baseUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
+  return typeof baseUrl === "string" && /^https?:\/\//i.test(baseUrl.trim());
+}
+
 export function useDirectusApi() {
   if (!apiClient) {
     const baseUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
