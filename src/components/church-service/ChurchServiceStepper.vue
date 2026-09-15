@@ -3,16 +3,19 @@
     <template v-for="(step, idx) in steps" :key="step.key">
       <button
         type="button"
-        :disabled="step.state === 'upcoming' || step.key === current"
+        :disabled="step.state === 'upcoming' || step.key === current || locked"
+        :aria-current="step.state === 'current' ? 'step' : undefined"
         :class="[
           'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm',
           step.state === 'current'
             ? 'bg-primary text-primary-foreground font-medium'
             : step.state === 'done'
-              ? 'bg-green-100 text-green-900 hover:bg-green-200 cursor-pointer'
+              ? locked
+                ? 'bg-green-100 dark:bg-green-950 text-green-900 dark:text-green-200 cursor-default'
+                : 'bg-green-100 text-green-900 hover:bg-green-200 cursor-pointer'
               : 'bg-muted text-muted-foreground cursor-not-allowed',
         ]"
-        @click="step.state === 'done' && emit('jump', step.key)"
+        @click="step.state === 'done' && !locked && emit('jump', step.key)"
       >
         <span
           :class="[
@@ -58,6 +61,11 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const order: WizardStep[] = ["setup", "device", "run"];
+
+// While the service is running, the earlier steps are shown as done but are
+// not jump targets: leaving the run step unmounts RunStep, which stops the
+// organ mid-hymn, and coming back restarts the service at hymn 1.
+const locked = computed(() => props.current === "run");
 
 type StepState = "done" | "current" | "upcoming";
 

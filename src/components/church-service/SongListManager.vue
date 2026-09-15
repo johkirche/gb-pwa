@@ -37,7 +37,7 @@
         :drag-class="'rotate-1'"
         handle=".drag-handle"
         :item-key="(item: ChurchServiceSong, index: number) => item.song?.id || `temp-${index}`"
-        @end="onDragEnd"
+        @change="onDragChange"
       >
         <template #item="{ element: serviceSong, index }">
           <div :key="`song-${index}`" class="border rounded-lg p-4 bg-card relative">
@@ -47,8 +47,9 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-1 min-w-0">
                     <div
-                      class="drag-handle cursor-move text-gray-400 hover:text-gray-600 flex-shrink-0"
                       v-if="songs.length > 1"
+                      class="drag-handle cursor-move text-muted-foreground hover:text-foreground flex-shrink-0"
+                      aria-hidden="true"
                     >
                       <GripVertical class="h-5 w-5" />
                     </div>
@@ -64,32 +65,66 @@
                     >
                       {{ getLiedNumber(serviceSong.song) }}
                     </span>
-                    <h5 class="font-medium truncate min-w-0">{{ serviceSong.song.titel }}</h5>
-                    <Badge
-                      v-if="!hasMidiTrio(serviceSong.song)"
-                      variant="secondary"
-                      class="text-xs flex-shrink-0 bg-orange-100 text-orange-800 hover:bg-orange-100"
-                      :title="t('churchService.missingMidi')"
+                    <h5
+                      class="font-medium truncate min-w-0"
+                      :title="serviceSong.song.titel ?? undefined"
                     >
-                      <AlertTriangle class="w-3 h-3 mr-1" />
-                      {{ t("churchService.missingMidi") }}
-                    </Badge>
+                      {{ serviceSong.song.titel }}
+                    </h5>
                   </div>
                   <p class="text-sm text-muted-foreground truncate">
                     {{ getAuthors(serviceSong.song) }}
                   </p>
+                  <!-- Own line, as in SongSelector/PiecePicker: inline it crushed
+                       the title to zero width at phone widths. -->
+                  <Badge
+                    v-if="!hasMidiTrio(serviceSong.song)"
+                    variant="secondary"
+                    class="mt-1.5 text-xs bg-orange-100 text-orange-800 hover:bg-orange-100 dark:bg-orange-950 dark:text-orange-300"
+                    :title="t('churchService.missingMidi')"
+                  >
+                    <AlertTriangle class="w-3 h-3 mr-1" aria-hidden="true" />
+                    {{ t("churchService.missingMidi") }}
+                  </Badge>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <!-- Keyboard alternative to the drag handle -->
+                  <template v-if="songs.length > 1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="h-8 w-8"
+                      :disabled="index === 0"
+                      :aria-label="t('churchService.moveUp')"
+                      :title="t('churchService.moveUp')"
+                      @click="emit('reorderSongs', index, index - 1)"
+                    >
+                      <ChevronUp class="w-4 h-4" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="h-8 w-8"
+                      :disabled="index === songs.length - 1"
+                      :aria-label="t('churchService.moveDown')"
+                      :title="t('churchService.moveDown')"
+                      @click="emit('reorderSongs', index, index + 1)"
+                    >
+                      <ChevronDown class="w-4 h-4" aria-hidden="true" />
+                    </Button>
+                  </template>
                   <Button variant="outline" size="sm" @click="changeSong(index)">
                     {{ t("churchService.changeSong") }}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    @click="removeSong(index)"
                     class="text-destructive hover:text-destructive"
+                    :aria-label="t('churchService.removeSong')"
+                    :title="t('churchService.removeSong')"
+                    @click="removeSong(index)"
                   >
-                    <Trash2 class="w-4 h-4" />
+                    <Trash2 class="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -142,7 +177,15 @@ import SongPlaybackControls from "./SongPlaybackControls.vue";
 import SongSelector from "./SongSelector.vue";
 import VerseSelector from "./VerseSelector.vue";
 import type { ChurchServiceSong } from "@/stores/churchService";
-import { AlertTriangle, GripVertical, Music, Plus, Trash2 } from "lucide-vue-next";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Music,
+  Plus,
+  Trash2,
+} from "lucide-vue-next";
 
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
@@ -176,26 +219,22 @@ const { t } = useI18n();
 const songSelector = ref<InstanceType<typeof SongSelector> | null>(null);
 const changingSongIndex = ref<number | null>(null);
 
-// Computed draggable songs for VueDraggable
+// v-model for VueDraggable. The setter is intentionally a no-op: the store owns
+// the order, and `onDragChange` below applies the move from the indices
+// vuedraggable reports. (Deriving the move from the first index mismatch in
+// the new array turned every downward drag of two or more slots into a swap
+// with the immediate successor.)
 const draggableSongs = computed({
   get() {
     return props.songs;
   },
-  set(newOrder: ChurchServiceSong[]) {
-    // Find which song was moved
-    for (let i = 0; i < newOrder.length; i++) {
-      const originalIndex = props.songs.findIndex((song) => song === newOrder[i]);
-      if (originalIndex !== i) {
-        emit("reorderSongs", originalIndex, i);
-        break;
-      }
-    }
-  },
+  set() {},
 });
 
-// Handle drag end event
-const onDragEnd = () => {
-  // The draggableSongs computed setter will automatically handle the reordering
+const onDragChange = (evt: { moved?: { oldIndex: number; newIndex: number } }) => {
+  if (!evt.moved) return;
+  const { oldIndex, newIndex } = evt.moved;
+  if (oldIndex !== newIndex) emit("reorderSongs", oldIndex, newIndex);
 };
 
 const removeSong = (index: number) => {
