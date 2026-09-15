@@ -47,7 +47,7 @@ import { type GesangbuchliedWithMidi, getLiedNumber } from "@/gql/extra-types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 interface Props {
   lied: Gesangbuchlied;
@@ -82,7 +82,7 @@ const formatDate = (dateString: string | null | undefined): string => {
 
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString("de-DE", {
+    return date.toLocaleDateString(locale.value === "de" ? "de-DE" : "en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",

@@ -2,9 +2,9 @@
   "addAnotherSong": "Weiteres Lied hinzufügen",
   "addFirstSong": "Erstes Lied hinzufügen",
   "addSong": "Lied hinzufügen",
-  "addSongsToService": "Fügen Sie Lieder zu Ihrem Gottesdienst hinzu",
+  "addSongsToService": "Füge Lieder zu deinem Gottesdienst hinzu",
   "audioPlayer": {
-    "description": "Ihr Gottesdienst wird abgespielt",
+    "description": "Dein Gottesdienst wird abgespielt",
     "next": "Weiter",
     "noAudio": "Keine Audio-Datei für dieses Lied verfügbar",
     "playingVerses": "Abgespielte Strophen",
@@ -16,19 +16,20 @@
   "clearAll": "Alle löschen",
   "clearService": "Gottesdienst löschen",
   "collapse": "Einklappen",
-  "createServiceDescription": "Erstellen Sie Ihren Gottesdienst durch Hinzufügen von Liedern und Auswahl der Strophen",
+  "createServiceDescription": "Erstelle deinen Gottesdienst, indem du Lieder hinzufügst und die Strophen auswählst",
   "currentService": "Aktueller Gottesdienst",
   "expand": "Erweitern",
   "firstSong": "Erstes Lied",
   "history": {
     "confirmDelete": "Gottesdienst löschen",
-    "confirmDeleteDescription": "Sind Sie sicher, dass Sie \"{name}\" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "confirmDeleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
     "delete": "Löschen",
-    "description": "Ihre zuvor gespeicherten Gottesdienste",
+    "description": "Deine zuvor gespeicherten Gottesdienste",
     "empty": "Noch keine gespeicherten Gottesdienste",
-    "emptyDescription": "Speichern Sie Ihren ersten Gottesdienst, um ihn hier zu sehen",
+    "emptyDescription": "Speichere deinen ersten Gottesdienst, um ihn hier zu sehen",
     "load": "Laden",
-    "title": "Gottesdienst-Verlauf"
+    "title": "Gottesdienst-Verlauf",
+    "moreActions": "Weitere Aktionen"
   },
   "prepared": {
     "title": "Vorbereitete Gottesdienste",
@@ -50,7 +51,7 @@
   "noOfflineSongs": "Keine Offline-Lieder verfügbar",
   "noSongsAdded": "Noch keine Lieder hinzugefügt",
   "noSongsAvailable": "Keine Lieder verfügbar",
-  "noSongsFound": "Keine Lieder gefunden, die Ihrer Suche entsprechen",
+  "noSongsFound": "Keine Lieder gefunden, die deiner Suche entsprechen",
   "noVersesSelected": "Keine Strophen ausgewählt",
   "optional": "optional",
   "playService": "Gottesdienst abspielen",
@@ -58,7 +59,7 @@
   "progress": "Fortschritt",
   "removeSong": "Lied entfernen",
   "saveService": "Gottesdienst speichern",
-  "searchAndSelectSong": "Suchen und wählen Sie ein Lied für Ihren Gottesdienst",
+  "searchAndSelectSong": "Suche und wähle ein Lied für deinen Gottesdienst",
   "searchSongs": "Lieder suchen...",
   "secondSong": "Zweites Lied",
   "selectAll": "Alle auswählen",
@@ -67,21 +68,21 @@
   "selectOutroPiece": "Nachspiel auswählen",
   "selectPiece": "Stück auswählen",
   "changePiece": "Stück ändern",
-  "searchAndSelectPiece": "Suchen und wählen Sie ein freies Musikstück",
+  "searchAndSelectPiece": "Suche und wähle ein freies Musikstück",
   "searchPieces": "Musikstücke suchen…",
   "loadingPieces": "Musikstücke werden geladen…",
-  "noPiecesFound": "Keine Musikstücke gefunden, die Ihrer Suche entsprechen",
+  "noPiecesFound": "Keine Musikstücke gefunden, die deiner Suche entsprechen",
   "noPiecesAvailable": "Keine Musikstücke verfügbar",
   "selectSecondSong": "Zweites Lied auswählen",
   "selectSong": "Lied auswählen",
   "selectSongPlaceholder": "Lied {number} auswählen",
-  "selectTwoSongs": "Wählen Sie zwei Lieder und deren Strophen für Ihren Gottesdienst",
+  "selectTwoSongs": "Wähle zwei Lieder und deren Strophen für deinen Gottesdienst",
   "selectVerses": "Strophen auswählen",
   "selectedVerses": "Ausgewählte Strophen",
   "serviceOrder": "Gottesdienst-Reihenfolge",
   "serviceSetup": "Gottesdienst-Aufbau",
   "songNumber": "Lied {number} von {total}",
-  "songsCount": "{count} Lieder",
+  "songsCount": "{count} Lied | {count} Lieder",
   "title": "Gottesdienst",
   "noSongSelected": "Kein Lied ausgewählt",
   "missingMidi": "Kein MIDI",
@@ -152,7 +153,8 @@
       "outroWithVerse": "Strophe {verse} (Ausleitung)",
       "pause": "Pause",
       "ready": "Bereit"
-    }
+    },
+    "leaveConfirm": "Der Gottesdienst läuft gerade. Wenn du die Seite verlässt, stoppt die Wiedergabe und der Ablauf muss neu gestartet werden. Trotzdem verlassen?"
   },
   "toast": {
     "started": {
@@ -202,7 +204,7 @@
   },
   "save": {
     "title": "Gottesdienst speichern?",
-    "description": "{count} Lieder wurden gespielt. Möchtest du diesen Gottesdienst im Verlauf speichern?",
+    "description": "Ein Lied wurde gespielt. Möchtest du diesen Gottesdienst im Verlauf speichern? | {count} Lieder wurden gespielt. Möchtest du diesen Gottesdienst im Verlauf speichern?",
     "nameLabel": "Name",
     "defaultName": "Gottesdienst {date}",
     "discard": "Verwerfen",
@@ -217,5 +219,10 @@
     "errors": {
       "missingTrio": "Vorspiel, Standard oder Ausleitung fehlt für dieses Lied"
     }
-  }
+  },
+  "pieces": {
+    "noOfflinePieces": "Keine Vor- und Nachspiele offline verfügbar. Bitte verbinde das Gerät oder lade die Inhalte herunter.",
+    "loadFailed": "Die Vor- und Nachspiele konnten nicht geladen werden."
+  },
+  "clearSelection": "Auswahl aufheben"
 }

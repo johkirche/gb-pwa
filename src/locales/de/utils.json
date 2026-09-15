@@ -1,24 +1,24 @@
 {
-  "networkError": "Diese Funktion benötigt eine Internetverbindung. Bitte überprüfen Sie Ihr Netzwerk und versuchen Sie es erneut.",
+  "networkError": "Diese Funktion benötigt eine Internetverbindung. Bitte überprüfe dein Netzwerk und versuche es erneut.",
   "unknownError": "Ein unbekannter Fehler ist aufgetreten",
   "loading": "Lädt...",
   "offlineDataBadge": "Offline-Daten",
   "offlineDataHint": "Es werden nur heruntergeladene Lieder angezeigt. Gehe online und lösche die Offline-Inhalte, um den ganzen Katalog zu durchsuchen.",
   "offlineAccess": "Offline-Zugang",
-  "downloadDescription": "Laden Sie alle Lieder für den Offline-Zugang herunter, wenn Sie keine Internetverbindung haben.",
+  "downloadDescription": "Lade alle Lieder für den Offline-Zugang herunter, wenn du keine Internetverbindung hast.",
   "songsDownloaded": "{count} Lieder heruntergeladen",
   "lastUpdated": "Zuletzt aktualisiert",
   "storageUsed": "Speicher verwendet",
   "noOfflineContent": "Keine Offline-Inhalte heruntergeladen",
-  "downloadAllSongsToAccess": "Laden Sie alle Lieder herunter, um ohne Internetverbindung darauf zugreifen zu können.",
+  "downloadAllSongsToAccess": "Lade alle Lieder herunter, um ohne Internetverbindung darauf zugreifen zu können.",
   "percentComplete": "{percentage}% abgeschlossen",
   "assetsCached": "{percentage}% Assets zwischengespeichert",
   "updateContent": "Inhalte aktualisieren",
   "downloadAllSongs": "Alle Lieder herunterladen",
   "unknown": "Unbekannt",
   "downloadSuccess": "{count} Lieder erfolgreich für den Offline-Zugang heruntergeladen!",
-  "downloadError": "Inhalt konnte nicht heruntergeladen werden. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
-  "confirmClearContent": "Sind Sie sicher, dass Sie alle Offline-Inhalte entfernen möchten? Sie müssen sie erneut herunterladen, um offline auf Lieder zugreifen zu können.",
+  "downloadError": "Inhalt konnte nicht heruntergeladen werden. Bitte überprüfe deine Verbindung und versuche es erneut.",
+  "confirmClearContent": "Bist du sicher, dass du alle Offline-Inhalte entfernen möchtest? Du musst sie erneut herunterladen, um offline auf Lieder zugreifen zu können.",
   "offlineContentCleared": "Offline-Inhalte erfolgreich gelöscht.",
   "failedToClearContent": "Offline-Inhalte konnten nicht gelöscht werden.",
   "home": "Startseite",
@@ -31,9 +31,16 @@
     "zoomIn": "Hineinzoomen",
     "zoomOut": "Herauszoomen",
     "resetZoom": "Zoom zurücksetzen",
-    "instructions": "Scrollen zum Zoomen • Ziehen zum Verschieben"
+    "instructions": "Scrollen zum Zoomen • Ziehen zum Verschieben",
+    "title": "Bildansicht"
   },
   "cancel": "Abbrechen",
   "close": "Schließen",
-  "delete": "Löschen"
+  "delete": "Löschen",
+  "pwaUpdate": {
+    "available": "Eine neue Version ist verfügbar.",
+    "reload": "Jetzt aktualisieren",
+    "dismiss": "Später"
+  },
+  "retry": "Erneut versuchen"
 }

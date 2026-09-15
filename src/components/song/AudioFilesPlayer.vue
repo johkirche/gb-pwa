@@ -2,11 +2,11 @@
   <Card v-if="audioFiles.length > 0">
     <CardHeader>
       <CardTitle class="flex items-center">
-        <Music class="w-5 h-5 mr-2 text-muted-foreground" />
-        Audio Files
+        <Music class="w-5 h-5 mr-2 text-muted-foreground" aria-hidden="true" />
+        {{ t("song.audioPlayer.title") }}
       </CardTitle>
       <CardDescription>
-        Select an audio file to play with speed control
+        {{ t("song.audioPlayer.description") }}
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -51,6 +51,7 @@
 import { Music } from "lucide-vue-next";
 
 import { computed, ref, watchEffect } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { Directus_Files } from "@/gql/graphql";
 
@@ -67,6 +68,8 @@ import SimpleAudioPlayer from "@/components/song/SimpleAudioPlayer.vue";
 
 import { withAccessToken } from "@/composables/directusAssets";
 import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
+
+const { t } = useI18n();
 
 interface Props {
   files: Directus_Files[];
@@ -97,10 +100,18 @@ const audioUrls = ref<Map<string, string>>(new Map());
 watchEffect(async (onCleanup) => {
   const next = new Map<string, string>();
   const cleanups: (() => void)[] = [];
-  onCleanup(() => cleanups.forEach((c) => c()));
+  // A superseded run keeps executing past its awaits; without this flag it
+  // minted object URLs into a `cleanups` array that had already been drained,
+  // so nothing could ever revoke them (same fix as useOfflineAsset).
+  let cancelled = false;
+  onCleanup(() => {
+    cancelled = true;
+    cleanups.forEach((c) => c());
+  });
 
   for (const file of audioFiles.value) {
     const blob = await getOfflineAssetBlob(file.id);
+    if (cancelled) return;
     if (blob) {
       const objUrl = URL.createObjectURL(blob);
       next.set(file.id, objUrl);

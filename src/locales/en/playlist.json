@@ -12,7 +12,7 @@
   "namePlaceholder": "Playlist name",
   "descriptionLabel": "Description",
   "descriptionPlaceholder": "Optional description",
-  "songsCount": "{count} songs",
+  "songsCount": "{count} song | {count} songs",
   "noSongs": "This playlist has no songs yet.",
   "empty": "No playlists yet",
   "emptyDescription": "Create your first playlist and add songs to it.",
@@ -38,5 +38,8 @@
   "clearEmoji": "Clear",
   "searchEmoji": "Search emoji…",
   "loadingEmoji": "Loading emojis…",
-  "noEmojiFound": "No emoji found"
+  "noEmojiFound": "No emoji found",
+  "songs": "Songs",
+  "searchSongs": "Search songs…",
+  "noSongsFound": "No songs found"
 }

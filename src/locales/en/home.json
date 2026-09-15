@@ -12,7 +12,7 @@
   "recentHeading": "Recent services",
   "recentViewAll": "View all",
   "recentEmpty": "No services yet — prepare one to see it here.",
-  "songsCountLabel": "{count} songs",
+  "songsCountLabel": "{count} song | {count} songs",
   "gesangbuchlieder": "Gesangbuchlieder",
   "browseDescription": "Browse and search through all the songs in the Gesangbuch.",
   "browseAllSongs": "Browse All Songs",
@@ -60,12 +60,14 @@
     "resetOrder": "Reset order",
     "enlarge": "Enlarge",
     "shrink": "Shrink",
-    "loadFailed": "Could not load categories"
+    "loadFailed": "Could not load categories",
+    "empty": "No categories available. Download the songs to see them here."
   },
   "recent": {
     "title": "Recently Played",
     "description": "Your recently listened songs",
-    "offline": "Offline"
+    "offline": "Offline",
+    "play": "Play"
   },
   "featured": {
     "title": "Featured Songs",

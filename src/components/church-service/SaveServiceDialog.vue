@@ -5,9 +5,7 @@
         <DialogTitle>{{ t("churchService.save.title") }}</DialogTitle>
         <DialogDescription>
           {{
-            t("churchService.save.description", {
-              count: songCount,
-            })
+            t("churchService.save.description", songCount)
           }}
         </DialogDescription>
       </DialogHeader>
@@ -52,7 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useChurchServiceStore();
 
 const name = ref("");
@@ -61,7 +59,7 @@ const songCount = computed(() => store.playlist.length);
 
 const defaultName = computed(() =>
   t("churchService.save.defaultName", {
-    date: new Date().toLocaleDateString("de-DE", {
+    date: new Date().toLocaleDateString(locale.value === "de" ? "de-DE" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

@@ -2,7 +2,7 @@
   "pageTitle": "Einstellungen",
   "midi": {
     "title": "MIDI-Gerät",
-    "description": "Wählen Sie das MIDI-Ausgabegerät, das für Wiedergabe und Gottesdienst verwendet wird. Die Auswahl wird im Browser gespeichert.",
+    "description": "Wähle das MIDI-Ausgabegerät, das für Wiedergabe und Gottesdienst verwendet wird. Die Auswahl wird im Browser gespeichert.",
     "currentlySelected": "Aktuell ausgewählt"
   },
   "synth": {

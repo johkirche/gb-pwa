@@ -12,7 +12,7 @@
   "namePlaceholder": "Name der Playlist",
   "descriptionLabel": "Beschreibung",
   "descriptionPlaceholder": "Optionale Beschreibung",
-  "songsCount": "{count} Lieder",
+  "songsCount": "{count} Lied | {count} Lieder",
   "noSongs": "Diese Playlist enthält noch keine Lieder.",
   "empty": "Noch keine Playlisten erstellt",
   "emptyDescription": "Lege deine erste Playlist an und füge Lieder hinzu.",
@@ -38,5 +38,8 @@
   "clearEmoji": "Entfernen",
   "searchEmoji": "Emoji suchen…",
   "loadingEmoji": "Emojis werden geladen…",
-  "noEmojiFound": "Kein Emoji gefunden"
+  "noEmojiFound": "Kein Emoji gefunden",
+  "songs": "Lieder",
+  "searchSongs": "Lieder durchsuchen…",
+  "noSongsFound": "Keine Lieder gefunden"
 }

@@ -120,11 +120,13 @@ const emojiLocale = computed<Locale>(() => {
 
 const open = ref(false);
 
-const currentLabel = t("playlist.currentEmoji");
-const clearLabel = t("playlist.clearEmoji");
-const searchPlaceholder = t("playlist.searchEmoji");
-const loadingText = t("playlist.loadingEmoji");
-const emptyText = t("playlist.noEmojiFound");
+// Computed, not resolved once at setup: a language switch while the create
+// playlist page is open otherwise left the popover half-translated.
+const currentLabel = computed(() => t("playlist.currentEmoji"));
+const clearLabel = computed(() => t("playlist.clearEmoji"));
+const searchPlaceholder = computed(() => t("playlist.searchEmoji"));
+const loadingText = computed(() => t("playlist.loadingEmoji"));
+const emptyText = computed(() => t("playlist.noEmojiFound"));
 
 const onEmojiSelect = (emoji: Emoji) => {
   emit("update:modelValue", emoji.emoji);
