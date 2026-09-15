@@ -13,6 +13,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Provided by vite-plugin-pwa in the app build only; see the stub.
+      "virtual:pwa-register": path.resolve(__dirname, "./test/helpers/pwa-register-stub.ts"),
     },
   },
   test: {

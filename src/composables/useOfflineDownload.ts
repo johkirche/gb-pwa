@@ -31,6 +31,13 @@ export interface OfflineMeta {
   pieceCount?: number;
   lastUpdated?: string;
   version: string;
+  // False from the moment the songs are stored until every referenced asset
+  // has been written. The record is written before the (multi-hundred-MB)
+  // asset phase so the router guard can already treat the app as offline-
+  // capable; without this flag an interrupted or quota-killed run reported
+  // "ready offline" and every hymn opened with lyrics and no sheet music.
+  // Absent on records written before the flag existed — treated as complete.
+  assetsComplete?: boolean;
 }
 
 // Add interface for asset precaching progress (images and audio)
@@ -90,8 +97,17 @@ class IndexedDBManager implements IndexedDBStore {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => reject(request.error);
+      // Another tab (the installed PWA next to a browser tab) still holds the
+      // previous schema version open; without this the promise never settles.
+      request.onblocked = () => reject(new Error(`${DB_NAME} upgrade blocked by another tab`));
       request.onsuccess = () => {
         this.db = request.result;
+        // Let a newer deploy in another tab upgrade the schema instead of
+        // blocking it — this connection reopens lazily on the next call.
+        this.db.onversionchange = () => {
+          this.db?.close();
+          this.db = null;
+        };
         resolve();
       };
 
@@ -340,33 +356,44 @@ export async function cacheAssetById(id: string, type?: string): Promise<void> {
   await dbManager.put(ASSETS_STORE, { id, type, blob, size: blob.size } satisfies OfflineAsset);
 }
 
-export const useOfflineDownload = () => {
-  const isDownloading = ref(false);
-  const downloadProgress = ref<DownloadProgress>({
-    current: 0,
-    total: 0,
-    percentage: 0,
-    isComplete: false,
-  });
-  const hasOfflineContent = ref(false);
-  const offlineContentInfo = ref<{
-    count: number;
-    pieceCount: number;
-    lastUpdated: string;
-  } | null>(null);
+// Download state lives at module level, like `dbManager`: a download is a
+// device-wide operation, not a per-component one. When it was per instance,
+// navigating away from the Offline page and back showed no progress, reported
+// no offline content, and re-enabled the button — a second tap started a
+// second full download in parallel with the first. The Songs page's
+// data-source panel likewise stayed hidden until a restart because the
+// store's own instance was warmed exactly once.
+const isDownloading = ref(false);
+const downloadProgress = ref<DownloadProgress>({
+  current: 0,
+  total: 0,
+  percentage: 0,
+  isComplete: false,
+});
+const hasOfflineContent = ref(false);
+const offlineContentInfo = ref<{
+  count: number;
+  pieceCount: number;
+  lastUpdated: string;
+} | null>(null);
+// False while the offline-meta record says the asset phase never finished —
+// see `OfflineMeta.assetsComplete`.
+const isOfflineContentComplete = ref(true);
 
-  // Add state for asset precaching (images and audio)
-  const isPrecachingAssets = ref(false);
-  const assetPrecacheProgress = ref<AssetPrecacheProgress>({
-    current: 0,
-    total: 0,
-    percentage: 0,
-  });
-  // True when the last run could not store what it downloaded. The song text
-  // lives in a different store written earlier, so without this the UI reports
-  // a successful download and the missing sheet music is only discovered in the
-  // service, offline, at the moment it is needed.
-  const assetPrecacheFailed = ref(false);
+// Asset precaching state (images and audio)
+const isPrecachingAssets = ref(false);
+const assetPrecacheProgress = ref<AssetPrecacheProgress>({
+  current: 0,
+  total: 0,
+  percentage: 0,
+});
+// True when the last run could not store what it downloaded. The song text
+// lives in a different store written earlier, so without this the UI reports
+// a successful download and the missing sheet music is only discovered in the
+// service, offline, at the moment it is needed.
+const assetPrecacheFailed = ref(false);
+
+export const useOfflineDownload = () => {
 
   // Check if offline content exists
   const checkOfflineContent = async () => {
@@ -381,9 +408,11 @@ export const useOfflineDownload = () => {
           pieceCount: meta.pieceCount || 0,
           lastUpdated: meta.lastUpdated || "Unknown",
         };
+        isOfflineContentComplete.value = meta.assetsComplete !== false;
       } else {
         hasOfflineContent.value = false;
         offlineContentInfo.value = null;
+        isOfflineContentComplete.value = true;
       }
     } catch (error) {
       console.error("Error checking offline content:", error);
@@ -474,17 +503,20 @@ export const useOfflineDownload = () => {
         }
       }
 
-      // Store metadata
+      // Store metadata. `assetsComplete` flips to true only once the asset
+      // phase that follows has written everything — see `markAssetsComplete`.
       const meta: OfflineMeta = {
         count: content.songs.length,
         pieceCount: content.pieces.length,
         lastUpdated: content.lastUpdated,
         version: content.version,
+        assetsComplete: false,
       };
 
       await dbManager.put(META_STORE, meta, "offline-meta");
 
       offlineContentAvailableCache = true;
+      isOfflineContentComplete.value = false;
       hasOfflineContent.value = true;
       offlineContentInfo.value = {
         count: content.songs.length,
@@ -494,6 +526,20 @@ export const useOfflineDownload = () => {
     } catch (error) {
       console.error("Error storing offline content:", error);
       throw new Error("Failed to store offline content. Your device may be out of storage space.");
+    }
+  };
+
+  // Flip the offline-meta record to "assets complete" after a clean precache.
+  // A failure here leaves the record at `assetsComplete: false`, which reads
+  // as an incomplete download — the honest state, since we cannot tell.
+  const markAssetsComplete = async () => {
+    try {
+      const meta = (await dbManager.get(META_STORE, "offline-meta")) as OfflineMeta | undefined;
+      if (!meta) return;
+      await dbManager.put(META_STORE, { ...meta, assetsComplete: true }, "offline-meta");
+      isOfflineContentComplete.value = true;
+    } catch (error) {
+      console.error("Could not mark the offline download as complete:", error);
     }
   };
 
@@ -510,6 +556,12 @@ export const useOfflineDownload = () => {
   ) => {
     try {
       if (typeof window === "undefined") return;
+      // Same guard `storeOfflineContent` applies. An empty result is a symptom
+      // (a permission filter, a malformed 200), not a hymnal with no songs —
+      // and the prune at the end of this run would otherwise delete every
+      // cached notation image, MusicXML, MIDI and recording, because the
+      // soundfont alone keeps the desired set from being empty.
+      if (songs.length === 0 && pieces.length === 0) return;
 
       isPrecachingAssets.value = true;
       assetPrecacheFailed.value = false;
@@ -806,6 +858,7 @@ export const useOfflineDownload = () => {
       // finished while hundreds of MB were still on the wire.
       downloadProgress.value.currentItem = "Starting asset precaching...";
       await precacheAssets(allSongs, allPieces);
+      if (!assetPrecacheFailed.value) await markAssetsComplete();
 
       // Final completion message
       downloadProgress.value.isComplete = true;
@@ -835,6 +888,7 @@ export const useOfflineDownload = () => {
       setCachedSoundfontId(null);
       hasOfflineContent.value = false;
       offlineContentInfo.value = null;
+      isOfflineContentComplete.value = true;
     } catch (error) {
       console.error("Error clearing offline content:", error);
     }
@@ -964,6 +1018,7 @@ export const useOfflineDownload = () => {
     downloadProgress: readonly(downloadProgress),
     hasOfflineContent: readonly(hasOfflineContent),
     offlineContentInfo: readonly(offlineContentInfo),
+    isOfflineContentComplete: readonly(isOfflineContentComplete),
     isPrecachingAssets: readonly(isPrecachingAssets),
     assetPrecacheProgress: readonly(assetPrecacheProgress),
     assetPrecacheFailed: readonly(assetPrecacheFailed),

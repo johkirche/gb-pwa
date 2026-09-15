@@ -35,7 +35,11 @@ export default defineConfig({
       launchEditor: "code",
     }),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt": a new service worker waits until the user accepts the update
+      // banner. Under "autoUpdate" the page reloaded itself the moment a deploy
+      // landed — including mid-service, where the running Gottesdienst lives
+      // in memory only.
+      registerType: "prompt",
       devOptions: {
         enabled: false,
       },
@@ -129,28 +133,11 @@ export default defineConfig({
               },
             },
           },
-          // Cache API responses
-          {
-            urlPattern: ({ url }) => url.pathname.includes("/graphql"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
-              },
-              plugins: [
-                {
-                  cacheKeyWillBeUsed: async ({ request }: { request: Request }) => {
-                    // Create cache key from request body for GraphQL
-                    const body = await request.clone().text();
-                    const url = request.url;
-                    return `${url}-${btoa(body)}`;
-                  },
-                },
-              ],
-            },
-          },
+          // `/graphql` is deliberately NOT cached by the service worker: every
+          // request is a POST (Workbox runtime caching only matches GET), and
+          // offline reads are served from the IndexedDB stores written by
+          // useOfflineDownload. Caching here would also persist authenticated
+          // responses and mutations in a shared cache.
           // Directus `/assets/*` and `/files/*` are owned by the IndexedDB
           // `assets` store now — see useOfflineDownload.precacheAssets. The
           // SW does not cache them so there is only one source of truth and
@@ -184,7 +171,8 @@ export default defineConfig({
           },
         ],
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
+        // No `skipWaiting` here: with registerType "prompt" the plugin sends
+        // SKIP_WAITING only when the user accepts the update.
         clientsClaim: true,
       },
     }),
@@ -194,8 +182,13 @@ export default defineConfig({
     open: "http://gb-pwa.localhost:4823",
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      // vuedraggable ships a UMD build whose `require("vue")` resolved to the
+      // full CommonJS build, so ~80 KB of template compiler that can never run
+      // landed in the Home route's chunk. Exact match only: `vue/...` subpaths
+      // must keep resolving normally.
+      { find: /^vue$/, replacement: "vue/dist/vue.runtime.esm-bundler.js" },
+    ],
   },
 });

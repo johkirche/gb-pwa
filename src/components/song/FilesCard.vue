@@ -191,10 +191,18 @@ const cachedFileUrls = ref<Map<string, string>>(new Map());
 watchEffect(async (onCleanup) => {
   const next = new Map<string, string>();
   const cleanups: (() => void)[] = [];
-  onCleanup(() => cleanups.forEach((c) => c()));
+  // A superseded run keeps executing past its awaits; without this flag it
+  // minted object URLs into a `cleanups` array that had already been drained,
+  // so nothing could ever revoke them (same fix as useOfflineAsset).
+  let cancelled = false;
+  onCleanup(() => {
+    cancelled = true;
+    cleanups.forEach((c) => c());
+  });
 
   for (const file of nonAudioFiles.value) {
     const blob = await getOfflineAssetBlob(file.id);
+    if (cancelled) return;
     if (blob) {
       const objUrl = URL.createObjectURL(blob);
       next.set(file.id, objUrl);
