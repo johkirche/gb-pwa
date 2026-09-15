@@ -29,7 +29,8 @@
     "totalSongs": "Total Songs",
     "offlineSongs": "Available Offline",
     "favorites": "Favorites",
-    "recentlyPlayed": "Recently Played"
+    "recentlyPlayed": "Recently Played",
+    "loadFailed": "Could not load statistics"
   },
   "search": {
     "title": "Search Songs",
@@ -58,7 +59,8 @@
     "sortCustom": "Custom order",
     "resetOrder": "Reset order",
     "enlarge": "Enlarge",
-    "shrink": "Shrink"
+    "shrink": "Shrink",
+    "loadFailed": "Could not load categories"
   },
   "recent": {
     "title": "Recently Played",

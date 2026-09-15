@@ -29,7 +29,8 @@
     "totalSongs": "Lieder insgesamt",
     "offlineSongs": "Offline verfügbar",
     "favorites": "Favoriten",
-    "recentlyPlayed": "Kürzlich gespielt"
+    "recentlyPlayed": "Kürzlich gespielt",
+    "loadFailed": "Statistiken konnten nicht geladen werden"
   },
   "search": {
     "title": "Lieder suchen",
@@ -58,7 +59,8 @@
     "sortCustom": "Benutzerdefiniert",
     "resetOrder": "Reihenfolge zurücksetzen",
     "enlarge": "Vergrößern",
-    "shrink": "Verkleinern"
+    "shrink": "Verkleinern",
+    "loadFailed": "Kategorien konnten nicht geladen werden"
   },
   "recent": {
     "title": "Zuletzt gespielt",

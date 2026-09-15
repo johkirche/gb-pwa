@@ -1,6 +1,5 @@
 import { useAuthStore } from "@/stores/auth";
 import { useChurchServiceStore } from "@/stores/churchService";
-import axios from "axios";
 import { query } from "gql-query-builder";
 import { defineStore } from "pinia";
 
@@ -8,7 +7,7 @@ import { computed, ref } from "vue";
 
 import type { Kategorie } from "@/gql/graphql";
 
-import { useDirectusApi } from "@/composables/useDirectusApi";
+import { NoSessionError, makeGraphQLRequest } from "@/composables/useGraphQL";
 import { getAllOfflineSongs, getOfflineSongCount } from "@/composables/useOfflineDownload";
 
 export interface StatsData {
@@ -38,63 +37,22 @@ export const useStatsStore = defineStore("stats", () => {
   const categories = ref<CategoryWithCount[]>([]);
   const isLoadingStats = ref(false);
   const isLoadingCategories = ref(false);
-  const statsError = ref<string | null>(null);
-  const categoriesError = ref<string | null>(null);
+  // Both hold an i18n *key*, never a finished string. A Pinia store has no
+  // component instance and so no `useI18n`; the renderer maps the key through
+  // `t()` (the same contract useToast uses). Holding prose here is how the
+  // stats path ended up with untranslated English on a public field (#32).
+  const statsErrorKey = ref<string | null>(null);
+  const categoriesErrorKey = ref<string | null>(null);
 
   // Getters
   const hasStats = computed(() => stats.value.totalSongs > 0);
   const hasCategories = computed(() => categories.value.length > 0);
 
-  // Helper functions
-  const getGraphQLEndpoint = () => `${import.meta.env.VITE_PUBLIC_DIRECTUS_URL}/graphql`;
-
-  const createAuthHeaders = (additionalHeaders?: Record<string, string>) => {
-    const authStore = useAuthStore();
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...additionalHeaders,
-    };
-
-    if (authStore.accessToken) {
-      headers["Authorization"] = `Bearer ${authStore.accessToken}`;
-    }
-
-    return headers;
-  };
-
-  const makeGraphQLRequest = async <T = unknown>(queryBuilder: {
-    query: string;
-    variables?: Record<string, unknown>;
-  }): Promise<T> => {
-    const authStore = useAuthStore();
-    const directusApi = useDirectusApi();
-
-    if (!authStore.accessToken) {
-      throw new Error("No access token available. Please log in.");
-    }
-
-    try {
-      const response = await axios.post<T>(getGraphQLEndpoint(), queryBuilder, {
-        headers: createAuthHeaders(),
-      });
-
-      return response.data;
-    } catch (error: unknown) {
-      // If we get a 401 error, try using the directusApi's authenticated request
-      // which handles token refresh automatically
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        return await directusApi.authenticatedRequest<T>(getGraphQLEndpoint(), {
-          method: "POST",
-          data: queryBuilder,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-      }
-
-      throw error;
-    }
-  };
+  // A missing session is the only failure the user can fix themselves, so it
+  // gets its own message; everything else (network, GraphQL, IndexedDB) is
+  // already in the console and collapses to one generic key for the screen.
+  const errorKey = (error: unknown, fallbackKey: string): string =>
+    error instanceof NoSessionError ? error.i18nKey : fallbackKey;
 
   // Actions
   const fetchTotalSongsCount = async (): Promise<number> => {
@@ -354,7 +312,7 @@ export const useStatsStore = defineStore("stats", () => {
     if (isLoadingStats.value) return;
 
     isLoadingStats.value = true;
-    statsError.value = null;
+    statsErrorKey.value = null;
 
     // Read the local numbers from IndexedDB first — neither depends on the
     // network, so both must survive a failed (e.g. offline) totalSongs fetch.
@@ -371,7 +329,7 @@ export const useStatsStore = defineStore("stats", () => {
       };
     } catch (error) {
       console.error("Error loading stats:", error);
-      statsError.value = error instanceof Error ? error.message : "Failed to load stats";
+      statsErrorKey.value = errorKey(error, "home.stats.loadFailed");
 
       // Network total failed (e.g. offline) — still surface the local counts.
       stats.value = {
@@ -429,7 +387,7 @@ export const useStatsStore = defineStore("stats", () => {
     if (isLoadingCategories.value) return;
 
     isLoadingCategories.value = true;
-    categoriesError.value = null;
+    categoriesErrorKey.value = null;
 
     try {
       const authStore = useAuthStore();
@@ -448,7 +406,7 @@ export const useStatsStore = defineStore("stats", () => {
       categories.value = await fetchCategoriesWithCount();
     } catch (error) {
       console.error("Error loading categories:", error);
-      categoriesError.value = error instanceof Error ? error.message : "Failed to load categories";
+      categoriesErrorKey.value = errorKey(error, "home.categories.loadFailed");
 
       // Network path failed — fall back to whatever was downloaded for offline
       // use (empty array if nothing is downloaded, which is honest).
@@ -469,8 +427,8 @@ export const useStatsStore = defineStore("stats", () => {
       recentlyPlayed: 0,
     };
     categories.value = [];
-    statsError.value = null;
-    categoriesError.value = null;
+    statsErrorKey.value = null;
+    categoriesErrorKey.value = null;
   };
 
   return {
@@ -479,8 +437,8 @@ export const useStatsStore = defineStore("stats", () => {
     categories,
     isLoadingStats,
     isLoadingCategories,
-    statsError,
-    categoriesError,
+    statsErrorKey,
+    categoriesErrorKey,
 
     // Getters
     hasStats,
