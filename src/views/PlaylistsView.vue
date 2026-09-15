@@ -54,7 +54,7 @@
                   </p>
                   <div class="mt-2">
                     <Badge variant="secondary" class="text-xs">
-                      {{ t("playlist.songsCount", { count: pl.songIds.length }) }}
+                      {{ t("playlist.songsCount", pl.songIds.length) }}
                     </Badge>
                   </div>
                 </div>

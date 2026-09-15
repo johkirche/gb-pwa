@@ -29,14 +29,14 @@
             <Badge
               v-if="hasMidiTrio(selectedSong)"
               variant="secondary"
-              class="text-xs bg-green-100 text-green-800 hover:bg-green-100"
+              class="text-xs bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 hover:bg-green-100"
             >
               🎹 MIDI
             </Badge>
             <Badge
               v-else
               variant="secondary"
-              class="text-xs bg-orange-100 text-orange-800 hover:bg-orange-100"
+              class="text-xs bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 hover:bg-orange-100"
             >
               <AlertTriangle class="w-3 h-3 mr-1" />
               {{ t("churchService.missingMidi") }}
@@ -51,15 +51,21 @@
             </Badge>
           </div>
         </div>
-        <Button variant="ghost" size="sm" @click="clearSelection" class="flex-shrink-0">
-          <X class="w-4 h-4" />
+        <Button
+          variant="ghost"
+          size="sm"
+          class="flex-shrink-0"
+          :aria-label="t('churchService.clearSelection')"
+          @click="clearSelection"
+        >
+          <X class="w-4 h-4" aria-hidden="true" />
         </Button>
       </div>
     </div>
 
     <!-- Song Selection Dialog -->
     <Dialog v-model:open="dialogOpen">
-      <DialogContent class="max-w-6xl max-h-[90vh] flex flex-col">
+      <DialogContent class="max-w-6xl max-h-[90dvh] flex flex-col">
         <DialogHeader class="flex-shrink-0">
           <DialogTitle>{{ t("churchService.selectSong") }}</DialogTitle>
           <DialogDescription>
@@ -67,7 +73,7 @@
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs v-model="activeTab" class="flex-1 overflow-hidden flex flex-col">
+        <Tabs v-model="activeTab" class="flex-1 min-h-0 overflow-hidden flex flex-col">
           <TabsList class="grid grid-cols-2 w-full flex-shrink-0">
             <TabsTrigger value="all">{{ t("playlist.allSongs") }}</TabsTrigger>
             <TabsTrigger value="playlists">
@@ -79,7 +85,10 @@
           </TabsList>
 
           <!-- ─────────────── All Songs tab ─────────────── -->
-          <TabsContent value="all" class="space-y-4 flex-1 overflow-hidden mt-4">
+          <!-- Lists take whatever height the dialog has left (as SongGrid does)
+               instead of a fixed 450px that an overflow-hidden ancestor clipped
+               at phone height, hiding the last songs. -->
+          <TabsContent value="all" class="flex flex-1 min-h-0 flex-col gap-4 mt-4">
             <!-- Search Input -->
             <div class="relative">
               <Search
@@ -96,7 +105,7 @@
             <div
               v-if="sortedSongs.length > 0"
               ref="scrollElement"
-              class="h-[450px] overflow-auto pr-4"
+              class="flex-1 min-h-[200px] overflow-auto pr-4"
             >
               <div
                 :style="{
@@ -120,11 +129,16 @@
                   }"
                 >
                   <div
+                    role="button"
+                    tabindex="0"
                     :class="[
                       'p-3 border rounded-lg cursor-pointer transition-colors',
                       'hover:bg-accent hover:border-accent-foreground/20',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     ]"
                     @click="selectSong(sortedSongs[virtualItem.index])"
+                    @keydown.enter.prevent="selectSong(sortedSongs[virtualItem.index])"
+                    @keydown.space.prevent="selectSong(sortedSongs[virtualItem.index])"
                   >
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex-1 min-w-0">
@@ -146,7 +160,7 @@
                           <Badge
                             v-if="!hasMidiTrio(sortedSongs[virtualItem.index])"
                             variant="secondary"
-                            class="text-xs bg-orange-100 text-orange-800 hover:bg-orange-100"
+                            class="text-xs bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 hover:bg-orange-100"
                           >
                             <AlertTriangle class="w-3 h-3 mr-1" />
                             {{ t("churchService.missingMidi") }}
@@ -168,9 +182,27 @@
                         variant="ghost"
                         size="sm"
                         class="flex-shrink-0"
+                        :title="
+                          previewState(sortedSongs[virtualItem.index]) === 'idle'
+                            ? t('churchService.previewListen.play')
+                            : t('churchService.previewListen.stop')
+                        "
+                        :aria-label="
+                          previewState(sortedSongs[virtualItem.index]) === 'idle'
+                            ? t('churchService.previewListen.play')
+                            : t('churchService.previewListen.stop')
+                        "
                         @click.stop="previewSong(sortedSongs[virtualItem.index])"
                       >
-                        <Play class="w-4 h-4" />
+                        <Loader2
+                          v-if="previewState(sortedSongs[virtualItem.index]) === 'loading'"
+                          class="w-4 h-4 animate-spin"
+                        />
+                        <Square
+                          v-else-if="previewState(sortedSongs[virtualItem.index]) === 'playing'"
+                          class="w-4 h-4"
+                        />
+                        <Play v-else class="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -192,7 +224,7 @@
             </div>
 
             <!-- Empty State -->
-            <div v-else class="h-[450px] flex items-center justify-center">
+            <div v-else class="flex-1 min-h-[200px] flex items-center justify-center">
               <p class="text-sm text-muted-foreground">
                 {{
                   isUsingCachedData
@@ -204,12 +236,12 @@
           </TabsContent>
 
           <!-- ─────────────── Playlists tab ─────────────── -->
-          <TabsContent value="playlists" class="space-y-4 flex-1 overflow-hidden mt-4">
+          <TabsContent value="playlists" class="flex flex-1 min-h-0 flex-col gap-4 mt-4">
             <!-- Browsing playlist list -->
-            <div v-if="!activePlaylistId">
+            <div v-if="!activePlaylistId" class="flex flex-1 min-h-0 flex-col">
               <div
                 v-if="playlistStore.playlists.length === 0"
-                class="h-[450px] flex flex-col items-center justify-center text-center px-6"
+                class="flex-1 min-h-[200px] flex flex-col items-center justify-center text-center px-6"
               >
                 <ListMusic class="w-12 h-12 text-muted-foreground mb-3" />
                 <h3 class="font-medium text-muted-foreground mb-1">
@@ -219,13 +251,17 @@
                   {{ t("playlist.noPlaylistsInDialogDescription") }}
                 </p>
               </div>
-              <ScrollArea v-else class="h-[490px]">
+              <ScrollArea v-else class="flex-1 min-h-[200px]">
                 <div class="space-y-2 pr-4">
                   <div
                     v-for="pl in playlistStore.playlists"
                     :key="pl.id"
-                    class="p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                    role="button"
+                    tabindex="0"
+                    class="p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     @click="activePlaylistId = pl.id"
+                    @keydown.enter.prevent="activePlaylistId = pl.id"
+                    @keydown.space.prevent="activePlaylistId = pl.id"
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -244,7 +280,7 @@
                         </p>
                       </div>
                       <Badge variant="secondary" class="text-xs flex-shrink-0">
-                        {{ t("playlist.songsCount", { count: pl.songIds.length }) }}
+                        {{ t("playlist.songsCount", pl.songIds.length) }}
                       </Badge>
                     </div>
                   </div>
@@ -253,7 +289,7 @@
             </div>
 
             <!-- Browsing songs within a chosen playlist -->
-            <div v-else class="flex-1 flex flex-col gap-3 overflow-hidden">
+            <div v-else class="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
               <div class="flex items-center justify-between gap-2">
                 <Button variant="ghost" size="sm" @click="activePlaylistId = null">
                   <ArrowLeft class="w-4 h-4 mr-1" />
@@ -266,12 +302,19 @@
                   {{ activePlaylist?.name }}
                 </span>
                 <Badge variant="secondary" class="text-xs">
-                  {{ t("playlist.songsCount", { count: activePlaylistSongs.length }) }}
+                  {{ t("playlist.songsCount", activePlaylist?.songIds.length ?? 0) }}
                 </Badge>
               </div>
 
-              <ScrollArea class="h-[440px]">
-                <div v-if="activePlaylistSongs.length === 0" class="text-center py-12">
+              <ScrollArea class="flex-1 min-h-[200px]">
+                <div
+                  v-if="resolvingPlaylistSongs && activePlaylistSongs.length === 0"
+                  class="flex items-center justify-center py-12"
+                  aria-busy="true"
+                >
+                  <Loader2 class="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+                <div v-else-if="activePlaylistSongs.length === 0" class="text-center py-12">
                   <p class="text-sm text-muted-foreground">
                     {{ t("playlist.noSongsInPlaylist") }}
                   </p>
@@ -280,11 +323,16 @@
                   <div
                     v-for="song in activePlaylistSongs"
                     :key="song.id"
+                    role="button"
+                    tabindex="0"
                     :class="[
                       'p-3 border rounded-lg cursor-pointer transition-colors',
                       'hover:bg-accent hover:border-accent-foreground/20',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     ]"
                     @click="selectSong(song)"
+                    @keydown.enter.prevent="selectSong(song)"
+                    @keydown.space.prevent="selectSong(song)"
                   >
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex-1 min-w-0">
@@ -304,7 +352,7 @@
                           <Badge
                             v-if="!hasMidiTrio(song)"
                             variant="secondary"
-                            class="text-xs bg-orange-100 text-orange-800 hover:bg-orange-100"
+                            class="text-xs bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 hover:bg-orange-100"
                           >
                             <AlertTriangle class="w-3 h-3 mr-1" />
                             {{ t("churchService.missingMidi") }}
@@ -341,14 +389,23 @@
 import { useGesangbuchliedStore } from "@/stores/gesangbuchlieder";
 import { usePlaylistStore } from "@/stores/playlists";
 import { useVirtualizer } from "@tanstack/vue-virtual";
-import { AlertTriangle, ArrowLeft, ListMusic, Play, Search, X } from "lucide-vue-next";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ListMusic,
+  Loader2,
+  Play,
+  Search,
+  Square,
+  X,
+} from "lucide-vue-next";
 import { storeToRefs } from "pinia";
 
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { type GesangbuchliedWithMidi, getLiedNumber } from "@/gql/extra-types";
-import type { Gesangbuchlied } from "@/gql/graphql";
+import type { Directus_Files, Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -362,6 +419,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { useAudioPreview } from "@/composables/useAudioPreview";
+import { useToast } from "@/composables/useToast";
 
 interface Props {
   selectedSong: Gesangbuchlied | null;
@@ -379,9 +439,19 @@ const { t } = useI18n();
 // Store
 const store = useGesangbuchliedStore();
 const { lieder, isLoading, isUsingCachedData, filters } = storeToRefs(store);
-const { fetchLieder, setFilter, getAuthors, hasAudioFiles, getCategories } = store;
+const { fetchLieder, ensureSongsLoaded, setFilter, getAuthors, hasAudioFiles, getCategories } =
+  store;
 
 const playlistStore = usePlaylistStore();
+const { toast } = useToast();
+
+// One preview at a time across the whole list; stopped on close and unmount.
+const {
+  playingId: previewPlayingId,
+  loadingId: previewLoadingId,
+  toggle: togglePreview,
+  stop: stopPreview,
+} = useAudioPreview();
 
 const dialogOpen = ref(false);
 const searchQuery = ref("");
@@ -395,6 +465,19 @@ const activePlaylistId = ref<string | null>(null);
 const activePlaylist = computed(() =>
   activePlaylistId.value ? (playlistStore.getPlaylist(activePlaylistId.value) ?? null) : null,
 );
+
+// Playlists hold song ids; online the store only has one catalogue page, so
+// the rest are fetched by id when a playlist is opened.
+const resolvingPlaylistSongs = ref(false);
+watch(activePlaylist, async (pl) => {
+  if (!pl || pl.songIds.length === 0) return;
+  resolvingPlaylistSongs.value = true;
+  try {
+    await ensureSongsLoaded(pl.songIds);
+  } finally {
+    resolvingPlaylistSongs.value = false;
+  }
+});
 
 const songsById = computed(() => {
   const map = new Map<string, Gesangbuchlied>();
@@ -482,11 +565,34 @@ const clearSelection = () => {
   emit("songSelected", null);
 };
 
-// TODO: Implement audio preview. Until then this is a no-op and the Play button
-// above does nothing — tracked separately. The signature is kept because the
-// implementation will need the song.
-const previewSong = (song: Gesangbuchlied) => {
-  void song;
+// The first audio recording attached to the melody — the same predicate the
+// store's hasAudioFiles() uses to decide whether to show the button at all.
+const getPreviewFile = (song: Gesangbuchlied): Directus_Files | null =>
+  song.melodieId?.noten?.find((note) => note?.directus_files_id?.type?.includes("audio"))
+    ?.directus_files_id ?? null;
+
+const previewState = (song: Gesangbuchlied): "idle" | "loading" | "playing" => {
+  const id = getPreviewFile(song)?.id;
+  if (!id) return "idle";
+  if (id === previewLoadingId.value) return "loading";
+  if (id === previewPlayingId.value) return "playing";
+  return "idle";
+};
+
+const previewSong = async (song: Gesangbuchlied) => {
+  const file = getPreviewFile(song);
+  if (!file) return;
+  try {
+    await togglePreview(file.id);
+  } catch (error) {
+    // A silent button is what #33 was about — say that it failed.
+    console.warn("Audio preview failed:", error);
+    toast({
+      titleKey: "churchService.previewListen.failedTitle",
+      descriptionKey: "churchService.previewListen.failedDescription",
+      variant: "destructive",
+    });
+  }
 };
 
 // Helper functions
@@ -508,6 +614,7 @@ const hasMidiTrio = (song: Gesangbuchlied): boolean => {
 watch(dialogOpen, async (isOpen) => {
   if (isOpen) return;
   clearTimeout(searchDebounce);
+  stopPreview();
   searchQuery.value = "";
   activePlaylistId.value = null;
   const prev = previousStoreSearch.value ?? "";

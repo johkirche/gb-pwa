@@ -1,13 +1,11 @@
-import { useAuthStore } from "@/stores/auth";
-import axios from "axios";
-import { WorkletSynthesizer } from "spessasynth_lib";
+// Type-only: the 200 KB synthesizer is loaded on demand inside
+// `BrowserSynth.initSpessaSynth` so a song page without a MIDI trio never
+// pays for it on its critical path.
+import type { WorkletSynthesizer } from "spessasynth_lib";
 import { computed, onUnmounted, readonly, ref } from "vue";
 
-import {
-  fetchAssetByUrl,
-  getCachedSoundfontId,
-  setCachedSoundfontId,
-} from "@/composables/useOfflineDownload";
+import { getSoundfontUrl } from "@/composables/soundfont";
+import { fetchAssetByUrl } from "@/composables/useOfflineDownload";
 
 // Parsed representation of a single MIDI file. The structure intentionally
 // drops timing-conversion concerns into a flat sorted event list — playback
@@ -278,83 +276,6 @@ export function tonicNameGerman(
 
 const WORKLET_URL = `${import.meta.env.BASE_URL}spessasynth_processor.min.js`;
 
-/**
- * Resolves the soundfont asset URL. Online, it reads the id from the Directus
- * `settings` singleton and back-fills it into local storage so the soundfont
- * stays usable offline. Offline (or when the settings query fails), it falls
- * back to the id persisted at download time — the blob was precached into
- * IndexedDB, so `fetchAssetByUrl` serves it without a network round-trip.
- *
- * The URL is always `${directusUrl}/assets/<id>` so `fetchAssetByUrl` can map
- * it back to the cached blob. Returns null only when there's genuinely no
- * soundfont to load (no id online, none cached offline) → oscillator fallback.
- *
- * A null/failed result is NOT cached, so a later call retries (e.g. once the id
- * has been persisted or connectivity returns).
- */
-let cachedSoundfontUrlPromise: Promise<string | null> | null = null;
-export function getSoundfontUrl(): Promise<string | null> {
-  if (cachedSoundfontUrlPromise) return cachedSoundfontUrlPromise;
-
-  const promise = (async () => {
-    const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
-    if (!directusUrl) return null;
-
-    const buildUrl = (id: string) => `${directusUrl}/assets/${id}`;
-    const cachedId = getCachedSoundfontId();
-    const online = typeof navigator === "undefined" || navigator.onLine;
-
-    // Offline: rely on the id persisted at download time.
-    if (!online) {
-      return cachedId ? buildUrl(cachedId) : null;
-    }
-
-    try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      // Auth header only if available — the field SHOULD be readable by the
-      // public role, but if it isn't we'll still try the user's token.
-      const authStore = useAuthStore();
-      if (authStore.accessToken) {
-        headers["Authorization"] = `Bearer ${authStore.accessToken}`;
-      }
-      const res = await axios.post<{
-        data: { settings: { soundfont: { id: string } | null } | null };
-      }>(
-        `${directusUrl}/graphql`,
-        { query: "query { settings { soundfont { id } } }" },
-        { headers },
-      );
-      const sfId = res.data?.data?.settings?.soundfont?.id;
-      if (sfId) {
-        // Back-fill so the soundfont resolves offline next time (also fixes
-        // downloads made before the id was persisted).
-        setCachedSoundfontId(sfId);
-        return buildUrl(sfId);
-      }
-      // Settings reachable but no soundfont configured: fall back to a cached
-      // id if we have one (don't clear it — a transient empty read shouldn't
-      // wipe a known-good reference), otherwise none.
-      return cachedId ? buildUrl(cachedId) : null;
-    } catch (err) {
-      console.warn("Failed to fetch soundfont reference from settings:", err);
-      // Network/permission failure despite being "online" — use the last known
-      // id if available.
-      return cachedId ? buildUrl(cachedId) : null;
-    }
-  })();
-
-  cachedSoundfontUrlPromise = promise;
-  // Don't memoize a null/failed resolution — allow a later retry.
-  promise
-    .then((url) => {
-      if (!url) cachedSoundfontUrlPromise = null;
-    })
-    .catch(() => {
-      cachedSoundfontUrlPromise = null;
-    });
-  return promise;
-}
-
 // Module-level synth settings (persisted to localStorage).
 const synthVolumeRef = ref<number>(loadStoredVolume());
 const synthProgramRef = ref<number>(loadStoredProgram());
@@ -445,6 +366,7 @@ class BrowserSynth {
   send(data: number[]) {
     if (!data.length) return;
     this.ensureInit();
+    this.unlock();
     if (this.oscFallback) {
       this.oscFallback.send(data);
       return;
@@ -489,13 +411,20 @@ class BrowserSynth {
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = synthVolumeRef.value / 100;
     this.masterGain.connect(this.ctx.destination);
-    // First send() during playback IS a user gesture (the operator clicked
-    // "Lied starten"), so resume() succeeds here.
-    if (this.ctx.state === "suspended") void this.ctx.resume();
 
     synthBackendRef.value = "loading";
     synthLoadErrorRef.value = null;
     void this.initSpessaSynth();
+  }
+
+  // Resume the context whenever it is not running — not just once at
+  // construction. The context is often created outside a user gesture (the
+  // setup step's immediate watcher calls stop() → allNotesOff() before anything
+  // has played), and iOS also suspends it whenever the tab is backgrounded.
+  // Each send() during playback happens after a real tap, so resume() here
+  // succeeds where a one-shot at construction stays suspended forever.
+  private unlock() {
+    if (this.ctx && this.ctx.state !== "running") void this.ctx.resume();
   }
 
   private async initSpessaSynth() {
@@ -505,6 +434,7 @@ class BrowserSynth {
         this.useOscFallback("no soundfont configured in settings");
         return;
       }
+      const { WorkletSynthesizer } = await import("spessasynth_lib");
       await this.ctx!.audioWorklet.addModule(WORKLET_URL);
       // `fetchAssetByUrl` reads from IndexedDB first when the soundfont was
       // precached during offline download, otherwise hits the network.
@@ -668,9 +598,17 @@ const isSupportedRef = ref(
 );
 const midiAccessRef = ref<WebMidi.MIDIAccess | null>(null);
 const outputsRef = ref<MidiOutputDevice[]>([]);
-const selectedOutputIdRef = ref<string>(
-  typeof localStorage !== "undefined" ? (localStorage.getItem(STORED_DEVICE_KEY) ?? "") : "",
-);
+// The device the operator explicitly picked, persisted across launches. Kept
+// apart from the *effective* selection below so that a launch during which the
+// organ is not (yet) enumerated never overwrites the preference — the outputs
+// list is seeded at module load, before MIDI access has been granted, and used
+// to blank the stored id and persist the browser synth in its place on every
+// page load. The organist then had to re-pick the organ each Sunday.
+let preferredOutputId =
+  typeof localStorage !== "undefined" ? (localStorage.getItem(STORED_DEVICE_KEY) ?? "") : "";
+// What playback actually sends to right now. Falls back to whatever is
+// available when the preferred device is absent, without persisting.
+const selectedOutputIdRef = ref<string>("");
 const accessErrorRef = ref<string | null>(null);
 
 let accessRequest: Promise<void> | null = null;
@@ -726,26 +664,53 @@ function refreshOutputsShared() {
 
   outputsRef.value = list;
 
-  // Drop the stored device if it's no longer connected. The synth is always in
-  // the list, so a previously-selected synth survives.
-  if (selectedOutputIdRef.value && !list.some((d) => d.id === selectedOutputIdRef.value)) {
-    selectedOutputIdRef.value = "";
+  const has = (id: string) => !!id && list.some((d) => d.id === id);
+
+  // The operator's stored device wins the moment it appears (e.g. the organ
+  // enumerates a few seconds after MIDI access is granted).
+  if (has(preferredOutputId)) {
+    selectedOutputIdRef.value = preferredOutputId;
+    return;
   }
-  // Auto-pick: a single real device wins; otherwise default to the synth so
-  // the run step has *something* to play to from the moment the user lands.
-  if (!selectedOutputIdRef.value) {
-    const real = list.filter((d) => d.id !== BROWSER_SYNTH_ID);
-    if (real.length === 1) setSelectedOutputShared(real[0].id);
-    else if (real.length === 0) setSelectedOutputShared(BROWSER_SYNTH_ID);
-  }
+
+  // No usable preference: auto-pick on every refresh, without persisting. A
+  // single real device wins; otherwise default to the synth so the run step
+  // has *something* to play to from the moment the user lands. The selection
+  // is re-derived rather than kept, because the synth is always listed — an
+  // early "still connected" return would have kept it forever, and the organ
+  // plugged in a moment later would never have been picked. Only an explicit
+  // pick (setSelectedOutputShared) is stored.
+  const real = list.filter((d) => d.id !== BROWSER_SYNTH_ID);
+  if (real.length === 1) selectedOutputIdRef.value = real[0].id;
+  else if (real.length === 0) selectedOutputIdRef.value = BROWSER_SYNTH_ID;
+  else selectedOutputIdRef.value = "";
 }
 
 // Seed the outputs list at module load so the synth is immediately selectable —
 // the user shouldn't have to grant MIDI access just to use the fallback.
 refreshOutputsShared();
 
+// Silence every channel on one device. Used when playback stops and when the
+// operator switches outputs mid-playback — the outgoing device would otherwise
+// hold whatever chord was sounding, and only reselecting it and pressing Play
+// would ever clear it.
+function panic(device: MidiOutputDevice) {
+  try {
+    for (let ch = 0; ch < 16; ch++) {
+      // CC 120 = All Sound Off, CC 123 = All Notes Off
+      device.send([0xb0 + ch, 120, 0]);
+      device.send([0xb0 + ch, 123, 0]);
+    }
+  } catch (err) {
+    console.error("All-notes-off failed:", err);
+  }
+}
+
 function setSelectedOutputShared(id: string) {
+  const outgoing = selectedOutputShared.value;
+  if (outgoing && outgoing.id !== id) panic(outgoing);
   selectedOutputIdRef.value = id;
+  preferredOutputId = id;
   if (typeof localStorage !== "undefined") {
     if (id) localStorage.setItem(STORED_DEVICE_KEY, id);
     else localStorage.removeItem(STORED_DEVICE_KEY);
@@ -777,6 +742,12 @@ export function useMidiDevices() {
 // Per-instance player state (each component owns its own playback)
 // --------------------------------------------------------------------------
 
+// The one instance allowed to be audible. Every song row in the setup step
+// owns its own player; without this, previewing a second song played both at
+// once through the shared sink and stopping one only chopped the other's
+// sustained notes. Same one-at-a-time contract `useAudioPreview` documents.
+let activePlayer: { stop: () => void } | null = null;
+
 export function useMidiPlayer() {
   const isPlaying = ref(false);
   const progress = ref<SequenceProgress>({
@@ -795,6 +766,12 @@ export function useMidiPlayer() {
   const scheduledTimers: ReturnType<typeof setTimeout>[] = [];
   // Sentinel that lets a running sequence detect cancellation across `await`s.
   let runId = 0;
+  // Resolver of the section/pause promise currently awaited by a sequence.
+  // `stop()` clears the timer that would have resolved it, so it has to settle
+  // the promise itself — otherwise every Stop/Vor/Zurück press left an awaited
+  // `startCurrentEntry` frame pending forever, holding its parsed MIDI files.
+  let settleCurrent: (() => void) | null = null;
+  const self = { stop };
   let sequenceStartTime = 0;
   let tickerId: ReturnType<typeof setInterval> | null = null;
 
@@ -822,6 +799,11 @@ export function useMidiPlayer() {
    *
    * `versesCount` is the total number of verses including the outro verse,
    * so versesCount=1 → intro + outro, versesCount=4 → intro + main×3 + outro.
+   *
+   * Resolves `true` only when the whole sequence played to its end; `false`
+   * when it was stopped, superseded, or never started (no output selected).
+   * Callers that advance to the next entry on completion must check this —
+   * a stopped run resolves too.
    */
   async function playSequence(
     intro: ParsedMidiFile,
@@ -829,12 +811,12 @@ export function useMidiPlayer() {
     outro: ParsedMidiFile,
     versesCount: number,
     options: PlaybackOptions = {},
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (!selectedOutputShared.value) {
       accessErrorRef.value = "No MIDI output device selected";
-      return;
+      return false;
     }
-    stop(); // Cancel anything in flight.
+    claimPlayback(); // Cancel anything in flight, here or in another instance.
 
     const speed = sanitizeSpeed(options.speed);
     const pitch = sanitizePitch(options.pitchSemitones);
@@ -859,18 +841,18 @@ export function useMidiPlayer() {
       // Intro
       progress.value = { stage: "intro", verseNumber: 0, totalVerses };
       await playFile(intro, myRunId, speed, pitch);
-      if (myRunId !== runId) return;
+      if (myRunId !== runId) return false;
       await pauseAfter(intro, myRunId, speed);
-      if (myRunId !== runId) return;
+      if (myRunId !== runId) return false;
 
       // Main verses (everything except the final one, which is the outro).
       const mainCount = Math.max(0, totalVerses - 1);
       for (let v = 1; v <= mainCount; v++) {
         progress.value = { stage: "verse", verseNumber: v, totalVerses };
         await playFile(main, myRunId, speed, pitch);
-        if (myRunId !== runId) return;
+        if (myRunId !== runId) return false;
         await pauseAfter(main, myRunId, speed);
-        if (myRunId !== runId) return;
+        if (myRunId !== runId) return false;
       }
 
       // Outro (counts as the final verse).
@@ -888,8 +870,10 @@ export function useMidiPlayer() {
         isPlaying.value = false;
         progress.value = { stage: "idle", verseNumber: 0, totalVerses: 0 };
         allNotesOff();
+        if (activePlayer === self) activePlayer = null;
       }
     }
+    return myRunId === runId;
   }
 
   /**
@@ -897,17 +881,18 @@ export function useMidiPlayer() {
    * — no intro/main/outro trio, no verse iteration — and for the setup-step
    * "preview listen" of a song's main MIDI. Resolves when the file's last note
    * time elapses (or stop() is called). `options` apply the same tempo/pitch
-   * overrides as the trio sequence.
+   * overrides as the trio sequence. Resolves `true` on natural completion,
+   * `false` when stopped, superseded or never started — see `playSequence`.
    */
   async function playSingle(
     file: ParsedMidiFile,
     options: PlaybackOptions = {},
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (!selectedOutputShared.value) {
       accessErrorRef.value = "No MIDI output device selected";
-      return;
+      return false;
     }
-    stop();
+    claimPlayback();
     const speed = sanitizeSpeed(options.speed);
     const pitch = sanitizePitch(options.pitchSemitones);
     const myRunId = ++runId;
@@ -926,8 +911,18 @@ export function useMidiPlayer() {
         isPlaying.value = false;
         progress.value = { stage: "idle", verseNumber: 0, totalVerses: 0 };
         allNotesOff();
+        if (activePlayer === self) activePlayer = null;
       }
     }
+    return myRunId === runId;
+  }
+
+  // Stop this instance and whichever other instance is currently audible,
+  // then register this one as the audible instance.
+  function claimPlayback() {
+    stop();
+    if (activePlayer && activePlayer !== self) activePlayer.stop();
+    activePlayer = self;
   }
 
   function playFile(
@@ -937,11 +932,11 @@ export function useMidiPlayer() {
     pitchSemitones = 0,
   ): Promise<void> {
     return new Promise((resolve) => {
-      const sink = selectedOutputShared.value;
-      if (!sink || !file.events.length) {
+      if (!selectedOutputShared.value || !file.events.length) {
         resolve();
         return;
       }
+      settleCurrent = resolve;
       const rate = speed > 0 ? speed : 1;
       for (const ev of file.events) {
         if (!ev.data.length) continue;
@@ -949,6 +944,11 @@ export function useMidiPlayer() {
         if (!data) continue; // dropped because transposed note left 0..127
         const timer = setTimeout(() => {
           if (myRunId !== runId) return;
+          // Resolved per message rather than captured per section, so a device
+          // switch mid-section takes effect immediately; the outgoing device is
+          // silenced by `setSelectedOutputShared`.
+          const sink = selectedOutputShared.value;
+          if (!sink) return;
           try {
             sink.send(data);
           } catch (err) {
@@ -960,21 +960,24 @@ export function useMidiPlayer() {
       // Resolve after the last note's nominal time. We don't strictly know
       // when the device finishes its envelope, but for sequencing purposes
       // that's irrelevant — the next section starts after pauseAfter().
-      const endTimer = setTimeout(() => resolve(), file.durationMs / rate);
+      const endTimer = setTimeout(() => settle(resolve), file.durationMs / rate);
       scheduledTimers.push(endTimer);
     });
   }
 
-  function pauseAfter(file: ParsedMidiFile, myRunId: number, speed = 1): Promise<void> {
+  function pauseAfter(file: ParsedMidiFile, _myRunId: number, speed = 1): Promise<void> {
     return new Promise((resolve) => {
       const pauseMs = computePauseMs(file, speed);
       progress.value = { ...progress.value, stage: "pause" };
-      const timer = setTimeout(() => {
-        if (myRunId === runId) resolve();
-        else resolve();
-      }, pauseMs);
+      settleCurrent = resolve;
+      const timer = setTimeout(() => settle(resolve), pauseMs);
       scheduledTimers.push(timer);
     });
+  }
+
+  function settle(resolve: () => void) {
+    if (settleCurrent === resolve) settleCurrent = null;
+    resolve();
   }
 
   function stop() {
@@ -986,6 +989,12 @@ export function useMidiPlayer() {
     allNotesOff();
     isPlaying.value = false;
     progress.value = { stage: "idle", verseNumber: 0, totalVerses: 0 };
+    if (activePlayer === self) activePlayer = null;
+    // Let the awaiting sequence continue; its `myRunId !== runId` guards make
+    // it unwind without side effects.
+    const pending = settleCurrent;
+    settleCurrent = null;
+    pending?.();
   }
 
   function clearTimers() {
@@ -997,16 +1006,7 @@ export function useMidiPlayer() {
 
   function allNotesOff() {
     const sink = selectedOutputShared.value;
-    if (!sink) return;
-    try {
-      for (let ch = 0; ch < 16; ch++) {
-        // CC 120 = All Sound Off, CC 123 = All Notes Off
-        sink.send([0xb0 + ch, 120, 0]);
-        sink.send([0xb0 + ch, 123, 0]);
-      }
-    } catch (err) {
-      console.error("All-notes-off failed:", err);
-    }
+    if (sink) panic(sink);
   }
 
   /**

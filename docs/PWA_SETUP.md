@@ -48,7 +48,7 @@ This project has been configured as a full-featured PWA with comprehensive offli
 
 ### Service Worker Features
 
-- **Automatic Updates**: Users are prompted when new versions are available
+- **Prompted Updates**: a new version waits until the user accepts the in-app update banner (`registerType: "prompt"`), so a deploy never reloads the page mid-service
 - **Cache Management**: Old caches are automatically cleaned up
 - **Network Strategies**: Different caching strategies for different types of content
 
@@ -101,7 +101,7 @@ const {
 
 - **App Shell**: HTML, CSS, JavaScript files
 - **Songs Data**: Complete song database in IndexedDB
-- **API Responses**: GraphQL queries cached for 7 days
+- **API Responses**: not cached by the service worker — every `/graphql` request is a POST; offline reads come from the IndexedDB stores written by `useOfflineDownload`
 - **Assets**: Images, fonts, and other static resources
 
 ### Storage Usage
@@ -113,7 +113,7 @@ const {
 ## 🔄 Update Process
 
 1. **Automatic Detection**: Service worker checks for updates
-2. **User Notification**: "New content available. Reload?" prompt
+2. **User Notification**: an update banner ("Eine neue Version ist verfügbar") with _Jetzt aktualisieren_ / _Später_
 3. **Seamless Update**: New version activates after user consent
 4. **Background Download**: New content pre-cached for instant access
 

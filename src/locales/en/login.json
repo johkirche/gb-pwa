@@ -16,5 +16,11 @@
   "orDivider": "or",
   "toggleTheme": "Toggle theme",
   "themeToDark": "Switch to dark mode",
-  "themeToLight": "Switch to light mode"
+  "themeToLight": "Switch to light mode",
+  "errors": {
+    "invalidCredentials": "Email address or password is incorrect.",
+    "tooManyAttempts": "Too many login attempts. Please wait a moment and try again.",
+    "userSuspended": "This account is suspended. Please contact the parish office.",
+    "generic": "Login failed. Please try again."
+  }
 }

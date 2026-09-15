@@ -50,7 +50,9 @@ vi.mock("@/composables/useGesangbuchlied", () => ({
 }));
 
 vi.mock("axios", () => ({
-  default: { post: h.axiosPost },
+  // The shared transport (useGraphQL.ts) asks isAxiosError() before deciding
+  // whether a failure is a 401 worth retrying; none of the replies below are.
+  default: { post: h.axiosPost, isAxiosError: () => false },
 }));
 
 // ---------------------------------------------------------------------------
@@ -1516,7 +1518,7 @@ describe("downloadAllContent", () => {
 
     expect(console.warn).toHaveBeenCalledWith(
       "Failed to fetch pieces for offline use:",
-      expect.objectContaining({ message: "FORBIDDEN, no read access" }),
+      expect.objectContaining({ message: "FORBIDDEN; no read access" }),
     );
   });
 
@@ -1791,5 +1793,197 @@ describe("getStorageInfo", () => {
 
     await expect(dl.getStorageInfo()).resolves.toBeNull();
     expect(console.error).toHaveBeenCalledWith("Error getting storage info:", expect.any(Error));
+  });
+});
+
+// ===========================================================================
+// Asset reads carry the session
+// ===========================================================================
+describe("asset reads carry the session", () => {
+  // Files may stop being readable by the public role. Every network read of
+  // an asset goes through fetchAsset (directusAssets.ts), which adds the
+  // bearer header when there is a session and sends anonymously otherwise.
+
+  function authHeaderOf(url: string): string | undefined {
+    const call = h.fetch.mock.calls.find(([input]) => String(input) === url);
+    const init = call?.[1] as { headers?: Record<string, string> } | undefined;
+    return init?.headers?.Authorization;
+  }
+
+  it("precacheAssets sends the bearer header on every asset fetch", async () => {
+    const { dl, store } = await loadComposable();
+    store.setTokens("access-abc", "refresh-xyz");
+
+    await dl.precacheAssets(
+      asSongs([makeSong("s1", { noten: [{ id: "f-1" }, { id: "f-2" }] })]),
+      [],
+    );
+
+    expect(authHeaderOf(assetUrl("f-1"))).toBe("Bearer access-abc");
+    expect(authHeaderOf(assetUrl("f-2"))).toBe("Bearer access-abc");
+  });
+
+  it("precacheAssets sends anonymously when there is no session", async () => {
+    const { dl } = await loadComposable();
+
+    await dl.precacheAssets(asSongs([makeSong("s1", { noten: [{ id: "f-1" }] })]), []);
+
+    expect(authHeaderOf(assetUrl("f-1"))).toBeUndefined();
+  });
+
+  it("fetchAssetByUrl sends the bearer header on the network fallback", async () => {
+    const { mod, store } = await loadOffline();
+    store.setTokens("access-abc", "refresh-xyz");
+
+    await mod.fetchAssetByUrl(assetUrl("f-9"));
+
+    expect(authHeaderOf(assetUrl("f-9"))).toBe("Bearer access-abc");
+  });
+
+  it("cacheAssetById sends the bearer header", async () => {
+    const { mod, store } = await loadOffline();
+    store.setTokens("access-abc", "refresh-xyz");
+
+    await mod.cacheAssetById("sf-1");
+
+    expect(authHeaderOf(assetUrl("sf-1"))).toBe("Bearer access-abc");
+  });
+});
+
+// ===========================================================================
+describe("precacheAssets — empty content guard", () => {
+  it("does not prune the asset store when there are no songs and no pieces", async () => {
+    // The soundfont alone kept the desired set from being empty, so a clean
+    // empty song response (a permission filter, a malformed 200) ran the prune
+    // and deleted every cached notation image, MusicXML, MIDI and recording
+    // while the UI showed the green success message.
+    const { mod, dl } = await loadComposable();
+    soundfontReply = "sf-1";
+    await mod.getOfflineSongCount(); // lazy init creates the stores
+    const db = await openRaw();
+    await rawPut(db, ASSETS_STORE, { id: "f-old", blob: makeBlob([1, 2, 3]), size: 3 });
+    db.close();
+
+    await dl.precacheAssets([], []);
+
+    expect(await bytesOf(await mod.getOfflineAssetBlob("f-old"))).toEqual([1, 2, 3]);
+    expect(fetchedUrls).toEqual([]);
+    expect(dl.isPrecachingAssets.value).toBe(false);
+  });
+});
+
+// ===========================================================================
+describe("offline-meta assetsComplete", () => {
+  it("is written true only once a download's asset phase has finished cleanly", async () => {
+    // The meta record is written before the (multi-hundred-MB) asset phase so
+    // the router guard can already treat the app as offline-capable. Without
+    // the flag an interrupted run reported "ready offline" with no sheet music.
+    const { dl } = await loadComposable();
+    const song = makeSong("s1", { noten: [{ id: "f-noten", type: "image/png" }] });
+    h.queryGesangbuchlied.mockImplementation(async (vars: { limit?: number; offset?: number }) => {
+      if (vars.limit === 1) return [song];
+      return vars.offset === 0 ? [song] : [];
+    });
+
+    await dl.downloadAllContent();
+
+    const db = await openRaw();
+    expect(await rawGet(db, META_STORE, META_KEY)).toMatchObject({
+      count: 1,
+      assetsComplete: true,
+    });
+    db.close();
+    expect(dl.isOfflineContentComplete.value).toBe(true);
+  });
+
+  it("reports an interrupted download as incomplete", async () => {
+    const { mod, dl } = await loadComposable();
+    await mod.getOfflineSongCount();
+    const db = await openRaw();
+    await rawPut(
+      db,
+      META_STORE,
+      {
+        count: 3,
+        pieceCount: 0,
+        lastUpdated: "2026-03-01T10:00:00.000Z",
+        version: "1.0",
+        assetsComplete: false,
+      },
+      META_KEY,
+    );
+    db.close();
+
+    await dl.checkOfflineContent();
+
+    expect(dl.hasOfflineContent.value).toBe(true);
+    expect(dl.isOfflineContentComplete.value).toBe(false);
+  });
+
+  it("treats a record written before the flag existed as complete", async () => {
+    // Older installs that did finish must not suddenly show "Download
+    // unvollständig" after a deploy.
+    const { mod, dl } = await loadComposable();
+    await mod.getOfflineSongCount();
+    const db = await openRaw();
+    await rawPut(db, META_STORE, { count: 3, lastUpdated: "2025-01-01", version: "1.0" }, META_KEY);
+    db.close();
+
+    await dl.checkOfflineContent();
+
+    expect(dl.isOfflineContentComplete.value).toBe(true);
+  });
+
+  it("resets to complete when the offline content is cleared", async () => {
+    const { mod, dl } = await loadComposable();
+    await mod.getOfflineSongCount();
+    const db = await openRaw();
+    await rawPut(db, META_STORE, { count: 1, version: "1.0", assetsComplete: false }, META_KEY);
+    db.close();
+    await dl.checkOfflineContent();
+    expect(dl.isOfflineContentComplete.value).toBe(false);
+
+    await dl.clearOfflineContent();
+
+    expect(dl.isOfflineContentComplete.value).toBe(true);
+    expect(dl.hasOfflineContent.value).toBe(false);
+  });
+});
+
+// ===========================================================================
+describe("IndexedDB connection handling across tabs", () => {
+  it("yields its connection so a newer deploy in another tab can upgrade the schema", async () => {
+    // Without the versionchange handler the composable's open connection
+    // blocks the other tab's upgrade indefinitely — this open would hang.
+    const { mod } = await loadComposable();
+    await mod.getOfflineSongCount();
+
+    const newer = await openRaw(CURRENT_DB_VERSION + 1, () => {});
+
+    expect(newer.version).toBe(CURRENT_DB_VERSION + 1);
+    newer.close();
+  });
+
+  it("fails the open instead of hanging when an older connection blocks the upgrade", async () => {
+    // The mirror image: an installed PWA on the old schema next to a browser
+    // tab on the new one. The promise used to never settle, and the page
+    // showed no offline content with no error at all.
+    resetIndexedDb();
+    const stale = await openRaw(1, (db) => {
+      db.createObjectStore(SONGS_STORE, { keyPath: "id" });
+      db.createObjectStore(META_STORE);
+    });
+    stale.onversionchange = () => {
+      /* deliberately keeps the connection open */
+    };
+    const { mod } = await loadOffline({ keepDb: true });
+
+    await expect(mod.hasOfflineContentAvailable()).resolves.toBe(false);
+
+    expect(console.error).toHaveBeenCalledWith(
+      "Error checking offline content availability:",
+      expect.objectContaining({ message: expect.stringMatching(/blocked/) }),
+    );
+    stale.close();
   });
 });

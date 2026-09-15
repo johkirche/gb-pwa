@@ -44,5 +44,7 @@
   "noFavoritesDescription": "You haven't added any songs to your favorites yet. Start building your personal collection!",
   "howToAddFavorites": "How to add favorites:",
   "favoriteInstructions": "Hover over any song card and click the heart icon to add it to your favorites.",
-  "showAllSongs": "Show All Songs"
+  "showAllSongs": "Show All Songs",
+  "addFavorite": "Add to favourites",
+  "removeFavorite": "Remove from favourites"
 }

@@ -30,8 +30,17 @@ class PlaylistDBManager {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       request.onerror = () => reject(request.error);
+      // Another tab still holds the previous schema version open; without this
+      // the promise never settles and the page shows an empty list forever.
+      request.onblocked = () => reject(new Error(`${DB_NAME} upgrade blocked by another tab`));
       request.onsuccess = () => {
         this.db = request.result;
+        // Yield to a newer deploy upgrading the schema in another tab; the
+        // connection reopens lazily on the next call.
+        this.db.onversionchange = () => {
+          this.db?.close();
+          this.db = null;
+        };
         resolve();
       };
       request.onupgradeneeded = (event) => {
@@ -45,7 +54,7 @@ class PlaylistDBManager {
   }
 
   async putPlaylist(playlist: Playlist): Promise<void> {
-    if (!this.db) throw new Error("Database not initialized");
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([PLAYLISTS_STORE], "readwrite");
       const store = tx.objectStore(PLAYLISTS_STORE);
@@ -56,7 +65,7 @@ class PlaylistDBManager {
   }
 
   async getPlaylist(id: string): Promise<Playlist | undefined> {
-    if (!this.db) throw new Error("Database not initialized");
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([PLAYLISTS_STORE], "readonly");
       const store = tx.objectStore(PLAYLISTS_STORE);
@@ -67,7 +76,7 @@ class PlaylistDBManager {
   }
 
   async getAllPlaylists(): Promise<Playlist[]> {
-    if (!this.db) throw new Error("Database not initialized");
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([PLAYLISTS_STORE], "readonly");
       const store = tx.objectStore(PLAYLISTS_STORE);
@@ -83,7 +92,7 @@ class PlaylistDBManager {
   }
 
   async deletePlaylist(id: string): Promise<void> {
-    if (!this.db) throw new Error("Database not initialized");
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([PLAYLISTS_STORE], "readwrite");
       const store = tx.objectStore(PLAYLISTS_STORE);

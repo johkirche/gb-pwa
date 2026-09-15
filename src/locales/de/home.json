@@ -6,15 +6,15 @@
     "evening": "Guten Abend",
     "night": "Willkommen zurück"
   },
-  "subtitle": "Was möchten Sie heute singen?",
+  "subtitle": "Was möchtest du heute singen?",
   "quickAccess": "Schnellzugriff",
   "categoriesHeading": "Nach Thema stöbern",
   "recentHeading": "Letzte Gottesdienste",
   "recentViewAll": "Alle ansehen",
-  "recentEmpty": "Noch keine Gottesdienste — bereiten Sie einen vor, um ihn hier zu sehen.",
-  "songsCountLabel": "{count} Lieder",
+  "recentEmpty": "Noch keine Gottesdienste — bereite einen vor, um ihn hier zu sehen.",
+  "songsCountLabel": "{count} Lied | {count} Lieder",
   "gesangbuchlieder": "Gesangbuchlieder",
-  "browseDescription": "Durchsuchen und suchen Sie alle Lieder im Gesangbuch.",
+  "browseDescription": "Durchsuche alle Lieder im Gesangbuch.",
   "browseAllSongs": "Alle Lieder durchsuchen",
   "quickTestFetch": "Schneller Test-Abruf (für Entwicklung):",
   "testFetchAPI": "Test API-Abruf",
@@ -29,7 +29,8 @@
     "totalSongs": "Lieder insgesamt",
     "offlineSongs": "Offline verfügbar",
     "favorites": "Favoriten",
-    "recentlyPlayed": "Kürzlich gespielt"
+    "recentlyPlayed": "Kürzlich gespielt",
+    "loadFailed": "Statistiken konnten nicht geladen werden"
   },
   "search": {
     "title": "Lieder suchen",
@@ -39,11 +40,11 @@
   },
   "actions": {
     "browseSongs": "Alle Lieder",
-    "browseSongsDesc": "Durchsuchen Sie die komplette Liedersammlung",
+    "browseSongsDesc": "Durchsuche die komplette Liedersammlung",
     "offlineManager": "Offline-Verwaltung",
     "offlineManagerDesc": "Lieder für die Offline-Nutzung verwalten",
     "favorites": "Meine Favoriten",
-    "favoritesDesc": "Ihre als Favoriten markierten Lieder",
+    "favoritesDesc": "Deine als Favoriten markierten Lieder",
     "churchService": "Gottesdienst",
     "churchServiceDesc": "Lieder für den Gottesdienst vorbereiten",
     "settings": "Einstellungen",
@@ -58,12 +59,15 @@
     "sortCustom": "Benutzerdefiniert",
     "resetOrder": "Reihenfolge zurücksetzen",
     "enlarge": "Vergrößern",
-    "shrink": "Verkleinern"
+    "shrink": "Verkleinern",
+    "loadFailed": "Kategorien konnten nicht geladen werden",
+    "empty": "Keine Kategorien verfügbar. Lade die Lieder herunter, um sie hier zu sehen."
   },
   "recent": {
     "title": "Zuletzt gespielt",
-    "description": "Ihre kürzlich angehörten Lieder",
-    "offline": "Offline"
+    "description": "Deine kürzlich angehörten Lieder",
+    "offline": "Offline",
+    "play": "Abspielen"
   },
   "featured": {
     "title": "Empfohlene Lieder",

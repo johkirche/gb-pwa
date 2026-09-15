@@ -16,14 +16,14 @@
               <Badge
                 v-if="currentEntry?.role === 'intro'"
                 variant="outline"
-                class="ml-2 bg-purple-100 text-purple-800 border-purple-200"
+                class="ml-2 bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800"
               >
                 {{ t("churchService.intro") }}
               </Badge>
               <Badge
                 v-else-if="currentEntry?.role === 'outro'"
                 variant="outline"
-                class="ml-2 bg-amber-100 text-amber-800 border-amber-200"
+                class="ml-2 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800"
               >
                 {{ t("churchService.outro") }}
               </Badge>
@@ -48,8 +48,9 @@
           </div>
         </div>
 
-        <!-- Big stage label — what's happening RIGHT NOW. -->
-        <div class="text-center">
+        <!-- Big stage label — what's happening RIGHT NOW. Announced politely so
+             a screen-reader user follows the verse changes without focus moving. -->
+        <div class="text-center" aria-live="polite" aria-atomic="true">
           <p class="text-xs uppercase tracking-wide text-muted-foreground mb-1">
             {{ t("churchService.run.currentlyPlaying") }}
           </p>
@@ -70,7 +71,7 @@
                 chip.state === 'active'
                   ? 'bg-primary text-primary-foreground border-primary shadow'
                   : chip.state === 'done'
-                    ? 'bg-green-100 text-green-800 border-green-200'
+                    ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800'
                     : 'bg-muted text-muted-foreground border-transparent',
               ]"
             >
@@ -102,6 +103,7 @@
         <!-- Load / parse error -->
         <div
           v-if="parseError"
+          role="alert"
           class="flex items-start gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm"
         >
           <AlertCircle class="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -172,7 +174,7 @@
               index === store.currentPlayingIndex
                 ? 'bg-primary text-primary-foreground'
                 : index < store.currentPlayingIndex
-                  ? 'bg-green-50 text-green-900'
+                  ? 'bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-200'
                   : 'bg-muted/50',
             ]"
           >
@@ -187,7 +189,7 @@
                   'text-[10px] flex-shrink-0',
                   index === store.currentPlayingIndex
                     ? 'border-primary-foreground/40 text-primary-foreground'
-                    : 'bg-purple-100 text-purple-800 border-purple-200',
+                    : 'bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800',
                 ]"
               >
                 {{ t("churchService.intro") }}
@@ -199,7 +201,7 @@
                   'text-[10px] flex-shrink-0',
                   index === store.currentPlayingIndex
                     ? 'border-primary-foreground/40 text-primary-foreground'
-                    : 'bg-amber-100 text-amber-800 border-amber-200',
+                    : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
                 ]"
               >
                 {{ t("churchService.outro") }}
@@ -246,7 +248,7 @@ import {
   Square,
 } from "lucide-vue-next";
 
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { type GesangbuchliedWithMidi, getLiedNumber } from "@/gql/extra-types";
@@ -257,8 +259,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { type ParsedMidiFile, parseMidiFile, useMidiPlayer } from "@/composables/useMidiPlayer";
 import { fetchAssetByUrl } from "@/composables/useOfflineDownload";
+import { useWakeLock } from "@/composables/useWakeLock";
 
 const { t } = useI18n();
+
+// Keep the tablet on the organ bench awake for as long as this step is
+// mounted — the OS screen timeout is shorter than a hymn, and a backgrounded
+// page also gets its AudioContext suspended on iOS.
+useWakeLock();
+
+// The running service lives in memory only; a reload or closed tab loses it.
+// Route changes are guarded in ChurchServiceView — this covers the browser.
+const onBeforeUnload = (event: BeforeUnloadEvent) => {
+  event.preventDefault();
+};
+onMounted(() => window.addEventListener("beforeunload", onBeforeUnload));
+onBeforeUnmount(() => window.removeEventListener("beforeunload", onBeforeUnload));
 
 const store = useChurchServiceStore();
 const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
@@ -443,15 +459,14 @@ async function startCurrentEntry() {
   if (!entry) return;
   parseError.value = null;
 
-  if (entry.kind === "piece") {
-    await startPiece(entry.piece, entry.speed, entry.pitchSemitones);
-  } else {
-    await startSong(entry.song, entry.speed, entry.pitchSemitones);
-  }
+  const completed =
+    entry.kind === "piece"
+      ? await startPiece(entry.piece, entry.speed, entry.pitchSemitones)
+      : await startSong(entry.song, entry.speed, entry.pitchSemitones);
 
-  // playSequence/playSingle resolves when playback finishes (or stop() is called).
-  // If we weren't aborted, advance to the next entry.
-  if (!parseError.value) {
+  // playSequence/playSingle also resolve when stop() is called (Stop, Vor,
+  // Zurück, a stepper jump) — only a run that played to its end advances.
+  if (completed) {
     store.onSongCompleted();
   }
 }
@@ -460,7 +475,7 @@ async function startPiece(
   piece: { midi_file: { id: string } },
   speed: number,
   pitchSemitones: number,
-) {
+): Promise<boolean> {
   isLoadingFiles.value = true;
   let file: ParsedMidiFile;
   try {
@@ -469,20 +484,20 @@ async function startPiece(
     console.error("Failed to load piece MIDI:", err);
     parseError.value = t("song.midiPlayer.errors.parseFailed");
     isLoadingFiles.value = false;
-    return;
+    return false;
   }
   isLoadingFiles.value = false;
-  await playSingle(file, { speed, pitchSemitones });
+  return playSingle(file, { speed, pitchSemitones });
 }
 
 async function startSong(
   song: { titel?: string | null } & GesangbuchliedWithMidi,
   speed: number,
   pitchSemitones: number,
-) {
+): Promise<boolean> {
   if (!song.midi_intro || !song.midi_main || !song.midi_outro) {
     parseError.value = t("churchService.midiPlayer.errors.missingTrio");
-    return;
+    return false;
   }
   isLoadingFiles.value = true;
   let intro: ParsedMidiFile, main: ParsedMidiFile, outro: ParsedMidiFile;
@@ -496,12 +511,12 @@ async function startSong(
     console.error("Failed to load MIDI trio:", err);
     parseError.value = t("song.midiPlayer.errors.parseFailed");
     isLoadingFiles.value = false;
-    return;
+    return false;
   }
   isLoadingFiles.value = false;
 
   const versesCount = Math.max(1, currentVerses.value.length);
-  await playSequence(intro, main, outro, versesCount, { speed, pitchSemitones });
+  return playSequence(intro, main, outro, versesCount, { speed, pitchSemitones });
 }
 
 async function fetchAndParse(url: string): Promise<ParsedMidiFile> {

@@ -49,14 +49,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useChurchServiceStore();
 
 const name = ref("");
 
 const defaultName = computed(() =>
   t("churchService.prepared.defaultName", {
-    date: new Date().toLocaleDateString("de-DE", {
+    date: new Date().toLocaleDateString(locale.value === "de" ? "de-DE" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

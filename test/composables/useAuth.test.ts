@@ -186,37 +186,51 @@ describe("login", () => {
     expect(localStorage.getItem(LOGGED_OUT_KEY)).toBeNull();
   });
 
-  it("maps a 401 to an invalid-credentials message and clears state", async () => {
+  it("maps a 401 to the invalid-credentials key and clears state", async () => {
     h.directus.login.mockRejectedValue(httpError(401));
     const { auth, store } = await setupAuth();
 
     const result = await auth.login("alice@example.com", "wrong");
 
-    expect(result).toEqual({ success: false, error: "Invalid email or password" });
+    // A translation key, not prose: the view renders it in the user's language.
+    expect(result).toEqual({ success: false, errorKey: "login.errors.invalidCredentials" });
     expect(store.user).toBeNull();
     expect(store.accessToken).toBeNull();
     expect(store.isLoading).toBe(false);
   });
 
-  it("maps a 429 to a rate-limit message", async () => {
+  it("maps a 429 to the rate-limit key", async () => {
     h.directus.login.mockRejectedValue(httpError(429));
     const { auth } = await setupAuth();
 
     const result = await auth.login("alice@example.com", "hunter2");
 
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Too many login attempts/);
+    expect(result).toEqual({ success: false, errorKey: "login.errors.tooManyAttempts" });
   });
 
-  it("surfaces the server's own error message when there is one", async () => {
+  it("maps a Directus error code to its key instead of surfacing the server's prose", async () => {
     h.directus.login.mockRejectedValue(
-      httpError(400, { errors: [{ message: "User suspended" }] }),
+      httpError(400, {
+        errors: [{ message: "User suspended", extensions: { code: "USER_SUSPENDED" } }],
+      }),
     );
     const { auth } = await setupAuth();
 
     const result = await auth.login("alice@example.com", "hunter2");
 
-    expect(result).toEqual({ success: false, error: "User suspended" });
+    // "User suspended" used to reach the German UI verbatim.
+    expect(result).toEqual({ success: false, errorKey: "login.errors.userSuspended" });
+  });
+
+  it("falls back to the generic key for an unknown server error", async () => {
+    h.directus.login.mockRejectedValue(
+      httpError(500, { errors: [{ message: "Something on the server" }] }),
+    );
+    const { auth } = await setupAuth();
+
+    const result = await auth.login("alice@example.com", "hunter2");
+
+    expect(result).toEqual({ success: false, errorKey: "login.errors.generic" });
   });
 
   it("reports a generic failure for a non-axios error", async () => {
@@ -225,7 +239,7 @@ describe("login", () => {
 
     const result = await auth.login("alice@example.com", "hunter2");
 
-    expect(result).toEqual({ success: false, error: "Login failed" });
+    expect(result).toEqual({ success: false, errorKey: "login.errors.generic" });
   });
 });
 

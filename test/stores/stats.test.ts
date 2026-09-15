@@ -1,3 +1,8 @@
+import { restoreOnline, setOnline } from "../helpers/env";
+import { useAuthStore } from "@/stores/auth";
+import { useChurchServiceStore } from "@/stores/churchService";
+import { useFreieMusikstueckeStore } from "@/stores/freieMusikstuecke";
+import { useStatsStore } from "@/stores/stats";
 import axios, { AxiosError, type AxiosResponse } from "axios";
 import { IDBFactory } from "fake-indexeddb";
 import { createPinia, setActivePinia } from "pinia";
@@ -5,13 +10,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FreiesMusikstueck } from "@/gql/extra-types";
 import type { Gesangbuchlied } from "@/gql/graphql";
-
-import { useAuthStore } from "@/stores/auth";
-import { useChurchServiceStore } from "@/stores/churchService";
-import { useFreieMusikstueckeStore } from "@/stores/freieMusikstuecke";
-import { useStatsStore } from "@/stores/stats";
-
-import { restoreOnline, setOnline } from "../helpers/env";
 
 // ---------------------------------------------------------------------------
 // Mocks. `vi.hoisted` is required because vi.mock factories are hoisted above
@@ -200,7 +198,7 @@ describe("stats store — loadStats", () => {
       recentlyPlayed: 0,
     });
     expect(store.hasStats).toBe(true);
-    expect(store.statsError).toBeNull();
+    expect(store.statsErrorKey).toBeNull();
     // The happy path must resolve in a single round-trip — no fallback storm.
     expect(post).toHaveBeenCalledTimes(1);
   });
@@ -306,7 +304,7 @@ describe("stats store — loadStats", () => {
     await store.loadStats();
 
     expect(store.stats.totalSongs).toBe(3);
-    expect(store.statsError).toBeNull();
+    expect(store.statsErrorKey).toBeNull();
   });
 
   it("keeps the downloaded song count when the network is unreachable", async () => {
@@ -321,20 +319,34 @@ describe("stats store — loadStats", () => {
 
     expect(store.stats.offlineSongs).toBe(12);
     expect(store.stats.totalSongs).toBe(0);
-    expect(store.statsError).toBe("Network Error");
+    expect(store.statsErrorKey).toBe("home.stats.loadFailed");
     expect(store.isLoadingStats).toBe(false);
   });
 
-  it("reports a generic message when the rejection is not an Error", async () => {
+  it("reports the generic key when the rejection is not an Error", async () => {
     // Interceptors and some axios paths can reject with a bare value; the store
-    // must still put a readable string in front of the user.
+    // must still hand the renderer something it can translate.
     signIn();
     post.mockRejectedValue("boom");
     const store = useStatsStore();
 
     await store.loadStats();
 
-    expect(store.statsError).toBe("Failed to load stats");
+    expect(store.statsErrorKey).toBe("home.stats.loadFailed");
+  });
+
+  it("treats a 200 that carries GraphQL errors as a failed load", async () => {
+    // Directus rejects a query (permission change, renamed field) with HTTP 200
+    // and `{ data: null, errors }`. Before the transport was shared with the
+    // songs path this looked like an empty result and never reached the catch.
+    signIn();
+    post.mockResolvedValue(ok({ data: null, errors: [{ message: "Not permitted" }] }));
+    const store = useStatsStore();
+
+    await store.loadStats();
+
+    expect(store.stats.totalSongs).toBe(0);
+    expect(store.statsErrorKey).toBe("home.stats.loadFailed");
   });
 
   it("never touches the network when there is no access token", async () => {
@@ -344,8 +356,19 @@ describe("stats store — loadStats", () => {
     await store.loadStats();
 
     expect(post).not.toHaveBeenCalled();
-    expect(store.statsError).toBe("No access token available. Please log in.");
     expect(store.stats.offlineSongs).toBe(9);
+  });
+
+  it("reports the missing session as a translation key, never as English prose", async () => {
+    // #32: the store used to expose "No access token available. Please log in."
+    // on a public field, in a German-only app. The renderer maps this key
+    // through t(), exactly like the songs path does since #10.
+    const store = useStatsStore();
+
+    await store.loadStats();
+
+    expect(store.statsErrorKey).toBe("auth.sessionExpired");
+    expect(store.statsErrorKey).toMatch(/^[a-z]+(\.[a-zA-Z]+)+$/);
   });
 
   it("retries through the refreshing client on a 401", async () => {
@@ -573,7 +596,7 @@ describe("stats store — loadCategories", () => {
       { id: "2", name: "Ostern", typ: undefined, count: 0 },
     ]);
     expect(store.hasCategories).toBe(true);
-    expect(store.categoriesError).toBeNull();
+    expect(store.categoriesErrorKey).toBeNull();
   });
 
   it("labels a nameless category 'Unbekannt'", async () => {
@@ -585,9 +608,7 @@ describe("stats store — loadCategories", () => {
 
     await store.loadCategories();
 
-    expect(store.categories).toEqual([
-      { id: "3", name: "Unbekannt", typ: undefined, count: 2 },
-    ]);
+    expect(store.categories).toEqual([{ id: "3", name: "Unbekannt", typ: undefined, count: 2 }]);
   });
 
   it("retries the counts without the nested filter when the filtered one fails", async () => {
@@ -600,9 +621,7 @@ describe("stats store — loadCategories", () => {
 
     await store.loadCategories();
 
-    expect(store.categories).toEqual([
-      { id: "1", name: "Advent", typ: undefined, count: 4 },
-    ]);
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 4 }]);
     expect(post).toHaveBeenCalledTimes(3);
     expect(postCall(2).body.variables).toEqual({ groupBy: ["kategorie_id"] });
   });
@@ -617,10 +636,8 @@ describe("stats store — loadCategories", () => {
 
     await store.loadCategories();
 
-    expect(store.categories).toEqual([
-      { id: "1", name: "Advent", typ: undefined, count: 0 },
-    ]);
-    expect(store.categoriesError).toBeNull();
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 0 }]);
+    expect(store.categoriesErrorKey).toBeNull();
   });
 
   it("derives categories from downloaded songs while offline, without any request", async () => {
@@ -628,7 +645,10 @@ describe("stats store — loadCategories", () => {
     signIn();
     h.getAllOfflineSongs.mockResolvedValue([
       offlineSong([{ id: 1, name: "Advent", typ: "jahreszeit" }]),
-      offlineSong([{ id: 1, name: "Advent", typ: "jahreszeit" }, { id: 2, name: "Ostern" }]),
+      offlineSong([
+        { id: 1, name: "Advent", typ: "jahreszeit" },
+        { id: 2, name: "Ostern" },
+      ]),
     ]);
     const store = useStatsStore();
 
@@ -648,9 +668,7 @@ describe("stats store — loadCategories", () => {
 
     await store.loadCategories();
 
-    expect(store.categories).toEqual([
-      { id: "1", name: "Advent", typ: undefined, count: 1 },
-    ]);
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 1 }]);
     expect(post).not.toHaveBeenCalled();
   });
 
@@ -665,9 +683,7 @@ describe("stats store — loadCategories", () => {
 
     await store.loadCategories();
 
-    expect(store.categories).toEqual([
-      { id: "Advent", name: "Advent", typ: undefined, count: 2 },
-    ]);
+    expect(store.categories).toEqual([{ id: "Advent", name: "Advent", typ: undefined, count: 2 }]);
   });
 
   it("skips malformed junction rows instead of throwing", async () => {
@@ -683,9 +699,7 @@ describe("stats store — loadCategories", () => {
 
     await store.loadCategories();
 
-    expect(store.categories).toEqual([
-      { id: "1", name: "Advent", typ: undefined, count: 1 },
-    ]);
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 1 }]);
   });
 
   it("keeps the downloaded categories when the network request fails", async () => {
@@ -698,21 +712,34 @@ describe("stats store — loadCategories", () => {
 
     await store.loadCategories();
 
-    expect(store.categories).toEqual([
-      { id: "1", name: "Advent", typ: undefined, count: 1 },
-    ]);
-    expect(store.categoriesError).toBe("Network Error");
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 1 }]);
+    expect(store.categoriesErrorKey).toBe("home.categories.loadFailed");
     expect(store.isLoadingCategories).toBe(false);
   });
 
-  it("reports a generic message when the rejection is not an Error", async () => {
+  it("reports the generic key when the rejection is not an Error", async () => {
     signIn();
     post.mockRejectedValue("boom");
     const store = useStatsStore();
 
     await store.loadCategories();
 
-    expect(store.categoriesError).toBe("Failed to load categories");
+    expect(store.categoriesErrorKey).toBe("home.categories.loadFailed");
+  });
+
+  it("falls back to downloaded categories when a 200 carries GraphQL errors", async () => {
+    // The category list itself is rejected server-side. The shared transport
+    // now throws, so the offline fallback engages instead of an empty list
+    // being shown as if the hymnal had no categories.
+    signIn();
+    h.getAllOfflineSongs.mockResolvedValue([offlineSong([{ id: 1, name: "Advent" }])]);
+    post.mockResolvedValue(ok({ data: null, errors: [{ message: "Not permitted" }] }));
+    const store = useStatsStore();
+
+    await store.loadCategories();
+
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 1 }]);
+    expect(store.categoriesErrorKey).toBe("home.categories.loadFailed");
   });
 
   it("reports an empty list rather than fake data when nothing is downloaded", async () => {
@@ -726,7 +753,7 @@ describe("stats store — loadCategories", () => {
 
     expect(store.categories).toEqual([]);
     expect(store.hasCategories).toBe(false);
-    expect(store.categoriesError).toBe("Network Error");
+    expect(store.categoriesErrorKey).toBe("home.categories.loadFailed");
   });
 
   it("ignores a second loadCategories while one is in flight", async () => {
@@ -735,9 +762,7 @@ describe("stats store — loadCategories", () => {
     // immediately, so the only thing a duplicate call could add is extra
     // requests.
     const gate = deferredResponse();
-    post
-      .mockReturnValueOnce(gate.promise)
-      .mockResolvedValue(ok(categoryCountPayload([])));
+    post.mockReturnValueOnce(gate.promise).mockResolvedValue(ok(categoryCountPayload([])));
     const store = useStatsStore();
 
     const first = store.loadCategories();
@@ -748,9 +773,7 @@ describe("stats store — loadCategories", () => {
 
     expect(store.isLoadingCategories).toBe(false);
     expect(post).toHaveBeenCalledTimes(2);
-    expect(store.categories).toEqual([
-      { id: "1", name: "Advent", typ: undefined, count: 0 },
-    ]);
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 0 }]);
   });
 });
 
@@ -778,9 +801,7 @@ describe("stats store — refreshStats and clearStats", () => {
       offlineSongs: 4,
       recentlyPlayed: 0,
     });
-    expect(store.categories).toEqual([
-      { id: "1", name: "Advent", typ: undefined, count: 3 },
-    ]);
+    expect(store.categories).toEqual([{ id: "1", name: "Advent", typ: undefined, count: 3 }]);
   });
 
   it("resets every counter, the categories and both error strings", async () => {
@@ -790,7 +811,7 @@ describe("stats store — refreshStats and clearStats", () => {
     h.getAllOfflineSongs.mockResolvedValue([offlineSong([{ id: 1, name: "Advent" }])]);
     const store = useStatsStore();
     await store.refreshStats();
-    expect(store.statsError).not.toBeNull();
+    expect(store.statsErrorKey).not.toBeNull();
     expect(store.categories).toHaveLength(1);
 
     store.clearStats();
@@ -801,8 +822,8 @@ describe("stats store — refreshStats and clearStats", () => {
       recentlyPlayed: 0,
     });
     expect(store.categories).toEqual([]);
-    expect(store.statsError).toBeNull();
-    expect(store.categoriesError).toBeNull();
+    expect(store.statsErrorKey).toBeNull();
+    expect(store.categoriesErrorKey).toBeNull();
   });
 });
 
@@ -1014,7 +1035,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     expect(store.error).toBeNull();
   });
 
-  it("surfaces the request error when nothing is downloaded to fall back on", async () => {
+  it("surfaces a translatable error key when nothing is downloaded to fall back on", async () => {
     signIn();
     post.mockRejectedValue(new Error("Network Error"));
     const store = useFreieMusikstueckeStore();
@@ -1022,22 +1043,24 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     await store.fetchPieces();
 
     expect(store.pieces).toEqual([]);
-    expect(store.error).toBe("Network Error");
+    // A key, never the exception text — "Network Error" used to be rendered
+    // verbatim in the German picker.
+    expect(store.error).toBe("churchService.pieces.loadFailed");
     expect(store.isLoaded).toBe(false);
     expect(store.isLoading).toBe(false);
   });
 
-  it("reports 'Unknown error' when the rejection is not an Error", async () => {
+  it("maps a non-Error rejection to the same key", async () => {
     signIn();
     post.mockRejectedValue("boom");
     const store = useFreieMusikstueckeStore();
 
     await store.fetchPieces();
 
-    expect(store.error).toBe("Unknown error");
+    expect(store.error).toBe("churchService.pieces.loadFailed");
   });
 
-  it("joins GraphQL errors returned with a 200 into one message", async () => {
+  it("treats GraphQL errors returned with a 200 as a failed load", async () => {
     // Directus answers a malformed query with HTTP 200 and an `errors` array,
     // so the status code alone is not enough to detect failure.
     signIn();
@@ -1048,7 +1071,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
 
     await store.fetchPieces();
 
-    expect(store.error).toBe("Unknown field, Not permitted");
+    expect(store.error).toBe("churchService.pieces.loadFailed");
     expect(store.pieces).toEqual([]);
     expect(store.isLoaded).toBe(false);
   });
@@ -1067,14 +1090,14 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  it("reports 'No offline pieces available' when offline with an empty cache", async () => {
+  it("reports the no-offline-pieces key when offline with an empty cache", async () => {
     setOnline(false);
     signIn();
     const store = useFreieMusikstueckeStore();
 
     await store.fetchPieces();
 
-    expect(store.error).toBe("No offline pieces available");
+    expect(store.error).toBe("churchService.pieces.noOfflinePieces");
     expect(store.isLoaded).toBe(false);
     expect(post).not.toHaveBeenCalled();
   });
@@ -1083,7 +1106,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     setOnline(false);
     const store = useFreieMusikstueckeStore();
     await store.fetchPieces();
-    expect(store.error).toBe("No offline pieces available");
+    expect(store.error).toBe("churchService.pieces.noOfflinePieces");
 
     setOnline(true);
     signIn();
@@ -1133,7 +1156,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     await store.fetchPieces();
 
     expect(post).not.toHaveBeenCalled();
-    expect(store.error).toBe("VITE_PUBLIC_DIRECTUS_URL is not configured");
+    expect(store.error).toBe("churchService.pieces.loadFailed");
   });
 });
 

@@ -38,11 +38,13 @@
   "retry": "Wiederholen",
   "loadingSongs": "Lade Lieder...",
   "invalidDate": "Ungültiges Datum",
-  "noOfflineContentAvailable": "Keine Offline-Inhalte verfügbar. Bitte gehen Sie online, um Lieder für Offline-Zugang herunterzuladen.",
-  "noOfflineContentAvailableConnect": "Keine Offline-Inhalte verfügbar. Bitte verbinden Sie sich mit dem Internet oder laden Sie Lieder für Offline-Zugang herunter.",
+  "noOfflineContentAvailable": "Keine Offline-Inhalte verfügbar. Bitte gehe online, um Lieder für den Offline-Zugang herunterzuladen.",
+  "noOfflineContentAvailableConnect": "Keine Offline-Inhalte verfügbar. Bitte verbinde dich mit dem Internet oder lade Lieder für den Offline-Zugang herunter.",
   "noFavoritesYet": "Noch keine Favoriten",
-  "noFavoritesDescription": "Sie haben noch keine Lieder zu Ihren Favoriten hinzugefügt. Beginnen Sie mit dem Aufbau Ihrer persönlichen Sammlung!",
-  "howToAddFavorites": "So fügen Sie Favoriten hinzu:",
-  "favoriteInstructions": "Bewegen Sie die Maus über eine Liedkarte und klicken Sie auf das Herz-Symbol, um sie zu Ihren Favoriten hinzuzufügen.",
-  "showAllSongs": "Alle Lieder anzeigen"
+  "noFavoritesDescription": "Du hast noch keine Lieder zu deinen Favoriten hinzugefügt. Beginne mit dem Aufbau deiner persönlichen Sammlung!",
+  "howToAddFavorites": "So fügst du Favoriten hinzu:",
+  "favoriteInstructions": "Bewege die Maus über eine Liedkarte und klicke auf das Herz-Symbol, um sie zu deinen Favoriten hinzuzufügen.",
+  "showAllSongs": "Alle Lieder anzeigen",
+  "addFavorite": "Zu Favoriten hinzufügen",
+  "removeFavorite": "Aus Favoriten entfernen"
 }

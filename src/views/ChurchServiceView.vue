@@ -78,6 +78,7 @@ import { Church, Plus } from "lucide-vue-next";
 
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import { onBeforeRouteLeave } from "vue-router";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -100,12 +101,21 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
   { label: t("churchService.title") },
 ]);
 
-// Stepper jump: only "done" steps emit. From run → device is not safe (a stop
-// would lose state); we ignore those by only mapping to known back-steps.
+// Stepper jump: only "done" steps emit, and the stepper refuses to emit while
+// the run step is active. Guard here as well — leaving the run step unmounts
+// RunStep (stopping the organ) and the only way back restarts at hymn 1.
 function onStepperJump(step: WizardStep) {
+  if (store.wizardStep === "run") return;
   if (step === "setup") store.goToSetup();
   else if (step === "device") store.goToDevice();
 }
+
+// The header navigation stays live during a service; one stray tap on
+// "Lieder" would otherwise unmount RunStep and cut the organ with no way back.
+onBeforeRouteLeave(() => {
+  if (store.wizardStep !== "run") return true;
+  return window.confirm(t("churchService.run.leaveConfirm"));
+});
 
 onMounted(async () => {
   await Promise.all([store.loadHistory(), store.loadPreparedServices()]);

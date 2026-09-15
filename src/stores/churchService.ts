@@ -99,8 +99,17 @@ class ServiceDBManager {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => reject(request.error);
+      // Another tab still holds the previous schema version open; without this
+      // the promise never settles and the page shows no saved services at all.
+      request.onblocked = () => reject(new Error(`${DB_NAME} upgrade blocked by another tab`));
       request.onsuccess = () => {
         this.db = request.result;
+        // Yield to a newer deploy upgrading the schema in another tab; the
+        // connection reopens lazily on the next call.
+        this.db.onversionchange = () => {
+          this.db?.close();
+          this.db = null;
+        };
         resolve();
       };
 
@@ -125,8 +134,8 @@ class ServiceDBManager {
 
   // ── Generic store helpers (shared by history + prepared) ─────────────────
 
-  private putInStore(storeName: string, service: ServiceHistoryItem): Promise<void> {
-    if (!this.db) throw new Error("Database not initialized");
+  private async putInStore(storeName: string, service: ServiceHistoryItem): Promise<void> {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([storeName], "readwrite");
       const request = transaction.objectStore(storeName).put(service);
@@ -135,8 +144,8 @@ class ServiceDBManager {
     });
   }
 
-  private getAllFromStore(storeName: string): Promise<ServiceHistoryItem[]> {
-    if (!this.db) throw new Error("Database not initialized");
+  private async getAllFromStore(storeName: string): Promise<ServiceHistoryItem[]> {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([storeName], "readonly");
       const index = transaction.objectStore(storeName).index("createdAt");
@@ -151,8 +160,8 @@ class ServiceDBManager {
     });
   }
 
-  private removeFromStore(storeName: string, id: string): Promise<void> {
-    if (!this.db) throw new Error("Database not initialized");
+  private async removeFromStore(storeName: string, id: string): Promise<void> {
+    if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([storeName], "readwrite");
       const request = transaction.objectStore(storeName).delete(id);

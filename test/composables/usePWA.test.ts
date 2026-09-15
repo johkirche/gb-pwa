@@ -1,26 +1,22 @@
-import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defineComponent } from "vue";
 
-import { usePWA } from "@/composables/usePWA";
+import type { usePWA as usePWAType } from "@/composables/usePWA";
 
 type InstallPromptEvent = Event & {
   prompt: () => void;
   userChoice: Promise<{ outcome: string }>;
 };
 
-/** usePWA does its work in onMounted, so it needs a real component instance. */
-function mountPWA() {
-  let api!: ReturnType<typeof usePWA>;
-  const wrapper = mount(
-    defineComponent({
-      setup() {
-        api = usePWA();
-        return () => null;
-      },
-    }),
-  );
-  return { api, wrapper };
+/**
+ * usePWA keeps its install state and window listeners at module level (they
+ * are registered once, at import, so `beforeinstallprompt` is not missed), so
+ * every test imports a fresh copy of the module.
+ */
+async function mountPWA() {
+  vi.resetModules();
+  const { usePWA } = await import("@/composables/usePWA");
+  const api: ReturnType<typeof usePWAType> = usePWA();
+  return { api };
 }
 
 function stubDisplayMode(standalone: boolean) {
@@ -43,8 +39,8 @@ function makeInstallPromptEvent(outcome: string): InstallPromptEvent {
   return event;
 }
 
-// setupInstallPrompt() adds listeners on every mount and never removes them,
-// so without this they accumulate on the shared window across tests.
+// Each fresh import registers its listeners on the shared window; drop them
+// again so a stale module copy never answers an event meant for the new one.
 const registered: Array<[string, EventListenerOrEventListenerObject]> = [];
 
 beforeEach(() => {
@@ -68,22 +64,22 @@ afterEach(() => {
 });
 
 describe("install detection", () => {
-  it("reports not installed in a normal browser tab", () => {
-    const { api } = mountPWA();
+  it("reports not installed in a normal browser tab", async () => {
+    const { api } = await mountPWA();
 
     expect(api.isInstalled.value).toBe(false);
     expect(api.isInstallable.value).toBe(false);
   });
 
-  it("detects an installed PWA via display-mode: standalone", () => {
+  it("detects an installed PWA via display-mode: standalone", async () => {
     stubDisplayMode(true);
 
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
 
     expect(api.isInstalled.value).toBe(true);
   });
 
-  it("detects an installed PWA on iOS via navigator.standalone", () => {
+  it("detects an installed PWA on iOS via navigator.standalone", async () => {
     // iOS Safari never reports display-mode: standalone, so this separate
     // check is the only way the app knows it was added to the home screen.
     Object.defineProperty(window.navigator, "standalone", {
@@ -91,15 +87,15 @@ describe("install detection", () => {
       value: true,
     });
 
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
 
     expect(api.isInstalled.value).toBe(true);
   });
 });
 
 describe("beforeinstallprompt", () => {
-  it("suppresses the mini-infobar and marks the app installable", () => {
-    const { api } = mountPWA();
+  it("suppresses the mini-infobar and marks the app installable", async () => {
+    const { api } = await mountPWA();
     const event = makeInstallPromptEvent("accepted");
     const preventDefault = vi.spyOn(event, "preventDefault");
 
@@ -111,8 +107,8 @@ describe("beforeinstallprompt", () => {
     expect(api.isInstallable.value).toBe(true);
   });
 
-  it("marks the app installed when the browser reports appinstalled", () => {
-    const { api } = mountPWA();
+  it("marks the app installed when the browser reports appinstalled", async () => {
+    const { api } = await mountPWA();
     window.dispatchEvent(makeInstallPromptEvent("accepted"));
     expect(api.isInstallable.value).toBe(true);
 
@@ -125,13 +121,13 @@ describe("beforeinstallprompt", () => {
 
 describe("install()", () => {
   it("returns false when no install prompt has been captured", async () => {
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
 
     await expect(api.install()).resolves.toBe(false);
   });
 
   it("resolves true and flips state when the user accepts", async () => {
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
     const event = makeInstallPromptEvent("accepted");
     window.dispatchEvent(event);
 
@@ -143,7 +139,7 @@ describe("install()", () => {
   });
 
   it("resolves false and leaves state alone when the user dismisses", async () => {
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
     window.dispatchEvent(makeInstallPromptEvent("dismissed"));
 
     await expect(api.install()).resolves.toBe(false);
@@ -154,7 +150,7 @@ describe("install()", () => {
   it("cannot be replayed — the prompt is single-use", async () => {
     // Chrome invalidates the deferred event after one use; calling prompt()
     // twice throws. The second call must fail gracefully.
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
     window.dispatchEvent(makeInstallPromptEvent("accepted"));
 
     await api.install();
@@ -163,7 +159,7 @@ describe("install()", () => {
   });
 
   it("returns false and logs when the prompt throws", async () => {
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
     const event = makeInstallPromptEvent("accepted");
     event.prompt = vi.fn(() => {
       throw new Error("prompt already used");
@@ -175,7 +171,7 @@ describe("install()", () => {
   });
 
   it("returns false when userChoice rejects", async () => {
-    const { api } = mountPWA();
+    const { api } = await mountPWA();
     const event = makeInstallPromptEvent("accepted");
     event.userChoice = Promise.reject(new Error("user agent aborted"));
     window.dispatchEvent(event);
@@ -185,8 +181,8 @@ describe("install()", () => {
 });
 
 describe("exposed state", () => {
-  it("hands out readonly refs so callers cannot fake an install", () => {
-    const { api } = mountPWA();
+  it("hands out readonly refs so callers cannot fake an install", async () => {
+    const { api } = await mountPWA();
 
     // @ts-expect-error readonly refs reject writes at the type level
     api.isInstalled.value = true;

@@ -328,7 +328,12 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
   let requestGeneration = 0;
 
   const fetchLieder = async (forceOnline = false) => {
-    requestGeneration++;
+    // Captured so a slow earlier fetch cannot overwrite a newer one: typing
+    // "Abendlied" then backspacing to "Abend" fires two requests, and whichever
+    // answered last used to win — including its `hasMore`, so loadMore would
+    // append page 2 of one search under page 1 of another.
+    const generation = ++requestGeneration;
+    const isCurrent = () => generation === requestGeneration;
     try {
       isLoading.value = true;
       error.value = null;
@@ -340,6 +345,7 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       // If user prefers offline data (and not forcing online), try offline first
       if (preferOfflineData.value && !forceOnline) {
         const offlineSongs = await getOfflineSongs();
+        if (!isCurrent()) return;
 
         if (offlineSongs.length > 0) {
           lieder.value = offlineSongs;
@@ -353,6 +359,7 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       if (typeof window !== "undefined" && !navigator.onLine) {
         // Try offline as fallback if online isn't available
         const offlineSongs = await getOfflineSongs();
+        if (!isCurrent()) return;
         if (offlineSongs.length > 0) {
           lieder.value = offlineSongs;
           isUsingCachedData.value = true;
@@ -365,6 +372,7 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       }
 
       const result = await queryGesangbuchlied(buildListRequest(0));
+      if (!isCurrent()) return;
 
       if (result) {
         lieder.value = result;
@@ -374,10 +382,12 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
         error.value = t("songs.noSongsFound");
       }
     } catch (err) {
+      if (!isCurrent()) return;
       console.error("Error fetching gesangbuchlieder:", err);
 
       // Try offline as fallback on API error
       const offlineSongs = await getOfflineSongs();
+      if (!isCurrent()) return;
       if (offlineSongs.length > 0) {
         lieder.value = offlineSongs;
         isUsingCachedData.value = true;
@@ -396,7 +406,8 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
         error.value = err instanceof Error ? err.message : t("utils.unknownError");
       }
     } finally {
-      isLoading.value = false;
+      // The newer fetch owns the flag now.
+      if (isCurrent()) isLoading.value = false;
     }
   };
 
@@ -449,6 +460,28 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
       }
     } catch (error) {
       console.error("Error fetching missing favorites:", error);
+    }
+  };
+
+  // Make sure every one of `ids` is in `lieder`, fetching the rest by id.
+  // Playlists store song ids and resolve them against this list — which
+  // online holds one 50-row page of a 400+ song catalogue, so a playlist
+  // rendered "12 Lieder" in the overview and "0 Lieder" plus the empty state
+  // on its own page. Same mechanism as `fetchMissingFavorites`.
+  const ensureSongsLoaded = async (ids: readonly string[]): Promise<void> => {
+    const loaded = new Set(lieder.value.map((lied) => lied.id).filter(Boolean));
+    const missing = [...new Set(ids)].filter((id) => !loaded.has(id));
+    if (missing.length === 0) return;
+    try {
+      const fetched = await queryGesangbuchliedByIds(missing);
+      if (fetched.length > 0) {
+        // Re-check: a fetchLieder may have landed meanwhile.
+        const now = new Set(lieder.value.map((lied) => lied.id));
+        const fresh = fetched.filter((lied) => !now.has(lied.id));
+        if (fresh.length > 0) lieder.value = [...lieder.value, ...fresh];
+      }
+    } catch (error) {
+      console.error("Error resolving songs by id:", error);
     }
   };
 
@@ -540,6 +573,7 @@ export const useGesangbuchliedStore = defineStore("gesangbuchlieder", () => {
     fetchLieder,
     loadMore,
     fetchMissingFavorites,
+    ensureSongsLoaded,
     getAuthors,
     hasAudioFiles,
     getCategories,

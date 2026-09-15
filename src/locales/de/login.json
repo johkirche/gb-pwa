@@ -1,20 +1,26 @@
 {
-  "title": "Bei Ihrem Konto anmelden",
-  "description": "Geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein, um sich bei Ihrem Konto anzumelden.",
+  "title": "Bei deinem Konto anmelden",
+  "description": "Gib deine E-Mail-Adresse und dein Passwort ein, um dich bei deinem Konto anzumelden.",
   "checkingAuth": "Authentifizierung wird überprüft...",
-  "checkingAuthDescription": "Bitte warten Sie, während wir Ihren Anmeldestatus überprüfen.",
+  "checkingAuthDescription": "Bitte warte, während wir deinen Anmeldestatus überprüfen.",
   "emailLabel": "E-Mail-Adresse",
-  "emailPlaceholder": "Geben Sie Ihre E-Mail ein",
+  "emailPlaceholder": "Gib deine E-Mail ein",
   "passwordLabel": "Passwort",
-  "passwordPlaceholder": "Geben Sie Ihr Passwort ein",
+  "passwordPlaceholder": "Gib dein Passwort ein",
   "signInButton": "Anmelden",
   "signingInButton": "Anmeldung läuft...",
-  "fillAllFields": "Bitte füllen Sie alle Felder aus",
+  "fillAllFields": "Bitte fülle alle Felder aus",
   "loginFailed": "Anmeldung fehlgeschlagen",
   "continueOffline": "Offline fortfahren",
   "continueOfflineHint": "Du hast heruntergeladene Inhalte verfügbar. Nutze die App ohne Anmeldung.",
   "orDivider": "oder",
   "toggleTheme": "Design umschalten",
   "themeToDark": "Zum dunklen Design wechseln",
-  "themeToLight": "Zum hellen Design wechseln"
+  "themeToLight": "Zum hellen Design wechseln",
+  "errors": {
+    "invalidCredentials": "E-Mail-Adresse oder Passwort ist falsch.",
+    "tooManyAttempts": "Zu viele Anmeldeversuche. Bitte warte kurz und versuche es dann erneut.",
+    "userSuspended": "Dieses Konto ist gesperrt. Bitte wende dich an die Gemeindeverwaltung.",
+    "generic": "Anmeldung fehlgeschlagen. Bitte versuche es erneut."
+  }
 }

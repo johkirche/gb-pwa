@@ -4,7 +4,7 @@
     <section class="space-y-3">
       <div>
         <h3 class="text-sm font-semibold flex items-center gap-2">
-          <Sparkles class="w-4 h-4 text-purple-600" />
+          <Sparkles class="w-4 h-4 text-purple-600 dark:text-purple-400" />
           {{ t("churchService.intro") }}
           <Badge variant="outline" class="text-[10px] font-normal">
             {{ t("churchService.optional") }}
@@ -43,7 +43,7 @@
     <section class="space-y-3 border-t border-border pt-8">
       <div>
         <h3 class="text-sm font-semibold flex items-center gap-2">
-          <Sunset class="w-4 h-4 text-amber-600" />
+          <Sunset class="w-4 h-4 text-amber-600 dark:text-amber-400" />
           {{ t("churchService.outro") }}
           <Badge variant="outline" class="text-[10px] font-normal">
             {{ t("churchService.optional") }}
@@ -67,7 +67,7 @@
     <!-- Validation banner -->
     <div
       v-if="invalidMessages.length > 0"
-      class="flex items-start gap-2 text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded-md p-3"
+      class="flex items-start gap-2 text-sm text-orange-800 dark:text-orange-300 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-md p-3"
     >
       <AlertTriangle class="w-4 h-4 mt-0.5 flex-shrink-0" />
       <ul class="space-y-1">

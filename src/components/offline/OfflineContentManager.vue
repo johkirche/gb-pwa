@@ -17,8 +17,27 @@
             {{ t("offline.contentManager.currentStatus") }}
           </h3>
 
+        <!-- Songs stored but the asset phase never finished (tab closed,
+             storage full): say so instead of showing the green check. -->
         <div
-          v-if="hasOfflineContent && offlineContentInfo"
+          v-if="hasOfflineContent && offlineContentInfo && !isOfflineContentComplete && !isDownloading"
+          class="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4"
+        >
+          <div class="flex items-start space-x-3">
+            <AlertTriangle class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div class="flex-1">
+              <p class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                {{ t("offline.contentManager.downloadIncomplete") }}
+              </p>
+              <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                {{ t("offline.contentManager.downloadIncompleteDescription") }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-else-if="hasOfflineContent && offlineContentInfo"
           class="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4"
         >
           <div class="flex items-start space-x-3">
@@ -92,7 +111,7 @@
 
         <div class="space-y-3">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-blue-700">{{ assetPrecacheProgress.currentAsset }}</span>
+            <span class="font-medium text-blue-700 dark:text-blue-300">{{ assetPrecacheProgress.currentAsset }}</span>
             <span class="text-muted-foreground">
               {{ assetPrecacheProgress.current }} /
               {{ assetPrecacheProgress.total || "?" }}
@@ -162,29 +181,29 @@
         </h3>
 
         <div class="grid gap-4 sm:grid-cols-3">
-          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
-            <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <div class="bg-muted rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-foreground">
               {{ offlineContentInfo.count }}
             </div>
-            <div class="text-xs text-gray-600">
+            <div class="text-xs text-muted-foreground">
               {{ t("offline.contentManager.totalSongs") }}
             </div>
           </div>
 
-          <div v-if="storageInfo" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
-            <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <div v-if="storageInfo" class="bg-muted rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-foreground">
               {{ storageInfo.sizeInMB }}
             </div>
-            <div class="text-xs text-gray-600">
+            <div class="text-xs text-muted-foreground">
               {{ t("offline.contentManager.storageUsed") }}
             </div>
           </div>
 
-          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
+          <div class="bg-muted rounded-lg p-4 text-center">
             <div class="text-2xl font-bold text-green-600 dark:text-green-400">
               <CheckCircle class="w-8 h-8 mx-auto" />
             </div>
-            <div class="text-xs text-gray-600 dark:text-gray-400">
+            <div class="text-xs text-muted-foreground">
               {{ t("offline.contentManager.readyOffline") }}
             </div>
           </div>
@@ -194,18 +213,18 @@
       <!-- Messages -->
       <div class="space-y-3">
         <!-- Error Message -->
-        <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div v-if="errorMessage" class="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <div class="flex items-start space-x-2">
-            <AlertCircle class="w-4 h-4 text-red-600 mt-0.5" />
-            <p class="text-sm text-red-800">{{ errorMessage }}</p>
+            <AlertCircle class="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5" />
+            <p class="text-sm text-red-800 dark:text-red-300">{{ errorMessage }}</p>
           </div>
         </div>
 
         <!-- Success Message -->
-        <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div v-if="successMessage" class="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
           <div class="flex items-start space-x-2">
-            <CheckCircle class="w-4 h-4 text-green-600 mt-0.5" />
-            <p class="text-sm text-green-800">{{ successMessage }}</p>
+            <CheckCircle class="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5" />
+            <p class="text-sm text-green-800 dark:text-green-300">{{ successMessage }}</p>
           </div>
         </div>
       </div>
@@ -214,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { AlertCircle, CheckCircle, Download, Info, Trash2 } from "lucide-vue-next";
+import { AlertCircle, AlertTriangle, CheckCircle, Download, Info, Trash2 } from "lucide-vue-next";
 
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
@@ -223,9 +242,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
+import { NoSessionError } from "@/composables/useGraphQL";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 // Use the offline download composable
 const {
@@ -233,6 +253,7 @@ const {
   downloadProgress,
   hasOfflineContent,
   offlineContentInfo,
+  isOfflineContentComplete,
   isPrecachingAssets,
   assetPrecacheProgress,
   assetPrecacheFailed,
@@ -256,7 +277,7 @@ const storageInfo = ref<{
 const formatDate = (dateString: string) => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString("de-DE", {
+    return date.toLocaleDateString(locale.value === "de" ? "de-DE" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -303,8 +324,15 @@ const startDownload = async () => {
     }, 5000);
   } catch (error) {
     console.error("Download failed:", error);
-    errorMessage.value =
-      error instanceof Error ? error.message : t("offline.contentManager.downloadError");
+    // Never render `error.message`: it is the data layer's English ("Network
+    // Error", "No access token available") and says nothing about what to do.
+    if (error instanceof NoSessionError) {
+      errorMessage.value = t(error.i18nKey);
+    } else if (typeof navigator !== "undefined" && !navigator.onLine) {
+      errorMessage.value = t("offline.contentManager.downloadOffline");
+    } else {
+      errorMessage.value = t("offline.contentManager.downloadError");
+    }
   }
 };
 

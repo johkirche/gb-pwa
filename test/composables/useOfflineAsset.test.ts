@@ -1,7 +1,9 @@
+import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type EffectScope, effectScope, nextTick, ref } from "vue";
 
 import { useOfflineAsset } from "@/composables/useOfflineAsset";
+import { useAuthStore } from "@/stores/auth";
 
 import { dispatchStorageEvent } from "../helpers/env";
 import {
@@ -62,6 +64,9 @@ describe("useOfflineAsset", () => {
   }
 
   beforeEach(() => {
+    // The network fallback reads the session (to append the access token), so
+    // the auth store must be reachable even in the logged-out tests.
+    setActivePinia(createPinia());
     tracker = installObjectUrlTracker();
     h.getOfflineAssetBlob.mockReset().mockResolvedValue(null);
   });
@@ -89,6 +94,34 @@ describe("useOfflineAsset", () => {
     await flush();
 
     expect(url.value).toBe(`${DIRECTUS}/assets/cover-1?width=300&height=200&fit=cover`);
+  });
+
+  it("appends the session token to the remote URL, since an element cannot send a header", async () => {
+    // Files may stop being readable by the public role; a logged-in user must
+    // keep seeing them. Directus accepts the token as `access_token`.
+    useAuthStore().setTokens("access-1", "refresh-1");
+
+    const plain = mount(() => useOfflineAsset("cover-1"));
+    const thumb = mount(() =>
+      useOfflineAsset("cover-1", { params: "?width=300&height=200&fit=cover" }),
+    );
+    await flush();
+
+    expect(plain.value).toBe(`${DIRECTUS}/assets/cover-1?access_token=access-1`);
+    expect(thumb.value).toBe(
+      `${DIRECTUS}/assets/cover-1?width=300&height=200&fit=cover&access_token=access-1`,
+    );
+  });
+
+  it("never puts the token on a blob URL served from IndexedDB", async () => {
+    useAuthStore().setTokens("access-1", "refresh-1");
+    h.getOfflineAssetBlob.mockResolvedValue(coverBlob("cover-1-bytes"));
+
+    const url = mount(() => useOfflineAsset("cover-1"));
+    await flush();
+
+    expect(url.value).toMatch(/^blob:/);
+    expect(url.value).not.toContain("access_token");
   });
 
   it("serves a local blob URL for the exact stored blob instead of going to the network", async () => {

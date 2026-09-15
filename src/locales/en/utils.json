@@ -31,9 +31,16 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "resetZoom": "Reset zoom",
-    "instructions": "Scroll to zoom • Drag to pan"
+    "instructions": "Scroll to zoom • Drag to pan",
+    "title": "Image viewer"
   },
   "cancel": "Cancel",
   "close": "Close",
-  "delete": "Delete"
+  "delete": "Delete",
+  "pwaUpdate": {
+    "available": "A new version is available.",
+    "reload": "Update now",
+    "dismiss": "Later"
+  },
+  "retry": "Retry"
 }

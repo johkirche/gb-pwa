@@ -1,7 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
+    <!-- Apply the saved/system colour scheme before the stylesheet paints.
+         The app applies the `dark` class from JS (vueuse useColorMode) only
+         after the module bundle has evaluated, so every dark-mode launch
+         flashed the light background first. -->
+    <script>
+      (function () {
+        try {
+          var s = localStorage.getItem("vueuse-color-scheme");
+          var dark =
+            s === "dark" ||
+            ((!s || s === "auto") &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {
+          /* storage unavailable — the app applies the scheme after boot */
+        }
+      })();
+    </script>
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="mask-icon" href="/mask-icon.svg" color="#1f2937" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />

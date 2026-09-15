@@ -23,7 +23,7 @@
           <Search
             class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"
           />
-          <Input v-model="addSearch" :placeholder="t('churchService.searchSongs')" class="pl-10" />
+          <Input v-model="addSearch" :placeholder="t('playlist.searchSongs')" class="pl-10" />
         </div>
 
         <p class="text-sm text-muted-foreground">
@@ -34,47 +34,76 @@
           {{ toggleError }}
         </p>
 
-        <div class="space-y-2">
-          <!-- Selected songs stay in the list with a filled check; tapping a row
-               toggles membership so the user can add and remove without losing
-               their place. -->
-          <button
-            v-for="song in candidates"
-            :key="song.id"
-            type="button"
-            class="w-full flex items-center gap-3 p-3 border rounded-lg text-left transition-colors"
-            :class="
-              isSelected(song.id)
-                ? 'border-primary bg-primary/5 hover:bg-primary/10'
-                : 'hover:bg-accent'
-            "
-            :aria-pressed="isSelected(song.id)"
-            @click="toggleSong(song.id)"
+        <!-- Virtualized like SongGrid: with the hymnal downloaded this list holds
+             the whole catalogue, and 400+ real rows re-diffed on every keystroke. -->
+        <div ref="scrollElement" class="h-[65dvh] min-h-[320px] overflow-auto">
+          <div
+            :style="{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }"
           >
-            <span
-              class="flex-shrink-0 w-5 h-5 rounded-[5px] border flex items-center justify-center transition-colors"
-              :class="
-                isSelected(song.id)
-                  ? 'bg-primary border-primary text-primary-foreground'
-                  : 'border-muted-foreground/40'
-              "
+            <!-- Selected songs stay in the list with a filled check; tapping a
+                 row toggles membership so the user can add and remove without
+                 losing their place. -->
+            <div
+              v-for="virtualItem in virtualizer.getVirtualItems()"
+              :key="candidates[virtualItem.index]?.id ?? virtualItem.index"
+              :data-index="virtualItem.index"
+              :ref="(el) => measureRow(el as Element | null)"
+              :style="{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualItem.start}px)`,
+                paddingBottom: '8px',
+              }"
             >
-              <Check v-if="isSelected(song.id)" class="w-3.5 h-3.5" />
-            </span>
-
-            <div class="flex items-baseline gap-2 min-w-0 flex-1">
-              <span
-                v-if="getLiedNumber(song) !== null"
-                class="inline-flex items-center px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-bold tabular-nums flex-shrink-0"
+              <button
+                type="button"
+                class="w-full flex items-center gap-3 p-3 border rounded-lg text-left transition-colors"
+                :class="
+                  isSelected(candidates[virtualItem.index].id)
+                    ? 'border-primary bg-primary/5 hover:bg-primary/10'
+                    : 'hover:bg-accent'
+                "
+                :aria-pressed="isSelected(candidates[virtualItem.index].id)"
+                @click="toggleSong(candidates[virtualItem.index].id)"
               >
-                {{ getLiedNumber(song) }}
-              </span>
-              <span class="font-medium truncate">{{ song.titel }}</span>
+                <span
+                  class="flex-shrink-0 w-5 h-5 rounded-[5px] border flex items-center justify-center transition-colors"
+                  :class="
+                    isSelected(candidates[virtualItem.index].id)
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : 'border-muted-foreground/40'
+                  "
+                >
+                  <Check
+                    v-if="isSelected(candidates[virtualItem.index].id)"
+                    class="w-3.5 h-3.5"
+                    aria-hidden="true"
+                  />
+                </span>
+
+                <div class="flex items-baseline gap-2 min-w-0 flex-1">
+                  <span
+                    v-if="getLiedNumber(candidates[virtualItem.index]) !== null"
+                    class="inline-flex items-center px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-bold tabular-nums flex-shrink-0"
+                  >
+                    {{ getLiedNumber(candidates[virtualItem.index]) }}
+                  </span>
+                  <span class="font-medium truncate">{{
+                    candidates[virtualItem.index].titel
+                  }}</span>
+                </div>
+              </button>
             </div>
-          </button>
+          </div>
 
           <div v-if="candidates.length === 0 && !isLoading" class="text-center py-10">
-            <p class="text-sm text-muted-foreground">{{ t("churchService.noSongsFound") }}</p>
+            <p class="text-sm text-muted-foreground">{{ t("playlist.noSongsFound") }}</p>
           </div>
 
           <!-- Server-side pagination: when the catalogue isn't fully cached
@@ -98,6 +127,7 @@
 <script setup lang="ts">
 import { useGesangbuchliedStore } from "@/stores/gesangbuchlieder";
 import { usePlaylistStore } from "@/stores/playlists";
+import { useVirtualizer } from "@tanstack/vue-virtual";
 import { useIntersectionObserver } from "@vueuse/core";
 import { Check, Plus, Search } from "lucide-vue-next";
 import { storeToRefs } from "pinia";
@@ -166,6 +196,20 @@ const candidates = computed(() => {
   return [...base].sort((a, b) => (getLiedNumber(a) ?? Infinity) - (getLiedNumber(b) ?? Infinity));
 });
 
+const scrollElement = ref<HTMLElement | null>(null);
+const virtualizer = useVirtualizer({
+  get count() {
+    return candidates.value.length;
+  },
+  getScrollElement: () => scrollElement.value,
+  estimateSize: () => 60,
+  overscan: 8,
+});
+
+const measureRow = (el: Element | null) => {
+  if (el instanceof HTMLElement) virtualizer.value.measureElement(el);
+};
+
 // A rejected write here used to die as an unhandled rejection: the checkmark
 // never appeared and the user had no way to tell the tap had not registered.
 const toggleError = ref("");
@@ -198,7 +242,7 @@ useIntersectionObserver(
   ([entry]) => {
     if (entry?.isIntersecting) maybeLoadMore();
   },
-  { rootMargin: "200px" },
+  { root: scrollElement, rootMargin: "200px" },
 );
 
 // The song store is shared with the catalogue view, so snapshot the filters we

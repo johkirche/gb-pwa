@@ -20,7 +20,7 @@
           <div class="flex flex-wrap items-center gap-2 mt-2">
             <Badge
               variant="secondary"
-              class="text-xs bg-green-100 text-green-800 hover:bg-green-100"
+              class="text-xs bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 hover:bg-green-100"
             >
               🎹 MIDI
             </Badge>
@@ -37,8 +37,14 @@
             </Badge>
           </div>
         </div>
-        <Button variant="ghost" size="sm" @click="clearSelection" class="flex-shrink-0">
-          <X class="w-4 h-4" />
+        <Button
+          variant="ghost"
+          size="sm"
+          class="flex-shrink-0"
+          :aria-label="t('churchService.clearSelection')"
+          @click="clearSelection"
+        >
+          <X class="w-4 h-4" aria-hidden="true" />
         </Button>
       </div>
     </div>
@@ -55,7 +61,7 @@
 
     <!-- Picker dialog -->
     <Dialog v-model:open="dialogOpen">
-      <DialogContent class="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent class="max-w-2xl max-h-[90dvh] flex flex-col">
         <DialogHeader class="flex-shrink-0">
           <DialogTitle>{{ t("churchService.selectPiece") }}</DialogTitle>
           <DialogDescription>
@@ -63,7 +69,10 @@
           </DialogDescription>
         </DialogHeader>
 
-        <div class="space-y-4 flex-1 overflow-hidden">
+        <!-- The list takes whatever height the dialog has left (as SongGrid
+             does) instead of a fixed 450px that an overflow-hidden ancestor
+             clipped at phone height, hiding the last pieces. -->
+        <div class="flex flex-1 min-h-0 flex-col gap-4">
           <!-- Search input -->
           <div class="relative">
             <Search
@@ -77,7 +86,11 @@
           </div>
 
           <!-- Pieces list (virtualized) -->
-          <div v-if="filteredPieces.length > 0" ref="scrollElement" class="h-[450px] overflow-auto">
+          <div
+            v-if="filteredPieces.length > 0"
+            ref="scrollElement"
+            class="flex-1 min-h-[200px] overflow-auto"
+          >
             <div
               :style="{
                 height: `${pieceVirtualizer.getTotalSize()}px`,
@@ -144,7 +157,7 @@
           <!-- Loading -->
           <div
             v-else-if="store.isLoading"
-            class="h-[450px] flex flex-col items-center justify-center"
+            class="flex-1 min-h-[200px] flex flex-col items-center justify-center"
           >
             <div
               class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"
@@ -154,13 +167,29 @@
             </p>
           </div>
 
+          <!-- Load failed: say so, with a retry — "Keine Musikstücke verfügbar"
+               told the operator the parish had no preludes configured. -->
+          <div
+            v-else-if="store.error"
+            role="alert"
+            class="flex-1 min-h-[200px] flex flex-col items-center justify-center gap-3 text-center"
+          >
+            <p class="text-sm text-destructive">{{ t(store.error) }}</p>
+            <Button variant="outline" size="sm" @click="store.fetchPieces(true)">
+              {{ t("utils.retry") }}
+            </Button>
+          </div>
+
           <!-- Empty/no results -->
-          <div v-else-if="searchInput" class="h-[450px] flex items-center justify-center">
+          <div
+            v-else-if="searchInput"
+            class="flex-1 min-h-[200px] flex items-center justify-center"
+          >
             <p class="text-sm text-muted-foreground">
               {{ t("churchService.noPiecesFound") }}
             </p>
           </div>
-          <div v-else class="h-[450px] flex items-center justify-center">
+          <div v-else class="flex-1 min-h-[200px] flex items-center justify-center">
             <p class="text-sm text-muted-foreground">
               {{ t("churchService.noPiecesAvailable") }}
             </p>

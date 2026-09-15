@@ -85,6 +85,10 @@
       "decodingFailed": "Audio decoding failed",
       "formatNotSupported": "Audio format not supported",
       "unknownError": "Unknown audio error"
-    }
+    },
+    "play": "Play",
+    "pause": "Pause",
+    "title": "Audio files",
+    "description": "Select a recording to play it at an adjustable speed"
   }
 }

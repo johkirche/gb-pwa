@@ -154,6 +154,7 @@ import {
 import AudioFilesPlayer from "@/components/song/AudioFilesPlayer.vue";
 import PanZoomImage from "@/components/utils/pan-zoom-image/PanZoomImage.vue";
 
+import { withAccessToken } from "@/composables/directusAssets";
 import { useOfflineAsset } from "@/composables/useOfflineAsset";
 import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
 
@@ -190,10 +191,18 @@ const cachedFileUrls = ref<Map<string, string>>(new Map());
 watchEffect(async (onCleanup) => {
   const next = new Map<string, string>();
   const cleanups: (() => void)[] = [];
-  onCleanup(() => cleanups.forEach((c) => c()));
+  // A superseded run keeps executing past its awaits; without this flag it
+  // minted object URLs into a `cleanups` array that had already been drained,
+  // so nothing could ever revoke them (same fix as useOfflineAsset).
+  let cancelled = false;
+  onCleanup(() => {
+    cancelled = true;
+    cleanups.forEach((c) => c());
+  });
 
   for (const file of nonAudioFiles.value) {
     const blob = await getOfflineAssetBlob(file.id);
+    if (cancelled) return;
     if (blob) {
       const objUrl = URL.createObjectURL(blob);
       next.set(file.id, objUrl);
@@ -206,7 +215,7 @@ watchEffect(async (onCleanup) => {
 const thumbnailUrl = (file: Directus_Files): string => {
   const cached = cachedFileUrls.value.get(file.id);
   if (cached) return cached;
-  return `${props.directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`;
+  return withAccessToken(`${props.directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`);
 };
 const isImagePreviewOpen = computed({
   get: () => selectedImage.value !== null,
@@ -278,7 +287,7 @@ const downloadFile = async (file: Directus_Files) => {
       url = URL.createObjectURL(blob);
       revokeAfter = true;
     } else {
-      url = `${props.directusUrl}/assets/${file.id}`;
+      url = withAccessToken(`${props.directusUrl}/assets/${file.id}`);
     }
   }
 

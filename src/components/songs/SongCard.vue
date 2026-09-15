@@ -1,7 +1,9 @@
 <template>
+  <!-- The title is a real link stretched over the card (its ::after covers the
+       card), so the song opens from the keyboard; the favourite button sits
+       above it with z-10. -->
   <Card
-    class="hover:shadow-lg transition-all duration-200 cursor-pointer group relative"
-    @click="$emit('click', lied.id)"
+    class="hover:shadow-lg transition-all duration-200 cursor-pointer group relative focus-within:ring-2 focus-within:ring-ring"
   >
     <!-- Favorites Button -->
     <Button
@@ -9,8 +11,12 @@
       size="sm"
       :class="[
         'absolute top-2 right-2 z-10 h-8 w-8 p-0 transition-opacity duration-200',
-        isFavorite(lied.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+        isFavorite(lied.id)
+          ? 'opacity-100'
+          : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
       ]"
+      :aria-label="isFavorite(lied.id) ? t('songs.removeFavorite') : t('songs.addFavorite')"
+      :aria-pressed="isFavorite(lied.id)"
       @click.stop="() => toggleFavorite(lied.id || '')"
     >
       <Heart
@@ -20,6 +26,7 @@
             ? 'fill-red-500 text-red-500'
             : 'text-muted-foreground hover:text-red-500',
         ]"
+        aria-hidden="true"
       />
     </Button>
 
@@ -32,7 +39,13 @@
           {{ liedNumber }}
         </span>
         <CardTitle class="text-lg group-hover:text-primary transition-colors flex-1 min-w-0 break-words">
-          {{ lied.titel || t("songs.untitled") }}
+          <RouterLink
+            :to="`/lied/${lied.id}`"
+            class="focus:outline-none after:absolute after:inset-0 after:rounded-[inherit] after:content-['']"
+            @click.prevent="$emit('click', lied.id)"
+          >
+            {{ lied.titel || t("songs.untitled") }}
+          </RouterLink>
         </CardTitle>
       </div>
       <CardDescription v-if="firstCategory" class="flex items-center">
@@ -98,6 +111,7 @@ import { ArrowRight, Calendar, Heart, Tag } from "lucide-vue-next";
 
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { RouterLink } from "vue-router";
 
 import type { Gesangbuchlied } from "@/gql/graphql";
 import { getLiedNumber } from "@/gql/extra-types";
@@ -115,7 +129,7 @@ import {
 
 import { useFavorites } from "@/composables/useFavorites";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { isFavorite, toggleFavorite } = useFavorites();
 
 interface Props {
@@ -197,7 +211,7 @@ const formattedDate = computed(() => {
 
   try {
     const date = new Date(props.lied.date_updated);
-    return date.toLocaleDateString("de-DE", {
+    return date.toLocaleDateString(locale.value === "de" ? "de-DE" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

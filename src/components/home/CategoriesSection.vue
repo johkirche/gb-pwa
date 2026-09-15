@@ -62,8 +62,43 @@
       <ScrollArea
         :class="['transition-all duration-300 ease-in-out', isEnlarged ? 'h-[560px]' : 'h-[268px]']"
       >
+        <!-- Loading: placeholder chips instead of an empty 268px box -->
+        <div
+          v-if="statsStore.isLoadingCategories && statsStore.categories.length === 0"
+          class="flex flex-wrap gap-2 pr-3"
+          aria-busy="true"
+          aria-hidden="true"
+        >
+          <div
+            v-for="n in 12"
+            :key="n"
+            class="h-8 rounded-full bg-muted animate-pulse"
+            :style="{ width: `${72 + ((n * 37) % 80)}px` }"
+          />
+        </div>
+
+        <!-- Load failed and nothing downloaded to fall back on -->
+        <div
+          v-else-if="statsStore.categoriesErrorKey && statsStore.categories.length === 0"
+          role="alert"
+          class="flex h-full flex-col items-center justify-center gap-2 py-10 text-center text-sm"
+        >
+          <p class="text-destructive">{{ t(statsStore.categoriesErrorKey) }}</p>
+          <Button variant="outline" size="sm" @click="statsStore.loadCategories()">
+            {{ t("utils.retry") }}
+          </Button>
+        </div>
+
+        <!-- Nothing to show (e.g. offline with no download) -->
+        <div
+          v-else-if="statsStore.categories.length === 0"
+          class="flex h-full items-center justify-center py-10 text-center text-sm text-muted-foreground"
+        >
+          {{ t("home.categories.empty") }}
+        </div>
+
         <!-- Non-draggable chip cloud for alphabetical and count sorting -->
-        <div v-if="currentSort !== 'custom'" class="flex flex-wrap gap-2 pr-3">
+        <div v-else-if="currentSort !== 'custom'" class="flex flex-wrap gap-2 pr-3">
           <button
             v-for="category in sortedCategories"
             :key="category.id"
@@ -125,10 +160,17 @@ import ScrollArea from "../ui/scroll-area/ScrollArea.vue";
 import { type CategoryWithCount, useStatsStore } from "@/stores/stats";
 import { ArrowDownUp, ChevronDown, GripVertical, Maximize2, Minimize2 } from "lucide-vue-next";
 
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import VueDraggable from "vuedraggable";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -137,6 +179,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// Only reachable after opening the sort menu and picking "Custom" — no reason
+// for the Home route to pay for sortablejs on first paint.
+const VueDraggable = defineAsyncComponent(() => import("vuedraggable"));
 
 type SortType = "alphabetical" | "count" | "custom";
 

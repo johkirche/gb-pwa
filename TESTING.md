@@ -4,7 +4,7 @@ There are **two** suites, because they answer different questions.
 
 |                          | Question it answers              | State                  | Gates merges |
 | ------------------------ | -------------------------------- | ---------------------- | ------------ |
-| `pnpm test`              | Did this change break something? | 767 green, 19 files    | Yes          |
+| `pnpm test`              | Did this change break something? | 887 green, 27 files    | Yes          |
 | `pnpm test:known-issues` | Which filed bugs are still open? | empty — backlog closed | No           |
 
 ```bash
@@ -84,18 +84,22 @@ excluded: testing them tests somebody else's code.
 | Area                         | File                                          |  Tests |
 | ---------------------------- | --------------------------------------------- | -----: |
 | Church service store         | `test/stores/churchService.test.ts`           |    128 |
-| Offline download / IndexedDB | `test/composables/useOfflineDownload.test.ts` |    108 |
+| Offline download / IndexedDB | `test/composables/useOfflineDownload.test.ts` |    112 |
 | Song list store              | `test/stores/gesangbuchlieder.test.ts`        |     95 |
 | Playlists store              | `test/stores/playlists.test.ts`               |     71 |
-| Stats + free pieces stores   | `test/stores/stats.test.ts`                   |     62 |
+| Stats + free pieces stores   | `test/stores/stats.test.ts`                   |     65 |
 | Song queries                 | `test/composables/useGesangbuchlied.test.ts`  |     59 |
-| Directus API client          | `test/composables/useDirectusApi.test.ts`     |     45 |
+| Directus API client          | `test/composables/useDirectusApi.test.ts`     |     54 |
 | **Auth composable**          | `test/composables/useAuth.test.ts`            | **40** |
-| Offline assets + favorites   | `test/composables/useOfflineAsset.test.ts`    |     37 |
+| Offline assets + favorites   | `test/composables/useOfflineAsset.test.ts`    |     39 |
+| **Router guard**             | `test/router/guard.test.ts`                   | **25** |
 | JWT utilities                | `test/composables/useJwtUtils.test.ts`        |     24 |
 | Auth store                   | `test/stores/auth.test.ts`                    |     21 |
-| **Router guard**             | `test/router/guard.test.ts`                   | **20** |
+| Audio preview                | `test/composables/useAudioPreview.test.ts`    |     15 |
+| Asset access with session    | `test/composables/directusAssets.test.ts`     |     14 |
 | PWA install                  | `test/composables/usePWA.test.ts`             |     12 |
+| GraphQL transport            | `test/composables/useGraphQL.test.ts`         |     11 |
+| Soundfont resolution         | `test/composables/soundfont.test.ts`          |     11 |
 | Toast composable             | `test/composables/useToast.test.ts`           |      9 |
 | i18n locale resolution       | `test/plugins/i18n.test.ts`                   |      8 |
 | Song text rendering          | `test/components/TextDisplay.test.ts`         |      8 |
@@ -109,7 +113,7 @@ Counts drift as specs are promoted; `pnpm test` is the authority.
 
 Roughly 81% of statements and 94% of branches across the logic layer.
 
-The statement figure is held down by one file: `useMidiPlayer.ts` (1138 lines,
+The statement figure is held down by one file: `useMidiPlayer.ts` (1056 lines,
 0%). It calls `refreshOutputsShared()` at import time and needs Web MIDI,
 `AudioContext` and `AudioWorklet`, so unit tests would mostly assert against
 mocks of the things that actually break. It is left **in** the coverage report

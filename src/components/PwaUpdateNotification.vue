@@ -1,133 +1,44 @@
 <template>
-  <div>
-    <!-- Update Available Banner -->
-    <div
-      v-if="updateAvailable"
-      class="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white p-3 shadow-lg"
-    >
-      <div class="container mx-auto flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span class="text-sm font-medium">A new version is available!</span>
-        </div>
-        <div class="flex items-center space-x-2">
-          <button
-            class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
-            @click="reloadPage"
-          >
-            Update Now
-          </button>
-          <button
-            class="text-blue-200 hover:text-white transition-colors"
-            @click="dismissUpdate"
-          >
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fill-rule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
+  <!-- Update banner: fixed under the phone's status bar, above every route. -->
+  <div
+    v-if="needRefresh"
+    role="status"
+    aria-live="polite"
+    class="fixed inset-x-0 top-0 z-50 bg-primary text-primary-foreground shadow-lg"
+    :style="{ paddingTop: 'env(safe-area-inset-top, 0px)' }"
+  >
+    <div class="container mx-auto flex items-center justify-between gap-3 p-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <RefreshCw class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+        <span class="text-sm font-medium">{{ t("utils.pwaUpdate.available") }}</span>
       </div>
-    </div>
-
-    <!-- Offline Banner -->
-    <div
-      v-if="showOfflineBanner"
-      class="fixed top-0 left-0 right-0 z-40 bg-gray-800 text-white p-2 shadow-lg"
-      :class="updateAvailable ? 'mt-12' : ''"
-    >
-      <div class="container mx-auto flex items-center justify-center space-x-2">
-        <svg
-          class="w-4 h-4 text-gray-400"
-          fill="currentColor"
-          viewBox="0 0 20 20"
+      <div class="flex flex-shrink-0 items-center gap-1">
+        <Button variant="secondary" size="sm" @click="applyUpdate">
+          {{ t("utils.pwaUpdate.reload") }}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          class="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+          :aria-label="t('utils.pwaUpdate.dismiss')"
+          @click="dismissUpdate"
         >
-          <path
-            fill-rule="evenodd"
-            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        <span class="text-xs"
-          >You're currently offline. Using cached content.</span
-        >
+          <X class="h-4 w-4" aria-hidden="true" />
+        </Button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { RefreshCw, X } from "lucide-vue-next";
 
-const updateAvailable = ref(false);
-const showOfflineBanner = ref(false);
+import { useI18n } from "vue-i18n";
 
-let updateSW: ((reloadPage?: boolean) => Promise<void>) | null = null;
+import { Button } from "@/components/ui/button";
 
-const reloadPage = async () => {
-  if (updateSW) {
-    await updateSW(true);
-  } else {
-    window.location.reload();
-  }
-};
+import { usePwaUpdate } from "@/composables/usePwaUpdate";
 
-const dismissUpdate = () => {
-  updateAvailable.value = false;
-};
-
-const handleOnline = () => {
-  showOfflineBanner.value = false;
-};
-
-const handleOffline = () => {
-  showOfflineBanner.value = true;
-};
-
-// Set up online/offline detection
-const setupNetworkDetection = () => {
-  if (typeof window !== "undefined") {
-    showOfflineBanner.value = !navigator.onLine;
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-  }
-};
-
-// Set up PWA update detection
-const setupPWAUpdates = async () => {
-  if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-    try {
-      const { registerSW } = await import("virtual:pwa-register");
-      updateSW = registerSW({
-        onNeedRefresh() {
-          updateAvailable.value = true;
-        },
-      });
-    } catch (error) {
-      // Not fatal, but the user will never be offered an update from here.
-      console.warn("PWA register not available:", error);
-    }
-  }
-};
-
-onMounted(() => {
-  setupNetworkDetection();
-  setupPWAUpdates();
-});
-
-onBeforeUnmount(() => {
-  if (typeof window !== "undefined") {
-    window.removeEventListener("online", handleOnline);
-    window.removeEventListener("offline", handleOffline);
-  }
-});
+const { t } = useI18n();
+const { needRefresh, applyUpdate, dismissUpdate } = usePwaUpdate();
 </script>

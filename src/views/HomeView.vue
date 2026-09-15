@@ -78,7 +78,7 @@
                 <p class="text-xs text-muted-foreground">{{ formatDate(service.createdAt) }}</p>
               </div>
               <Badge variant="secondary" class="shrink-0">
-                {{ t("home.songsCountLabel", { count: service.songs.length }) }}
+                {{ t("home.songsCountLabel", service.songs.length) }}
               </Badge>
               <ChevronRight class="w-4 h-4 text-muted-foreground shrink-0" />
             </button>

@@ -1,8 +1,8 @@
 {
   "pageTitle": "Lied Details",
   "backButton": "Zurück",
-  "offlineVersionMessage": "Offline-Version angezeigt. Verbinden Sie sich mit dem Internet für die neuesten Updates.",
-  "notAvailableOffline": "Dieses Lied ist offline nicht verfügbar. Bitte verbinden Sie sich mit dem Internet, um es anzuzeigen, oder laden Sie Lieder für den Offline-Zugriff von der Startseite herunter.",
+  "offlineVersionMessage": "Offline-Version angezeigt. Verbinde dich mit dem Internet für die neuesten Updates.",
+  "notAvailableOffline": "Dieses Lied ist offline nicht verfügbar. Bitte verbinde dich mit dem Internet, um es anzuzeigen, oder lade Lieder für den Offline-Zugriff von der Startseite herunter.",
   "songNotFound": "Lied nicht gefunden.",
   "songNotFoundDescription": "Das angeforderte Lied konnte nicht gefunden werden.",
   "backToSongList": "Zurück zur Liederliste",
@@ -35,7 +35,7 @@
   "preview": "Vorschau",
   "download": "Herunterladen",
   "imagePreview": "Bildvorschau",
-  "clickImageFullscreen": "Klicken Sie auf das Bild für Vollbildansicht",
+  "clickImageFullscreen": "Klicke auf das Bild für die Vollbildansicht",
   "noImageSelected": "Kein Bild ausgewählt",
   "notation": {
     "title": "Noten",
@@ -75,7 +75,7 @@
     "speedRange": "Bereich: 0.25x - 4.0x",
     "resetSpeed": "Auf 1.0x zurücksetzen",
     "defaultAudioTitle": "Audiodatei",
-    "browserNotSupported": "Ihr Browser unterstützt das Audio-Element nicht.",
+    "browserNotSupported": "Dein Browser unterstützt das Audio-Element nicht.",
     "playing": "Wiedergabe",
     "paused": "Pausiert",
     "apply": "Anwenden",
@@ -85,6 +85,10 @@
       "decodingFailed": "Audio-Dekodierung fehlgeschlagen",
       "formatNotSupported": "Audio-Format nicht unterstützt",
       "unknownError": "Unbekannter Audio-Fehler"
-    }
+    },
+    "play": "Abspielen",
+    "pause": "Pause",
+    "title": "Audiodateien",
+    "description": "Wähle eine Aufnahme aus, um sie mit einstellbarer Geschwindigkeit abzuspielen"
   }
 }

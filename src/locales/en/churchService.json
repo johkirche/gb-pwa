@@ -28,7 +28,8 @@
     "empty": "No saved services yet",
     "emptyDescription": "Save your first service to see it here",
     "load": "Load",
-    "title": "Service History"
+    "title": "Service History",
+    "moreActions": "More actions"
   },
   "prepared": {
     "title": "Prepared services",
@@ -81,7 +82,7 @@
   "serviceOrder": "Service Order",
   "serviceSetup": "Service Setup",
   "songNumber": "Song {number} of {total}",
-  "songsCount": "{count} songs",
+  "songsCount": "{count} song | {count} songs",
   "title": "Church Service",
   "noSongSelected": "No song selected",
   "missingMidi": "No MIDI",
@@ -92,7 +93,9 @@
   "previewListen": {
     "play": "Preview",
     "stop": "Stop preview",
-    "hint": "Listen to this MIDI with the current tempo and key"
+    "hint": "Listen to this MIDI with the current tempo and key",
+    "failedTitle": "Preview failed",
+    "failedDescription": "The audio file could not be played."
   },
   "speed": {
     "label": "Tempo",
@@ -150,7 +153,8 @@
       "outroWithVerse": "Verse {verse} (outro)",
       "pause": "Pause",
       "ready": "Ready"
-    }
+    },
+    "leaveConfirm": "The service is running. Leaving this page stops playback and the service has to be started again. Leave anyway?"
   },
   "toast": {
     "started": {
@@ -200,7 +204,7 @@
   },
   "save": {
     "title": "Save service?",
-    "description": "{count} songs were played. Save this service to history?",
+    "description": "One song was played. Save this service to history? | {count} songs were played. Save this service to history?",
     "nameLabel": "Name",
     "defaultName": "Service {date}",
     "discard": "Discard",
@@ -215,5 +219,10 @@
     "errors": {
       "missingTrio": "Intro, main or outro MIDI file is missing for this song"
     }
-  }
+  },
+  "pieces": {
+    "noOfflinePieces": "No preludes and postludes available offline. Connect the device or download the content.",
+    "loadFailed": "The preludes and postludes could not be loaded."
+  },
+  "clearSelection": "Clear selection"
 }
