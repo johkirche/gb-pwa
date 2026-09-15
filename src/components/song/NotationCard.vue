@@ -11,6 +11,9 @@
     </CardHeader>
 
     <CardContent>
+      <!-- The engraving surface is forced white in both themes (sheet music is
+           drawn in black), so everything inside it uses explicit light-surface
+           colours rather than theme tokens, which invert in dark mode. -->
       <div class="relative bg-white rounded-md p-2 overflow-x-auto">
         <div ref="notationRef" class="notation-host"></div>
 
@@ -18,14 +21,15 @@
           v-if="isLoading"
           class="absolute inset-0 flex items-center justify-center bg-white/70"
         >
-          <Loader2 class="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 class="w-6 h-6 animate-spin text-neutral-500" />
         </div>
 
         <div
           v-if="renderError"
-          class="flex items-start gap-2 p-3 mt-2 rounded-md bg-destructive/10 text-destructive text-sm"
+          role="alert"
+          class="flex items-start gap-2 p-3 mt-2 rounded-md bg-red-50 text-red-700 text-sm"
         >
-          <AlertCircle class="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <AlertCircle class="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
           <span>{{ renderError }}</span>
         </div>
       </div>
@@ -58,6 +62,11 @@ const isLoading = ref(false);
 const renderError = ref<string | null>(null);
 
 let osmd: OSMDType | null = null;
+// OSMD's own autoResize attaches a window listener in its constructor that
+// clear() never removes, retaining the parsed score per visit. Relayout is
+// driven from here instead and disconnected on unmount.
+let resizeObserver: ResizeObserver | null = null;
+let lastWidth = 0;
 
 watch(
   () => props.fileUrl,
@@ -69,6 +78,8 @@ watch(
 onMounted(initialize);
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
   if (osmd) {
     try {
       osmd.clear();
@@ -86,7 +97,7 @@ async function initialize() {
   try {
     const { OpenSheetMusicDisplay } = await import("opensheetmusicdisplay");
     osmd = new OpenSheetMusicDisplay(notationRef.value, {
-      autoResize: true,
+      autoResize: false,
       backend: "svg",
       drawTitle: false,
       drawSubtitle: false,
@@ -99,6 +110,7 @@ async function initialize() {
       defaultFontFamily: "Helvetica, Arial, sans-serif",
     });
     applyEngravingTweaks();
+    observeResize();
     await loadAndRender();
   } catch (err) {
     console.error("Failed to initialize OSMD:", err);
@@ -106,6 +118,23 @@ async function initialize() {
   } finally {
     isLoading.value = false;
   }
+}
+
+function observeResize() {
+  if (typeof ResizeObserver === "undefined" || !notationRef.value) return;
+  lastWidth = notationRef.value.clientWidth;
+  resizeObserver = new ResizeObserver((entries) => {
+    const width = entries[0]?.contentRect.width ?? 0;
+    // Only the width matters for reflow; height changes are our own renders.
+    if (!osmd || width === lastWidth || width === 0) return;
+    lastWidth = width;
+    try {
+      osmd.render();
+    } catch (err) {
+      console.warn("Notation relayout failed:", err);
+    }
+  });
+  resizeObserver.observe(notationRef.value);
 }
 
 function applyEngravingTweaks() {

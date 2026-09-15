@@ -48,18 +48,18 @@
       <div class="space-y-2">
         <div
           v-if="lied.liedHatAenderung"
-          class="flex items-center text-orange-600"
+          class="flex items-center text-orange-600 dark:text-orange-400"
         >
           <AlertTriangle class="w-4 h-4 mr-2" />
           <span class="text-sm">{{ t("song.songHasChanges") }}</span>
         </div>
-        <div v-if="lied.textGeaendert" class="flex items-center text-blue-600">
+        <div v-if="lied.textGeaendert" class="flex items-center text-blue-600 dark:text-blue-400">
           <FileText class="w-4 h-4 mr-2" />
           <span class="text-sm">{{ t("song.textModified") }}</span>
         </div>
         <div
           v-if="lied.melodieGeaendert"
-          class="flex items-center text-purple-600"
+          class="flex items-center text-purple-600 dark:text-purple-400"
         >
           <Music class="w-4 h-4 mr-2" />
           <span class="text-sm">{{ t("song.melodyModified") }}</span>
@@ -70,7 +70,7 @@
         <p class="text-sm font-medium text-muted-foreground">
           {{ t("song.authorQuery") }}
         </p>
-        <p class="text-sm text-yellow-700 bg-yellow-50 p-2 rounded">
+        <p class="text-sm text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-950 p-2 rounded">
           {{ lied.rueckfrageAutor }}
         </p>
       </div>

@@ -1,13 +1,13 @@
 <template>
-  <Card class="border-red-200 bg-red-50">
+  <Card class="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
     <CardContent class="py-6">
-      <div class="flex items-center text-red-800">
+      <div class="flex items-center text-red-800 dark:text-red-300">
         <AlertCircle class="w-5 h-5 mr-2" />
         <span class="font-medium">{{
           title || t("songs.errorLoadingSongs")
         }}</span>
       </div>
-      <p class="text-red-600 text-sm mt-2">{{ message }}</p>
+      <p class="text-red-600 dark:text-red-400 text-sm mt-2">{{ message }}</p>
       <Button
         variant="destructive"
         size="sm"

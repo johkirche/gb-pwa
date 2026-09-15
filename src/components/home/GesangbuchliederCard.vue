@@ -33,7 +33,7 @@
             {{ isLoading ? t("utils.loading") : t("home.testFetchAPI") }}
           </Button>
 
-          <div v-if="queryError" class="text-red-600 text-sm mt-2">
+          <div v-if="queryError" class="text-red-600 dark:text-red-400 text-sm mt-2">
             {{ t("home.errorLoadingData") }}: {{ queryError }}
           </div>
 

@@ -27,12 +27,12 @@
               <!-- Change suggestions -->
               <div
                 v-if="strophe?.aenderungsvorschlag"
-                class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg"
+                class="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-3 rounded-lg"
               >
-                <p class="text-sm font-medium text-yellow-800 mb-1">
+                <p class="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-1">
                   {{ t("song.changeSuggestion") }}:
                 </p>
-                <pre class="whitespace-pre-wrap text-sm text-yellow-700">{{
+                <pre class="whitespace-pre-wrap text-sm text-yellow-700 dark:text-yellow-300">{{
                   strophe.aenderungsvorschlag
                 }}</pre>
               </div>
@@ -40,10 +40,12 @@
               <!-- Notes -->
               <div
                 v-if="strophe?.anmerkung"
-                class="bg-blue-50 border border-blue-200 p-3 rounded-lg"
+                class="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 rounded-lg"
               >
-                <p class="text-sm font-medium text-blue-800 mb-1">{{ t("song.note") }}:</p>
-                <p class="text-sm text-blue-700">{{ strophe.anmerkung }}</p>
+                <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">
+                  {{ t("song.note") }}:
+                </p>
+                <p class="text-sm text-blue-700 dark:text-blue-300">{{ strophe.anmerkung }}</p>
               </div>
             </div>
           </div>

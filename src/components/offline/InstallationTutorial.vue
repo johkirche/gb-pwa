@@ -29,8 +29,8 @@
         <TabsContent value="benefits" class="space-y-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="flex items-start space-x-3">
-              <div class="bg-blue-100 p-2 rounded-full">
-                <Zap class="w-4 h-4 text-blue-600" />
+              <div class="bg-blue-100 dark:bg-blue-950 p-2 rounded-full">
+                <Zap class="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <h4 class="font-medium text-sm">
@@ -43,8 +43,8 @@
             </div>
 
             <div class="flex items-start space-x-3">
-              <div class="bg-green-100 p-2 rounded-full">
-                <WifiOff class="w-4 h-4 text-green-600" />
+              <div class="bg-green-100 dark:bg-green-950 p-2 rounded-full">
+                <WifiOff class="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <h4 class="font-medium text-sm">
@@ -57,8 +57,8 @@
             </div>
 
             <div class="flex items-start space-x-3">
-              <div class="bg-purple-100 p-2 rounded-full">
-                <Home class="w-4 h-4 text-purple-600" />
+              <div class="bg-purple-100 dark:bg-purple-950 p-2 rounded-full">
+                <Home class="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
                 <h4 class="font-medium text-sm">
@@ -71,8 +71,8 @@
             </div>
 
             <div class="flex items-start space-x-3">
-              <div class="bg-orange-100 p-2 rounded-full">
-                <Bell class="w-4 h-4 text-orange-600" />
+              <div class="bg-orange-100 dark:bg-orange-950 p-2 rounded-full">
+                <Bell class="w-4 h-4 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
                 <h4 class="font-medium text-sm">

@@ -14,15 +14,15 @@
       <!-- PWA Installed Status -->
       <div
         v-if="isInstalled"
-        class="bg-green-50 border border-green-200 rounded-lg p-4"
+        class="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4"
       >
         <div class="flex items-start space-x-3">
-          <CheckCircle class="w-5 h-5 text-green-600 mt-0.5" />
+          <CheckCircle class="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
           <div class="flex-1">
-            <p class="text-sm font-medium text-green-800">
+            <p class="text-sm font-medium text-green-800 dark:text-green-300">
               {{ t("offline.pwaStatus.installed") }}
             </p>
-            <p class="text-xs text-green-600 mt-1">
+            <p class="text-xs text-green-600 dark:text-green-400 mt-1">
               {{ t("offline.pwaStatus.installedDescription") }}
             </p>
           </div>
@@ -32,15 +32,15 @@
       <!-- PWA Not Installed but Installable -->
       <div
         v-else-if="isInstallable"
-        class="bg-blue-50 border border-blue-200 rounded-lg p-4"
+        class="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
       >
         <div class="flex items-start space-x-3">
-          <Download class="w-5 h-5 text-blue-600 mt-0.5" />
+          <Download class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div class="flex-1">
-            <p class="text-sm font-medium text-blue-800">
+            <p class="text-sm font-medium text-blue-800 dark:text-blue-300">
               {{ t("offline.pwaStatus.installable") }}
             </p>
-            <p class="text-xs text-blue-600 mt-1">
+            <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
               {{ t("offline.pwaStatus.installableDescription") }}
             </p>
           </div>
@@ -90,7 +90,7 @@
         class="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3"
       >
         <div class="flex items-start space-x-2">
-          <CheckCircle class="w-4 h-4 text-green-600 mt-0.5" />
+          <CheckCircle class="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5" />
           <p class="text-sm text-green-800 dark:text-green-400">
             {{ t("offline.pwaStatus.installSuccess") }}
           </p>
@@ -103,7 +103,7 @@
         class="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3"
       >
         <div class="flex items-start space-x-2">
-          <AlertCircle class="w-4 h-4 text-red-600 mt-0.5" />
+          <AlertCircle class="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5" />
           <p class="text-sm text-red-800 dark:text-red-400">
             {{ installError }}
           </p>
