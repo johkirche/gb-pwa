@@ -92,7 +92,9 @@
   "previewListen": {
     "play": "Preview",
     "stop": "Stop preview",
-    "hint": "Listen to this MIDI with the current tempo and key"
+    "hint": "Listen to this MIDI with the current tempo and key",
+    "failedTitle": "Preview failed",
+    "failedDescription": "The audio file could not be played."
   },
   "speed": {
     "label": "Tempo",

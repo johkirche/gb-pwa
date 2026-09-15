@@ -92,7 +92,9 @@
   "previewListen": {
     "play": "Vorhören",
     "stop": "Vorhören stoppen",
-    "hint": "Diese MIDI mit aktuellem Tempo und Tonart anhören"
+    "hint": "Diese MIDI mit aktuellem Tempo und Tonart anhören",
+    "failedTitle": "Vorhören fehlgeschlagen",
+    "failedDescription": "Die Audiodatei konnte nicht abgespielt werden."
   },
   "speed": {
     "label": "Tempo",

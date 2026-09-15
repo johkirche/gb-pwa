@@ -168,9 +168,27 @@
                         variant="ghost"
                         size="sm"
                         class="flex-shrink-0"
+                        :title="
+                          previewState(sortedSongs[virtualItem.index]) === 'idle'
+                            ? t('churchService.previewListen.play')
+                            : t('churchService.previewListen.stop')
+                        "
+                        :aria-label="
+                          previewState(sortedSongs[virtualItem.index]) === 'idle'
+                            ? t('churchService.previewListen.play')
+                            : t('churchService.previewListen.stop')
+                        "
                         @click.stop="previewSong(sortedSongs[virtualItem.index])"
                       >
-                        <Play class="w-4 h-4" />
+                        <Loader2
+                          v-if="previewState(sortedSongs[virtualItem.index]) === 'loading'"
+                          class="w-4 h-4 animate-spin"
+                        />
+                        <Square
+                          v-else-if="previewState(sortedSongs[virtualItem.index]) === 'playing'"
+                          class="w-4 h-4"
+                        />
+                        <Play v-else class="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -341,14 +359,23 @@
 import { useGesangbuchliedStore } from "@/stores/gesangbuchlieder";
 import { usePlaylistStore } from "@/stores/playlists";
 import { useVirtualizer } from "@tanstack/vue-virtual";
-import { AlertTriangle, ArrowLeft, ListMusic, Play, Search, X } from "lucide-vue-next";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ListMusic,
+  Loader2,
+  Play,
+  Search,
+  Square,
+  X,
+} from "lucide-vue-next";
 import { storeToRefs } from "pinia";
 
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { type GesangbuchliedWithMidi, getLiedNumber } from "@/gql/extra-types";
-import type { Gesangbuchlied } from "@/gql/graphql";
+import type { Directus_Files, Gesangbuchlied } from "@/gql/graphql";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -362,6 +389,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { useAudioPreview } from "@/composables/useAudioPreview";
+import { useToast } from "@/composables/useToast";
 
 interface Props {
   selectedSong: Gesangbuchlied | null;
@@ -382,6 +412,15 @@ const { lieder, isLoading, isUsingCachedData, filters } = storeToRefs(store);
 const { fetchLieder, setFilter, getAuthors, hasAudioFiles, getCategories } = store;
 
 const playlistStore = usePlaylistStore();
+const { toast } = useToast();
+
+// One preview at a time across the whole list; stopped on close and unmount.
+const {
+  playingId: previewPlayingId,
+  loadingId: previewLoadingId,
+  toggle: togglePreview,
+  stop: stopPreview,
+} = useAudioPreview();
 
 const dialogOpen = ref(false);
 const searchQuery = ref("");
@@ -482,11 +521,34 @@ const clearSelection = () => {
   emit("songSelected", null);
 };
 
-// TODO: Implement audio preview. Until then this is a no-op and the Play button
-// above does nothing — tracked separately. The signature is kept because the
-// implementation will need the song.
-const previewSong = (song: Gesangbuchlied) => {
-  void song;
+// The first audio recording attached to the melody — the same predicate the
+// store's hasAudioFiles() uses to decide whether to show the button at all.
+const getPreviewFile = (song: Gesangbuchlied): Directus_Files | null =>
+  song.melodieId?.noten?.find((note) => note?.directus_files_id?.type?.includes("audio"))
+    ?.directus_files_id ?? null;
+
+const previewState = (song: Gesangbuchlied): "idle" | "loading" | "playing" => {
+  const id = getPreviewFile(song)?.id;
+  if (!id) return "idle";
+  if (id === previewLoadingId.value) return "loading";
+  if (id === previewPlayingId.value) return "playing";
+  return "idle";
+};
+
+const previewSong = async (song: Gesangbuchlied) => {
+  const file = getPreviewFile(song);
+  if (!file) return;
+  try {
+    await togglePreview(file.id);
+  } catch (error) {
+    // A silent button is what #33 was about — say that it failed.
+    console.warn("Audio preview failed:", error);
+    toast({
+      titleKey: "churchService.previewListen.failedTitle",
+      descriptionKey: "churchService.previewListen.failedDescription",
+      variant: "destructive",
+    });
+  }
 };
 
 // Helper functions
@@ -508,6 +570,7 @@ const hasMidiTrio = (song: Gesangbuchlied): boolean => {
 watch(dialogOpen, async (isOpen) => {
   if (isOpen) return;
   clearTimeout(searchDebounce);
+  stopPreview();
   searchQuery.value = "";
   activePlaylistId.value = null;
   const prev = previousStoreSearch.value ?? "";
