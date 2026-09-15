@@ -1,7 +1,8 @@
 <template>
   <div class="bg-card rounded-lg border p-4 space-y-4">
-    <!-- File Info -->
-    <div class="flex items-center justify-between">
+    <!-- File Info. Wraps: the German speed + download buttons need ~348px
+         against ~275px available at phone width. -->
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex-1 min-w-0">
         <h4 class="font-medium truncate">
           {{ title || t("song.audioPlayer.defaultAudioTitle") }}
@@ -10,12 +11,12 @@
           {{ formatFileSize(fileSize) }}
         </p>
       </div>
-      <div class="flex items-center space-x-2">
+      <div class="flex min-w-0 items-center space-x-2">
         <!-- Playback Speed Dropdown -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="outline" size="sm" class="text-xs">
-              <span>{{ t("song.audioPlayer.playbackSpeed") }}</span>
+              <span class="hidden sm:inline">{{ t("song.audioPlayer.playbackSpeed") }}</span>
               <span>{{ currentRate }}x</span>
               <ChevronDown class="w-3 h-3 ml-1" />
             </Button>
@@ -102,10 +103,11 @@
           variant="outline"
           size="sm"
           :disabled="!canPlay"
+          :aria-label="isPlaying ? t('song.audioPlayer.pause') : t('song.audioPlayer.play')"
           @click="togglePlayPause"
         >
-          <Play v-if="!isPlaying" class="w-4 h-4" />
-          <Pause v-else class="w-4 h-4" />
+          <Play v-if="!isPlaying" class="w-4 h-4" aria-hidden="true" />
+          <Pause v-else class="w-4 h-4" aria-hidden="true" />
         </Button>
 
         <!-- Progress Bar -->

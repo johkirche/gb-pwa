@@ -23,7 +23,7 @@
       </div>
 
       <!-- History List -->
-      <div v-else class="h-max-[500px] overflow-auto" ref="scrollElement">
+      <div v-else class="max-h-[500px] overflow-auto" ref="scrollElement">
         <div :style="{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }">
           <div
             v-for="virtualItem in virtualizer.getVirtualItems()"
@@ -51,9 +51,7 @@
                     </Badge>
                     <Badge variant="secondary" class="text-xs">
                       {{
-                        t("churchService.songsCount", {
-                          count: history[virtualItem.index].songs.length,
-                        })
+                        t("churchService.songsCount", history[virtualItem.index].songs.length)
                       }}
                     </Badge>
                   </div>
@@ -66,7 +64,7 @@
                     >
                       <Badge
                         variant="outline"
-                        class="text-[10px] bg-purple-100 text-purple-800 border-purple-200"
+                        class="text-[10px] bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800"
                       >
                         {{ t("churchService.intro") }}
                       </Badge>
@@ -112,7 +110,7 @@
                     >
                       <Badge
                         variant="outline"
-                        class="text-[10px] bg-amber-100 text-amber-800 border-amber-200"
+                        class="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800"
                       >
                         {{ t("churchService.outro") }}
                       </Badge>
@@ -139,8 +137,12 @@
 
                   <DropdownMenu>
                     <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical class="w-4 h-4" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        :aria-label="t('churchService.history.moreActions')"
+                      >
+                        <MoreVertical class="w-4 h-4" aria-hidden="true" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -240,7 +242,7 @@ const emit = defineEmits<{
   deleteService: [id: string];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const deleteDialogOpen = ref(false);
 const serviceToDelete = ref<ServiceHistoryItem | null>(null);
@@ -303,7 +305,7 @@ const hasAudioFiles = (song: Gesangbuchlied | null): boolean => {
 const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString("de-DE", {
+    return date.toLocaleDateString(locale.value === "de" ? "de-DE" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

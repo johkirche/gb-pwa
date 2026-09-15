@@ -9,8 +9,12 @@
         <div
           v-for="song in recentSongs"
           :key="song.id"
-          class="flex items-center justify-between p-3 rounded-lg border hover:bg-accent cursor-pointer"
+          role="button"
+          tabindex="0"
+          class="flex items-center justify-between p-3 rounded-lg border hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           @click="handleSongClick(song)"
+          @keydown.enter.prevent="handleSongClick(song)"
+          @keydown.space.prevent="handleSongClick(song)"
         >
           <div class="flex items-center space-x-3">
             <div
@@ -31,9 +35,10 @@
             <Button
               size="sm"
               variant="ghost"
+              :aria-label="t('home.recent.play')"
               @click.stop="handlePlaySong(song)"
             >
-              ▶️
+              <span aria-hidden="true">▶️</span>
             </Button>
           </div>
         </div>

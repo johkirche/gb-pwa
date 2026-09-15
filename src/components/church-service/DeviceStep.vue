@@ -57,14 +57,14 @@
             <Badge
               v-if="entry.role === 'intro'"
               variant="outline"
-              class="text-[10px] bg-purple-100 text-purple-800 border-purple-200"
+              class="text-[10px] bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800"
             >
               {{ t("churchService.intro") }}
             </Badge>
             <Badge
               v-else-if="entry.role === 'outro'"
               variant="outline"
-              class="text-[10px] bg-amber-100 text-amber-800 border-amber-200"
+              class="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800"
             >
               {{ t("churchService.outro") }}
             </Badge>
@@ -85,8 +85,10 @@
       </CardContent>
     </Card>
 
-    <!-- Step footer -->
-    <div class="flex items-center justify-between gap-3 pt-2">
+    <!-- Step footer — stacks below sm, as in SetupStep: the two German labels
+         need ~382px side by side and the primary CTA was the half that left
+         the screen. -->
+    <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
       <Button variant="outline" @click="store.goToSetup">
         <ChevronLeft class="w-4 h-4 mr-1" />
         {{ t("churchService.stepper.backToSetup") }}
