@@ -100,24 +100,28 @@ export const useAuth = () => {
       console.error("Login error:", error);
       authStore.clearAuth();
 
-      let errorMessage = "Login failed";
+      // An i18n key, resolved by the login view. This used to return English
+      // prose (and, for other statuses, whatever Directus put in
+      // `errors[0].message`), which reached the German UI verbatim.
+      let errorKey = "login.errors.generic";
 
       if (axios.isAxiosError(error)) {
-        // Handle specific error cases
-        if (error.response?.status === 401) {
-          errorMessage = "Invalid email or password";
-        } else if (error.response?.status === 429) {
-          errorMessage = "Too many login attempts. Please try again later.";
-        } else if (error.response?.data?.errors?.[0]?.message) {
-          errorMessage = error.response.data.errors[0].message;
-        } else if (error.message) {
-          errorMessage = error.message;
+        const status = error.response?.status;
+        const code: string | undefined = error.response?.data?.errors?.[0]?.extensions?.code;
+        if (status === 401 || code === "INVALID_CREDENTIALS") {
+          errorKey = "login.errors.invalidCredentials";
+        } else if (status === 429 || code === "HIT_RATE_LIMIT") {
+          errorKey = "login.errors.tooManyAttempts";
+        } else if (code === "USER_SUSPENDED") {
+          errorKey = "login.errors.userSuspended";
+        } else if (!error.response && typeof navigator !== "undefined" && !navigator.onLine) {
+          errorKey = "utils.networkError";
         }
       }
 
       return {
         success: false,
-        error: errorMessage,
+        errorKey,
       };
     } finally {
       authStore.setLoading(false);

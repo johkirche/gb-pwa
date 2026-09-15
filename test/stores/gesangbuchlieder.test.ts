@@ -675,6 +675,97 @@ describe("loadMore", () => {
 });
 
 // ---------------------------------------------------------------------------
+describe("fetchLieder — overlapping requests", () => {
+  it("lets the newest request win when an earlier one answers late", async () => {
+    // Typing "Abendlied" then backspacing to "Abend" fires two fetches. The
+    // list used to belong to whichever response landed last — and so did
+    // `hasMore`, so loadMore appended page 2 of one search under page 1 of
+    // another.
+    const store = useGesangbuchliedStore();
+    store.setPreferOfflineData(false);
+
+    let releaseFirst!: (value: Gesangbuchlied[]) => void;
+    h.queryGesangbuchlied.mockReturnValueOnce(
+      new Promise<Gesangbuchlied[]>((resolve) => {
+        releaseFirst = resolve;
+      }),
+    );
+    const first = store.fetchLieder();
+
+    h.queryGesangbuchlied.mockResolvedValueOnce(makePage(3, "newer"));
+    await store.fetchLieder();
+    expect(ids(store.lieder)).toEqual(["newer-0", "newer-1", "newer-2"]);
+
+    releaseFirst(makePage(50, "stale"));
+    await first;
+
+    expect(ids(store.lieder)).toEqual(["newer-0", "newer-1", "newer-2"]);
+    expect(store.hasMore).toBe(false);
+    expect(store.isLoading).toBe(false);
+  });
+
+  it("does not clear isLoading when a superseded request settles first", async () => {
+    const store = useGesangbuchliedStore();
+    store.setPreferOfflineData(false);
+
+    let releaseSecond!: (value: Gesangbuchlied[]) => void;
+    h.queryGesangbuchlied.mockResolvedValueOnce(makePage(2, "stale"));
+    const first = store.fetchLieder();
+    h.queryGesangbuchlied.mockReturnValueOnce(
+      new Promise<Gesangbuchlied[]>((resolve) => {
+        releaseSecond = resolve;
+      }),
+    );
+    const second = store.fetchLieder();
+
+    await first;
+    // The newer request still owns the flag.
+    expect(store.isLoading).toBe(true);
+    expect(store.lieder).toEqual([]);
+
+    releaseSecond(makePage(1, "newer"));
+    await second;
+    expect(ids(store.lieder)).toEqual(["newer-0"]);
+    expect(store.isLoading).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("ensureSongsLoaded", () => {
+  it("fetches only the ids that are not loaded and appends them", async () => {
+    // Playlists resolve their song ids against this list, which online holds
+    // one page of the catalogue — a 12-song playlist rendered as empty.
+    const store = useGesangbuchliedStore();
+    store.lieder = [makeLied({ id: "a" })];
+    h.queryGesangbuchliedByIds.mockResolvedValue([makeLied({ id: "b" }), makeLied({ id: "c" })]);
+
+    await store.ensureSongsLoaded(["a", "b", "c", "b"]);
+
+    expect(h.queryGesangbuchliedByIds).toHaveBeenCalledWith(["b", "c"]);
+    expect(ids(store.lieder)).toEqual(["a", "b", "c"]);
+  });
+
+  it("does not call the API when every id is already loaded", async () => {
+    const store = useGesangbuchliedStore();
+    store.lieder = [makeLied({ id: "a" })];
+
+    await store.ensureSongsLoaded(["a"]);
+
+    expect(h.queryGesangbuchliedByIds).not.toHaveBeenCalled();
+  });
+
+  it("swallows a failed lookup — the playlist stays usable with what is loaded", async () => {
+    const store = useGesangbuchliedStore();
+    store.lieder = [makeLied({ id: "a" })];
+    h.queryGesangbuchliedByIds.mockRejectedValue(new Error("Network Error"));
+
+    await expect(store.ensureSongsLoaded(["a", "b"])).resolves.toBeUndefined();
+
+    expect(ids(store.lieder)).toEqual(["a"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe("fetchMissingFavorites", () => {
   it("fetches only the favourites that are not already loaded and appends them", async () => {
     // Favourites must stay reachable even when they fall outside the loaded page,

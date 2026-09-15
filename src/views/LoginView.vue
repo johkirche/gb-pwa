@@ -282,7 +282,7 @@ const handleLogin = async (): Promise<void> => {
     const redirectTo: string = getRedirectUrl("/home");
     await router.push(redirectTo);
   } else {
-    error.value = result.error || t("login.loginFailed");
+    error.value = t(result.errorKey ?? "login.loginFailed");
   }
 };
 </script>

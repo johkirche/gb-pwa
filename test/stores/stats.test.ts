@@ -1035,7 +1035,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     expect(store.error).toBeNull();
   });
 
-  it("surfaces the request error when nothing is downloaded to fall back on", async () => {
+  it("surfaces a translatable error key when nothing is downloaded to fall back on", async () => {
     signIn();
     post.mockRejectedValue(new Error("Network Error"));
     const store = useFreieMusikstueckeStore();
@@ -1043,22 +1043,24 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     await store.fetchPieces();
 
     expect(store.pieces).toEqual([]);
-    expect(store.error).toBe("Network Error");
+    // A key, never the exception text — "Network Error" used to be rendered
+    // verbatim in the German picker.
+    expect(store.error).toBe("churchService.pieces.loadFailed");
     expect(store.isLoaded).toBe(false);
     expect(store.isLoading).toBe(false);
   });
 
-  it("reports 'Unknown error' when the rejection is not an Error", async () => {
+  it("maps a non-Error rejection to the same key", async () => {
     signIn();
     post.mockRejectedValue("boom");
     const store = useFreieMusikstueckeStore();
 
     await store.fetchPieces();
 
-    expect(store.error).toBe("Unknown error");
+    expect(store.error).toBe("churchService.pieces.loadFailed");
   });
 
-  it("joins GraphQL errors returned with a 200 into one message", async () => {
+  it("treats GraphQL errors returned with a 200 as a failed load", async () => {
     // Directus answers a malformed query with HTTP 200 and an `errors` array,
     // so the status code alone is not enough to detect failure.
     signIn();
@@ -1069,7 +1071,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
 
     await store.fetchPieces();
 
-    expect(store.error).toBe("Unknown field; Not permitted");
+    expect(store.error).toBe("churchService.pieces.loadFailed");
     expect(store.pieces).toEqual([]);
     expect(store.isLoaded).toBe(false);
   });
@@ -1088,14 +1090,14 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  it("reports 'No offline pieces available' when offline with an empty cache", async () => {
+  it("reports the no-offline-pieces key when offline with an empty cache", async () => {
     setOnline(false);
     signIn();
     const store = useFreieMusikstueckeStore();
 
     await store.fetchPieces();
 
-    expect(store.error).toBe("No offline pieces available");
+    expect(store.error).toBe("churchService.pieces.noOfflinePieces");
     expect(store.isLoaded).toBe(false);
     expect(post).not.toHaveBeenCalled();
   });
@@ -1104,7 +1106,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     setOnline(false);
     const store = useFreieMusikstueckeStore();
     await store.fetchPieces();
-    expect(store.error).toBe("No offline pieces available");
+    expect(store.error).toBe("churchService.pieces.noOfflinePieces");
 
     setOnline(true);
     signIn();
@@ -1154,7 +1156,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
     await store.fetchPieces();
 
     expect(post).not.toHaveBeenCalled();
-    expect(store.error).toBe("VITE_PUBLIC_DIRECTUS_URL is not configured");
+    expect(store.error).toBe("churchService.pieces.loadFailed");
   });
 });
 

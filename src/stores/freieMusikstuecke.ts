@@ -6,6 +6,7 @@ import { computed, ref } from "vue";
 import type { FreiesMusikstueck } from "@/gql/extra-types";
 
 import { fetchFreieMusikstuecke } from "@/composables/directusQueries";
+import { NoSessionError } from "@/composables/useGraphQL";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
 
 // Lightweight Pinia store for the `freie_musikstuecke` Directus collection.
@@ -102,7 +103,7 @@ export const useFreieMusikstueckeStore = defineStore("freieMusikstuecke", () => 
           isLoaded.value = true;
           return;
         }
-        error.value = "No offline pieces available";
+        error.value = "churchService.pieces.noOfflinePieces";
         return;
       }
 
@@ -120,7 +121,14 @@ export const useFreieMusikstueckeStore = defineStore("freieMusikstuecke", () => 
         isLoaded.value = true;
         return;
       }
-      error.value = err instanceof Error ? err.message : "Unknown error";
+      // An i18n key, never the exception text — the picker renders it into a
+      // German UI where "Network Error" told nobody what to do.
+      error.value =
+        err instanceof NoSessionError
+          ? err.i18nKey
+          : typeof navigator !== "undefined" && !navigator.onLine
+            ? "utils.networkError"
+            : "churchService.pieces.loadFailed";
     } finally {
       isLoading.value = false;
     }

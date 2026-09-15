@@ -16,7 +16,9 @@
 
       <template v-else-if="playlist">
         <!-- Header: name, description, actions -->
-        <div class="flex items-start justify-between gap-4">
+        <!-- Stacks below sm: the two German action buttons take ~228px of a
+             343px row and cannot shrink, which left the title a 39px column. -->
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div class="min-w-0 flex-1 flex items-start gap-3">
             <div
               class="w-12 h-12 rounded-md bg-muted flex items-center justify-center text-2xl flex-shrink-0"
@@ -31,12 +33,12 @@
               </p>
               <div class="mt-2">
                 <Badge variant="secondary" class="text-xs">
-                  {{ t("playlist.songsCount", { count: songs.length }) }}
+                  {{ t("playlist.songsCount", playlist.songIds.length) }}
                 </Badge>
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
+          <div class="flex w-full items-center justify-end gap-2 flex-shrink-0 sm:w-auto">
             <Button variant="outline" size="sm" @click="openEdit">
               <Pencil class="w-4 h-4 mr-1" />
               {{ t("playlist.edit") }}
@@ -52,7 +54,7 @@
         <Card>
           <CardHeader>
             <div class="flex items-center justify-between gap-2">
-              <CardTitle class="text-base">{{ t("churchService.mainSongs") }}</CardTitle>
+              <CardTitle class="text-base">{{ t("playlist.songs") }}</CardTitle>
               <Button
                 size="sm"
                 @click="router.push({ name: 'playlist-add-songs', params: { id: playlistId } })"
@@ -66,7 +68,20 @@
             <p v-if="removeError" class="text-sm text-destructive mb-3" role="alert">
               {{ removeError }}
             </p>
-            <div v-if="songs.length === 0" class="text-center py-10">
+            <!-- Song ids are still being resolved against the catalogue: a
+                 loading row, never the empty state. -->
+            <div
+              v-if="resolvingSongs && songs.length < playlist.songIds.length"
+              class="space-y-2"
+              aria-busy="true"
+            >
+              <div
+                v-for="n in Math.min(playlist.songIds.length, 4)"
+                :key="n"
+                class="h-16 rounded-lg border bg-muted/40 animate-pulse"
+              />
+            </div>
+            <div v-else-if="songs.length === 0" class="text-center py-10">
               <ListMusic class="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p class="text-sm text-muted-foreground">{{ t("playlist.noSongs") }}</p>
             </div>
@@ -74,8 +89,12 @@
               <div
                 v-for="song in songs"
                 :key="song.id"
-                class="p-3 border rounded-lg flex items-start justify-between gap-2 cursor-pointer transition-colors hover:bg-accent hover:border-accent-foreground/20"
+                role="button"
+                tabindex="0"
+                class="p-3 border rounded-lg flex items-start justify-between gap-2 cursor-pointer transition-colors hover:bg-accent hover:border-accent-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 @click="openSong(song.id)"
+                @keydown.enter.prevent="openSong(song.id)"
+                @keydown.space.prevent="openSong(song.id)"
               >
                 <div class="min-w-0 flex-1 space-y-1">
                   <div class="flex items-baseline gap-2">
@@ -112,9 +131,10 @@
                   size="sm"
                   class="flex-shrink-0"
                   :title="t('playlist.remove')"
+                  :aria-label="t('playlist.remove')"
                   @click.stop="removeSong(song.id)"
                 >
-                  <X class="w-4 h-4" />
+                  <X class="w-4 h-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -228,12 +248,15 @@ const router = useRouter();
 const store = usePlaylistStore();
 const songStore = useGesangbuchliedStore();
 const { lieder } = storeToRefs(songStore);
-const { fetchLieder, getAuthors, getCategories } = songStore;
+const { fetchLieder, ensureSongsLoaded, getAuthors, getCategories } = songStore;
 
 // `loaded` flips true once the initial load finishes so we can distinguish
 // "still loading" from "playlist doesn't exist" — only the latter should
 // render the not-found card.
 const loaded = ref(false);
+// True while the playlist's song ids are being fetched from the API — the
+// catalogue list only holds one page online, so most playlists need this.
+const resolvingSongs = ref(false);
 const playlistId = computed(() => route.params.id as string);
 
 const playlist = computed(() => store.getPlaylist(playlistId.value) ?? null);
@@ -351,5 +374,14 @@ onMounted(async () => {
   await store.loadPlaylists();
   if (lieder.value.length === 0) await fetchLieder();
   loaded.value = true;
+  const ids = playlist.value?.songIds;
+  if (ids && ids.length > 0) {
+    resolvingSongs.value = true;
+    try {
+      await ensureSongsLoaded(ids);
+    } finally {
+      resolvingSongs.value = false;
+    }
+  }
 });
 </script>
