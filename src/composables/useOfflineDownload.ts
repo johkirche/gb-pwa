@@ -5,6 +5,7 @@ import { onMounted, readonly, ref } from "vue";
 import type { FreiesMusikstueck } from "@/gql/extra-types";
 import type { Gesangbuchlied } from "@/gql/graphql";
 
+import { fetchAsset } from "@/composables/directusAssets";
 import {
   fetchFreieMusikstuecke,
   fetchSoundfontId as fetchSoundfontIdFromSettings,
@@ -319,7 +320,7 @@ export async function fetchAssetByUrl(url: string): Promise<ArrayBuffer> {
     const blob = await getOfflineAssetBlob(id);
     if (blob) return blob.arrayBuffer();
   }
-  const res = await fetch(url);
+  const res = await fetchAsset(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.arrayBuffer();
 }
@@ -333,7 +334,7 @@ export async function fetchAssetByUrl(url: string): Promise<ArrayBuffer> {
 export async function cacheAssetById(id: string, type?: string): Promise<void> {
   const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
   if (!directusUrl) throw new Error("VITE_PUBLIC_DIRECTUS_URL is not configured");
-  const res = await fetch(`${directusUrl}/assets/${id}`);
+  const res = await fetchAsset(`${directusUrl}/assets/${id}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const blob = await res.blob();
   await dbManager.put(ASSETS_STORE, { id, type, blob, size: blob.size } satisfies OfflineAsset);
@@ -622,7 +623,7 @@ export const useOfflineDownload = () => {
                 assetPrecacheProgress.value.current + 1
               }/${totalAssets}`;
 
-              const response = await fetch(assetUrl);
+              const response = await fetchAsset(assetUrl);
               if (!response.ok) {
                 console.warn(`Failed to precache asset ${id}: HTTP ${response.status}`);
                 return;

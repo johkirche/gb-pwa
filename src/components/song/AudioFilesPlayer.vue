@@ -65,6 +65,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import SimpleAudioPlayer from "@/components/song/SimpleAudioPlayer.vue";
 
+import { withAccessToken } from "@/composables/directusAssets";
 import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
 
 interface Props {
@@ -105,7 +106,7 @@ watchEffect(async (onCleanup) => {
       next.set(file.id, objUrl);
       cleanups.push(() => URL.revokeObjectURL(objUrl));
     } else {
-      next.set(file.id, `${props.directusUrl}/assets/${file.id}`);
+      next.set(file.id, withAccessToken(`${props.directusUrl}/assets/${file.id}`));
     }
   }
   audioUrls.value = next;

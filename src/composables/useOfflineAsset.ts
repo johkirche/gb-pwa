@@ -1,5 +1,6 @@
 import { type MaybeRefOrGetter, ref, toValue, watchEffect } from "vue";
 
+import { assetUrl, withAccessToken } from "@/composables/directusAssets";
 import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
 
 // Returns a reactive URL for a Directus asset id, preferring an IndexedDB Blob
@@ -53,8 +54,9 @@ export function useOfflineAsset(
       console.warn("useOfflineAsset: IDB read failed, falling back to network", err);
     }
 
-    const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
-    url.value = `${directusUrl}/assets/${fileId}${options.params ?? ""}`;
+    // Network fallback. The session rides along as a query parameter because
+    // a native element cannot send a header.
+    url.value = withAccessToken(assetUrl(fileId, options.params ?? ""));
   });
 
   return url;

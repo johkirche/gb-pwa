@@ -1795,3 +1795,57 @@ describe("getStorageInfo", () => {
     expect(console.error).toHaveBeenCalledWith("Error getting storage info:", expect.any(Error));
   });
 });
+
+// ===========================================================================
+// Asset reads carry the session
+// ===========================================================================
+describe("asset reads carry the session", () => {
+  // Files may stop being readable by the public role. Every network read of
+  // an asset goes through fetchAsset (directusAssets.ts), which adds the
+  // bearer header when there is a session and sends anonymously otherwise.
+
+  function authHeaderOf(url: string): string | undefined {
+    const call = h.fetch.mock.calls.find(([input]) => String(input) === url);
+    const init = call?.[1] as { headers?: Record<string, string> } | undefined;
+    return init?.headers?.Authorization;
+  }
+
+  it("precacheAssets sends the bearer header on every asset fetch", async () => {
+    const { dl, store } = await loadComposable();
+    store.setTokens("access-abc", "refresh-xyz");
+
+    await dl.precacheAssets(
+      asSongs([makeSong("s1", { noten: [{ id: "f-1" }, { id: "f-2" }] })]),
+      [],
+    );
+
+    expect(authHeaderOf(assetUrl("f-1"))).toBe("Bearer access-abc");
+    expect(authHeaderOf(assetUrl("f-2"))).toBe("Bearer access-abc");
+  });
+
+  it("precacheAssets sends anonymously when there is no session", async () => {
+    const { dl } = await loadComposable();
+
+    await dl.precacheAssets(asSongs([makeSong("s1", { noten: [{ id: "f-1" }] })]), []);
+
+    expect(authHeaderOf(assetUrl("f-1"))).toBeUndefined();
+  });
+
+  it("fetchAssetByUrl sends the bearer header on the network fallback", async () => {
+    const { mod, store } = await loadOffline();
+    store.setTokens("access-abc", "refresh-xyz");
+
+    await mod.fetchAssetByUrl(assetUrl("f-9"));
+
+    expect(authHeaderOf(assetUrl("f-9"))).toBe("Bearer access-abc");
+  });
+
+  it("cacheAssetById sends the bearer header", async () => {
+    const { mod, store } = await loadOffline();
+    store.setTokens("access-abc", "refresh-xyz");
+
+    await mod.cacheAssetById("sf-1");
+
+    expect(authHeaderOf(assetUrl("sf-1"))).toBe("Bearer access-abc");
+  });
+});

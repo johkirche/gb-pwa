@@ -130,12 +130,42 @@ export class DirectusApiClient {
   }
 
   /**
+   * Rotate the session once and install the new token pair.
+   *
+   * Prefers the freshest persisted refresh token (another tab may have rotated
+   * it) over the possibly-stale in-memory copy. Returns the new access token,
+   * or null when there is no refresh token anywhere to try. Throws when the
+   * server rejects the refresh — it deliberately does NOT clear the session or
+   * redirect to /login: that would defeat offline-first usage, and session
+   * teardown is owned by useAuth.
+   */
+  async refreshSession(): Promise<string | null> {
+    const authStore = useAuthStore();
+    const refreshToken =
+      (typeof window !== "undefined" && localStorage.getItem("auth-refresh-token")) ||
+      authStore.refreshToken;
+    if (!refreshToken) return null;
+
+    const refreshResponse = await this.refresh({
+      refresh_token: refreshToken,
+      mode: "json",
+    });
+
+    authStore.setTokens(refreshResponse.access_token, refreshResponse.refresh_token);
+
+    // Re-arm the background refresh timer for the token we just installed —
+    // otherwise it stays aimed at the old token's expiry and the session
+    // lapses again unnoticed.
+    this.onSessionRefreshed?.(refreshResponse.access_token);
+
+    return refreshResponse.access_token;
+  }
+
+  /**
    * Create an authenticated fetch function with automatic token refresh.
    *
-   * On a 401 it attempts a single token refresh and retries. It deliberately
-   * does NOT clear the session or redirect to /login on failure — that would
-   * defeat offline-first usage. Instead it throws, letting callers fall back to
-   * cached/IndexedDB content. Session teardown is owned by useAuth.
+   * On a 401 it attempts a single token refresh and retries. Failure is thrown,
+   * not acted on, letting callers fall back to cached/IndexedDB content.
    */
   createAuthenticatedFetch(accessToken: string) {
     return async (url: string, options: AxiosRequestConfig = {}) => {
@@ -152,51 +182,30 @@ export class DirectusApiClient {
       } catch (error: unknown) {
         // If we get a 401 error, try to refresh the token once.
         if (axios.isAxiosError(error) && error.response?.status === 401) {
-          const authStore = useAuthStore();
+          let freshToken: string | null;
+          try {
+            freshToken = await this.refreshSession();
+          } catch (refreshError) {
+            // Don't clear auth / redirect — keep the user in (possibly
+            // offline) and let the caller fall back to cached data.
+            console.warn(
+              "Authenticated request refresh failed; falling back:",
+              refreshError,
+            );
+            throw refreshError;
+          }
 
-          // Prefer the freshest persisted refresh token (another tab may have
-          // rotated it) over the possibly-stale in-memory copy.
-          const refreshToken =
-            (typeof window !== "undefined" &&
-              localStorage.getItem("auth-refresh-token")) ||
-            authStore.refreshToken;
-
-          if (refreshToken) {
-            try {
-              const refreshResponse = await this.refresh({
-                refresh_token: refreshToken,
-                mode: "json",
-              });
-
-              authStore.setTokens(
-                refreshResponse.access_token,
-                refreshResponse.refresh_token,
-              );
-
-              // Re-arm the background refresh timer for the token we just
-              // installed — otherwise it stays aimed at the old token's expiry
-              // and the session lapses again unnoticed.
-              this.onSessionRefreshed?.(refreshResponse.access_token);
-
-              // Retry the original request with the new token.
-              const retryResponse = await axios({
-                url,
-                ...options,
-                headers: {
-                  ...options.headers,
-                  Authorization: `Bearer ${refreshResponse.access_token}`,
-                },
-              });
-              return retryResponse.data;
-            } catch (refreshError) {
-              // Don't clear auth / redirect — keep the user in (possibly
-              // offline) and let the caller fall back to cached data.
-              console.warn(
-                "Authenticated request refresh failed; falling back:",
-                refreshError,
-              );
-              throw refreshError;
-            }
+          if (freshToken) {
+            // Retry the original request with the new token.
+            const retryResponse = await axios({
+              url,
+              ...options,
+              headers: {
+                ...options.headers,
+                Authorization: `Bearer ${freshToken}`,
+              },
+            });
+            return retryResponse.data;
           }
         }
 

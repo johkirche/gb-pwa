@@ -961,3 +961,59 @@ describe("createAuthenticatedFetch — concurrent 401s share one refresh", () =>
     expect(server.refreshCalls()).toHaveLength(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("refreshSession", () => {
+  // The one rotation shared by createAuthenticatedFetch and the asset reads
+  // (directusAssets.fetchAsset): every path that meets a 401 with a session
+  // refreshes through here, so the single-use token is spent once.
+
+  it("rotates the pair, persists it and re-arms the background refresh", async () => {
+    h.post.mockResolvedValue(enveloped(tokens()));
+    const store = useAuthStore();
+    store.setTokens("access-1", "refresh-1");
+    const onRefreshed = vi.fn();
+    const client = new DirectusApiClient(BASE);
+    client.setSessionRefreshedHandler(onRefreshed);
+
+    await expect(client.refreshSession()).resolves.toBe("access-2");
+
+    expect(h.post).toHaveBeenCalledWith(`${BASE}/auth/refresh`, {
+      refresh_token: "refresh-1",
+      mode: "json",
+    });
+    expect(store.accessToken).toBe("access-2");
+    expect(store.refreshToken).toBe("refresh-2");
+    expect(onRefreshed).toHaveBeenCalledWith("access-2");
+  });
+
+  it("prefers the persisted refresh token over the in-memory copy", async () => {
+    // Another tab may have rotated the session since this one loaded.
+    h.post.mockResolvedValue(enveloped(tokens()));
+    useAuthStore().setTokens("access-1", "refresh-stale");
+    localStorage.setItem("auth-refresh-token", "refresh-fresh");
+    const client = new DirectusApiClient(BASE);
+
+    await client.refreshSession();
+
+    expect(h.post.mock.calls[0][1]).toMatchObject({ refresh_token: "refresh-fresh" });
+  });
+
+  it("resolves null without a request when there is no refresh token anywhere", async () => {
+    const client = new DirectusApiClient(BASE);
+
+    await expect(client.refreshSession()).resolves.toBeNull();
+    expect(h.post).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a rejected refresh without clearing the session", async () => {
+    h.post.mockRejectedValue(httpError(401));
+    const store = useAuthStore();
+    store.setTokens("access-1", "refresh-1");
+    const client = new DirectusApiClient(BASE);
+
+    await expect(client.refreshSession()).rejects.toBeInstanceOf(AxiosError);
+    expect(store.accessToken).toBe("access-1");
+    expect(h.routerPush).not.toHaveBeenCalled();
+  });
+});

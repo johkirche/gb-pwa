@@ -1,5 +1,6 @@
 import { getCurrentScope, onScopeDispose, readonly, ref } from "vue";
 
+import { assetUrl, withAccessToken } from "@/composables/directusAssets";
 import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
 
 /**
@@ -64,7 +65,9 @@ export function useAudioPreview() {
         objectUrl = URL.createObjectURL(blob);
         url = objectUrl;
       } else {
-        url = `${import.meta.env.VITE_PUBLIC_DIRECTUS_URL}/assets/${fileId}`;
+        // Streamed from Directus; the session rides along as a query parameter
+        // because an <audio> element cannot send a header.
+        url = withAccessToken(assetUrl(fileId));
       }
 
       const element = new Audio(url);

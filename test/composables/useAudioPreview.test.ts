@@ -1,8 +1,10 @@
+import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { effectScope, nextTick } from "vue";
 
 import { useAudioPreview } from "@/composables/useAudioPreview";
+import { useAuthStore } from "@/stores/auth";
 
 // ---------------------------------------------------------------------------
 // Mocks. `vi.hoisted` is required because vi.mock factories are hoisted above
@@ -59,6 +61,7 @@ const createObjectURL = vi.fn(() => "blob:preview");
 const revokeObjectURL = vi.fn();
 
 beforeEach(() => {
+  setActivePinia(createPinia());
   FakeAudio.instances = [];
   FakeAudio.playImpl = () => Promise.resolve();
   vi.stubGlobal("Audio", FakeAudio);
@@ -98,6 +101,15 @@ describe("useAudioPreview", () => {
     expect(createObjectURL).not.toHaveBeenCalled();
     expect(preview.playingId.value).toBe("f-1");
     expect(preview.loadingId.value).toBeNull();
+  });
+
+  it("streams with the session token when logged in, since <audio> cannot send a header", async () => {
+    useAuthStore().setTokens("access-1", "refresh-1");
+    const preview = useAudioPreview();
+
+    await preview.play("f-1");
+
+    expect(FakeAudio.instances[0].src).toBe("https://directus.test/assets/f-1?access_token=access-1");
   });
 
   it("plays the downloaded blob offline and revokes its URL on stop", async () => {

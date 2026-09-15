@@ -154,6 +154,7 @@ import {
 import AudioFilesPlayer from "@/components/song/AudioFilesPlayer.vue";
 import PanZoomImage from "@/components/utils/pan-zoom-image/PanZoomImage.vue";
 
+import { withAccessToken } from "@/composables/directusAssets";
 import { useOfflineAsset } from "@/composables/useOfflineAsset";
 import { getOfflineAssetBlob } from "@/composables/useOfflineDownload";
 
@@ -206,7 +207,7 @@ watchEffect(async (onCleanup) => {
 const thumbnailUrl = (file: Directus_Files): string => {
   const cached = cachedFileUrls.value.get(file.id);
   if (cached) return cached;
-  return `${props.directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`;
+  return withAccessToken(`${props.directusUrl}/assets/${file.id}?width=300&height=200&fit=cover`);
 };
 const isImagePreviewOpen = computed({
   get: () => selectedImage.value !== null,
@@ -278,7 +279,7 @@ const downloadFile = async (file: Directus_Files) => {
       url = URL.createObjectURL(blob);
       revokeAfter = true;
     } else {
-      url = `${props.directusUrl}/assets/${file.id}`;
+      url = withAccessToken(`${props.directusUrl}/assets/${file.id}`);
     }
   }
 
