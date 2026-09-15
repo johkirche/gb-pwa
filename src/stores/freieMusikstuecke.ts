@@ -1,11 +1,11 @@
 import { useAuthStore } from "@/stores/auth";
-import axios from "axios";
 import { defineStore } from "pinia";
 
 import { computed, ref } from "vue";
 
 import type { FreiesMusikstueck } from "@/gql/extra-types";
 
+import { fetchFreieMusikstuecke } from "@/composables/directusQueries";
 import { useOfflineDownload } from "@/composables/useOfflineDownload";
 
 // Lightweight Pinia store for the `freie_musikstuecke` Directus collection.
@@ -39,46 +39,10 @@ export const useFreieMusikstueckeStore = defineStore("freieMusikstuecke", () => 
     });
   });
 
-  async function fetchFromApi(): Promise<FreiesMusikstueck[]> {
-    const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
-    if (!directusUrl) {
-      throw new Error("VITE_PUBLIC_DIRECTUS_URL is not configured");
-    }
-
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (authStore.accessToken) {
-      headers["Authorization"] = `Bearer ${authStore.accessToken}`;
-    }
-
-    const gql = `
-      query {
-        freie_musikstuecke(sort: ["name"]) {
-          id
-          name
-          komponist
-          dauer_sek
-          tags
-          midi_file {
-            id
-            title
-            type
-            filename_download
-            filesize
-          }
-        }
-      }
-    `;
-
-    const res = await axios.post<{
-      data?: { freie_musikstuecke?: FreiesMusikstueck[] };
-      errors?: { message: string }[];
-    }>(`${directusUrl}/graphql`, { query: gql }, { headers });
-
-    if (res.data.errors?.length) {
-      throw new Error(res.data.errors.map((e) => e.message).join(", "));
-    }
-    return res.data.data?.freie_musikstuecke ?? [];
-  }
+  // The query itself is shared with the offline downloader (directusQueries.ts)
+  // and goes through the one GraphQL transport, so it gets the 401 retry the
+  // songs path has and the GraphQL-errors-on-200 check.
+  const fetchFromApi = fetchFreieMusikstuecke;
 
   // Stale-while-revalidate. The IndexedDB list is served instantly — that is
   // the whole point of the offline-first store — but it has no TTL, and

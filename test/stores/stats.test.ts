@@ -1069,7 +1069,7 @@ describe("freieMusikstuecke store — fetchPieces", () => {
 
     await store.fetchPieces();
 
-    expect(store.error).toBe("Unknown field, Not permitted");
+    expect(store.error).toBe("Unknown field; Not permitted");
     expect(store.pieces).toEqual([]);
     expect(store.isLoaded).toBe(false);
   });

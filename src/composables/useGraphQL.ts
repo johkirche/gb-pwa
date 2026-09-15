@@ -6,10 +6,12 @@ import { useDirectusApi } from "@/composables/useDirectusApi";
 /**
  * The one GraphQL transport for the Directus backend.
  *
- * `useGesangbuchlied` and the stats store each used to carry a private copy of
- * `makeGraphQLRequest`. The copies drifted: #10 taught the songs path to throw
- * a translatable `NoSessionError`, and the stats copy kept throwing raw English
- * — #32. A single funnel is what stops that class of fix from having to travel.
+ * Five call sites used to post to `/graphql` on their own — `useGesangbuchlied`,
+ * the stats and pieces stores, the offline downloader and the MIDI player — and
+ * they drifted: #10 taught the songs path to throw a translatable
+ * `NoSessionError`, the stats copy kept throwing raw English (#32), and three of
+ * them had no 401 retry at all. A single funnel is what stops that class of fix
+ * from having to travel.
  */
 
 /**
@@ -77,17 +79,38 @@ export const createAuthHeaders = (additionalHeaders?: Record<string, string>) =>
   return headers;
 };
 
+export interface GraphQLRequestOptions {
+  /**
+   * `"required"` (the default): throw `NoSessionError` without touching the
+   * network when there is no token — the user has to log in, nothing else
+   * helps. `"optional"`: send anonymously when there is no token, for the
+   * collections the public role may read (the soundfont setting, the
+   * Vor-/Nachspiele). A 401 is then final, since there is no session to
+   * refresh.
+   */
+  session?: "required" | "optional";
+}
+
 /**
  * POST a query to Directus and return the envelope.
  *
- * Throws `NoSessionError` without touching the network when there is no token,
- * retries once through the refreshing client on a 401, and throws
- * `GraphQLRequestError` when either response carries `errors`.
+ * Throws `NoSessionError` without touching the network when there is no token
+ * (unless `session: "optional"`), retries once through the refreshing client
+ * on a 401, and throws `GraphQLRequestError` when either response carries
+ * `errors`.
  */
-export const makeGraphQLRequest = async <T = unknown>(queryBuilder: GraphQLQuery): Promise<T> => {
-  const authStore = useAuthStore();
+export const makeGraphQLRequest = async <T = unknown>(
+  queryBuilder: GraphQLQuery,
+  options: GraphQLRequestOptions = {},
+): Promise<T> => {
+  if (!import.meta.env.VITE_PUBLIC_DIRECTUS_URL) {
+    throw new Error("VITE_PUBLIC_DIRECTUS_URL is not configured");
+  }
 
-  if (!authStore.accessToken) {
+  const authStore = useAuthStore();
+  const hasSession = !!authStore.accessToken;
+
+  if (!hasSession && options.session !== "optional") {
     throw new NoSessionError();
   }
 
@@ -106,9 +129,9 @@ export const makeGraphQLRequest = async <T = unknown>(queryBuilder: GraphQLQuery
 
     return response.data;
   } catch (error: unknown) {
-    // If we get a 401 error, try using the directusApi's authenticated request
-    // which handles token refresh automatically
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
+    // A 401 with a session means the token expired: retry through the client
+    // that refreshes. Without a session there is nothing to refresh.
+    if (hasSession && axios.isAxiosError(error) && error.response?.status === 401) {
       const retried = await useDirectusApi().authenticatedRequest<T>(endpoint, {
         method: "POST",
         data: queryBuilder,

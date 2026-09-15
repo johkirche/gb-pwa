@@ -1,8 +1,7 @@
-import { useAuthStore } from "@/stores/auth";
-import axios from "axios";
 import { WorkletSynthesizer } from "spessasynth_lib";
 import { computed, onUnmounted, readonly, ref } from "vue";
 
+import { fetchSoundfontId } from "@/composables/directusQueries";
 import {
   fetchAssetByUrl,
   getCachedSoundfontId,
@@ -310,21 +309,9 @@ export function getSoundfontUrl(): Promise<string | null> {
     }
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      // Auth header only if available — the field SHOULD be readable by the
-      // public role, but if it isn't we'll still try the user's token.
-      const authStore = useAuthStore();
-      if (authStore.accessToken) {
-        headers["Authorization"] = `Bearer ${authStore.accessToken}`;
-      }
-      const res = await axios.post<{
-        data: { settings: { soundfont: { id: string } | null } | null };
-      }>(
-        `${directusUrl}/graphql`,
-        { query: "query { settings { soundfont { id } } }" },
-        { headers },
-      );
-      const sfId = res.data?.data?.settings?.soundfont?.id;
+      // Sent with the session when there is one, anonymously otherwise — the
+      // field is readable by the public role.
+      const sfId = await fetchSoundfontId();
       if (sfId) {
         // Back-fill so the soundfont resolves offline next time (also fixes
         // downloads made before the id was persisted).

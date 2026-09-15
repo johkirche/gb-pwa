@@ -1,12 +1,14 @@
-import { useAuthStore } from "@/stores/auth";
-import axios from "axios";
-
 import { useGesangbuchlied } from "./useGesangbuchlied";
 
 import { onMounted, readonly, ref } from "vue";
 
 import type { FreiesMusikstueck } from "@/gql/extra-types";
 import type { Gesangbuchlied } from "@/gql/graphql";
+
+import {
+  fetchFreieMusikstuecke,
+  fetchSoundfontId as fetchSoundfontIdFromSettings,
+} from "@/composables/directusQueries";
 
 export interface DownloadProgress {
   current: number;
@@ -388,74 +390,18 @@ export const useOfflineDownload = () => {
     }
   };
 
-  // Inline GraphQL fetch for the freie_musikstuecke collection. We deliberately
-  // duplicate the query shape from stores/freieMusikstuecke.ts (rather than
-  // depending on it from a non-setup context) — keeping this composable
-  // standalone is worth a few lines of duplication.
-  const fetchAllPiecesFromApi = async (): Promise<FreiesMusikstueck[]> => {
-    const authStore = useAuthStore();
-    const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
-    if (!directusUrl) {
-      throw new Error("VITE_PUBLIC_DIRECTUS_URL is not configured");
-    }
+  // Both reads go through the shared GraphQL transport (directusQueries.ts):
+  // the pieces query is the same one the pieces store runs, and the soundfont
+  // id comes from the Directus `settings` singleton. Neither requires a
+  // session — the public role may read them — so they are sent anonymously
+  // when there is none.
+  const fetchAllPiecesFromApi = fetchFreieMusikstuecke;
 
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (authStore.accessToken) {
-      headers["Authorization"] = `Bearer ${authStore.accessToken}`;
-    }
-
-    const gql = `
-      query {
-        freie_musikstuecke(sort: ["name"]) {
-          id
-          name
-          komponist
-          dauer_sek
-          tags
-          midi_file {
-            id
-            title
-            type
-            filename_download
-            filesize
-          }
-        }
-      }
-    `;
-
-    const res = await axios.post<{
-      data?: { freie_musikstuecke?: FreiesMusikstueck[] };
-      errors?: { message: string }[];
-    }>(`${directusUrl}/graphql`, { query: gql }, { headers });
-
-    if (res.data.errors?.length) {
-      throw new Error(res.data.errors.map((e) => e.message).join(", "));
-    }
-    return res.data.data?.freie_musikstuecke ?? [];
-  };
-
-  // Fetch the soundfont file id from the Directus `settings` singleton so we
-  // can precache it alongside song/piece MIDIs. Returns null when no
-  // soundfont is configured.
+  // Returns null when no soundfont is configured or the query fails: the
+  // download continues without one.
   const fetchSoundfontId = async (): Promise<string | null> => {
     try {
-      const authStore = useAuthStore();
-      const directusUrl = import.meta.env.VITE_PUBLIC_DIRECTUS_URL;
-      if (!directusUrl) return null;
-
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (authStore.accessToken) {
-        headers["Authorization"] = `Bearer ${authStore.accessToken}`;
-      }
-
-      const res = await axios.post<{
-        data?: { settings?: { soundfont?: { id?: string } | null } | null };
-      }>(
-        `${directusUrl}/graphql`,
-        { query: "query { settings { soundfont { id } } }" },
-        { headers },
-      );
-      return res.data.data?.settings?.soundfont?.id ?? null;
+      return await fetchSoundfontIdFromSettings();
     } catch (err) {
       console.warn("Failed to fetch soundfont id for offline precache:", err);
       return null;

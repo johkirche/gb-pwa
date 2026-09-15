@@ -4,7 +4,7 @@ There are **two** suites, because they answer different questions.
 
 |                          | Question it answers              | State                  | Gates merges |
 | ------------------------ | -------------------------------- | ---------------------- | ------------ |
-| `pnpm test`              | Did this change break something? | 794 green, 20 files    | Yes          |
+| `pnpm test`              | Did this change break something? | 805 green, 21 files    | Yes          |
 | `pnpm test:known-issues` | Which filed bugs are still open? | empty — backlog closed | No           |
 
 ```bash
@@ -97,6 +97,7 @@ excluded: testing them tests somebody else's code.
 | Auth store                   | `test/stores/auth.test.ts`                    |     21 |
 | Audio preview                | `test/composables/useAudioPreview.test.ts`    |     14 |
 | PWA install                  | `test/composables/usePWA.test.ts`             |     12 |
+| GraphQL transport            | `test/composables/useGraphQL.test.ts`         |     11 |
 | Toast composable             | `test/composables/useToast.test.ts`           |      9 |
 | i18n locale resolution       | `test/plugins/i18n.test.ts`                   |      8 |
 | Song text rendering          | `test/components/TextDisplay.test.ts`         |      8 |

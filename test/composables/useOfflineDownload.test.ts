@@ -50,7 +50,9 @@ vi.mock("@/composables/useGesangbuchlied", () => ({
 }));
 
 vi.mock("axios", () => ({
-  default: { post: h.axiosPost },
+  // The shared transport (useGraphQL.ts) asks isAxiosError() before deciding
+  // whether a failure is a 401 worth retrying; none of the replies below are.
+  default: { post: h.axiosPost, isAxiosError: () => false },
 }));
 
 // ---------------------------------------------------------------------------
@@ -1516,7 +1518,7 @@ describe("downloadAllContent", () => {
 
     expect(console.warn).toHaveBeenCalledWith(
       "Failed to fetch pieces for offline use:",
-      expect.objectContaining({ message: "FORBIDDEN, no read access" }),
+      expect.objectContaining({ message: "FORBIDDEN; no read access" }),
     );
   });
 
