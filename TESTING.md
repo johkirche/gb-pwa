@@ -4,7 +4,7 @@ There are **two** suites, because they answer different questions.
 
 |                          | Question it answers              | State                  | Gates merges |
 | ------------------------ | -------------------------------- | ---------------------- | ------------ |
-| `pnpm test`              | Did this change break something? | 841 green, 23 files    | Yes          |
+| `pnpm test`              | Did this change break something? | 887 green, 27 files    | Yes          |
 | `pnpm test:known-issues` | Which filed bugs are still open? | empty — backlog closed | No           |
 
 ```bash
