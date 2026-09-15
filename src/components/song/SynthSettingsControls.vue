@@ -116,7 +116,8 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 
-import { getSoundfontUrl, useSynthSettings } from "@/composables/useMidiPlayer";
+import { getSoundfontUrl } from "@/composables/soundfont";
+import { useSynthSettings } from "@/composables/useMidiPlayer";
 import {
   cacheAssetById,
   extractDirectusAssetId,
