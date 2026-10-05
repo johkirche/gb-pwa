@@ -11,13 +11,13 @@
   "categoriesHeading": "Nach Thema stöbern",
   "recentHeading": "Letzte Gottesdienste",
   "recentViewAll": "Alle ansehen",
-  "recentEmpty": "Noch keine Gottesdienste — bereite einen vor, um ihn hier zu sehen.",
+  "recentEmpty": "Noch keine Gottesdienste. Bereite einen vor, dann erscheint er hier.",
   "songsCountLabel": "{count} Lied | {count} Lieder",
   "gesangbuchlieder": "Gesangbuchlieder",
   "browseDescription": "Durchsuche alle Lieder im Gesangbuch.",
   "browseAllSongs": "Alle Lieder durchsuchen",
   "quickTestFetch": "Schneller Test-Abruf (für Entwicklung):",
-  "testFetchAPI": "Test API-Abruf",
+  "testFetchAPI": "API-Abruf testen",
   "errorLoadingData": "Fehler beim Laden der Daten",
   "foundSongs": "{count} Lieder gefunden:",
   "userInformation": "Benutzerinformationen",
@@ -40,7 +40,7 @@
   },
   "actions": {
     "browseSongs": "Alle Lieder",
-    "browseSongsDesc": "Durchsuche die komplette Liedersammlung",
+    "browseSongsDesc": "Die komplette Liedersammlung durchsuchen",
     "offlineManager": "Offline-Verwaltung",
     "offlineManagerDesc": "Lieder für die Offline-Nutzung verwalten",
     "favorites": "Meine Favoriten",
@@ -65,12 +65,12 @@
   },
   "recent": {
     "title": "Zuletzt gespielt",
-    "description": "Deine kürzlich angehörten Lieder",
+    "description": "Deine zuletzt gehörten Lieder",
     "offline": "Offline",
     "play": "Abspielen"
   },
   "featured": {
     "title": "Empfohlene Lieder",
-    "description": "Von der Gemeinde ausgewählte besondere Lieder"
+    "description": "Von der Gemeinde ausgewählte Lieder"
   }
 }

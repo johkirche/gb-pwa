@@ -5,6 +5,6 @@
   "fixTitle": "How to fix this",
   "step1": "Create a .env file in the project root (template: .env.example).",
   "step2": "Set {var} to your Directus backend URL, e.g. https://directus.example.com.",
-  "step3": "Restart the dev server (pnpm dev) — environment variables are only read at startup.",
+  "step3": "Restart the dev server (pnpm dev). Environment variables are only read at startup.",
   "retry": "Try again"
 }

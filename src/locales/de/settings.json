@@ -2,7 +2,7 @@
   "pageTitle": "Einstellungen",
   "midi": {
     "title": "MIDI-Gerät",
-    "description": "Wähle das MIDI-Ausgabegerät, das für Wiedergabe und Gottesdienst verwendet wird. Die Auswahl wird im Browser gespeichert.",
+    "description": "Wähle das MIDI-Ausgabegerät für Wiedergabe und Gottesdienst. Die Auswahl wird im Browser gespeichert.",
     "currentlySelected": "Aktuell ausgewählt"
   },
   "synth": {
@@ -20,16 +20,16 @@
       "choirAahs": "Chor (Aah)"
     },
     "status": {
-      "idle": "Noch nicht initialisiert — wird beim ersten Abspielen geladen.",
+      "idle": "Noch nicht geladen. Wird beim ersten Abspielen geladen.",
       "loading": "SoundFont wird geladen …",
       "spessasynth": "SoundFont-Synthesizer aktiv.",
-      "oscillator": "Keine SoundFont verfügbar — einfacher Oszillator-Fallback ist aktiv. Lade in den Directus-Einstellungen eine SoundFont-Datei hoch, um einen besseren Klang zu erhalten."
+      "oscillator": "Keine SoundFont verfügbar, deshalb spielt ein einfacher Oszillator. Lade in den Directus-Einstellungen eine SoundFont-Datei hoch, um einen besseren Klang zu erhalten."
     },
     "loadError": "Fehler beim Laden der SoundFont",
     "soundfont": {
       "label": "SoundFont-Datei",
       "cached": "Für die Offline-Nutzung gespeichert.",
-      "notCached": "Noch nicht heruntergeladen — wird beim ersten Abspielen aus dem Netz geladen.",
+      "notCached": "Noch nicht heruntergeladen. Wird beim ersten Abspielen aus dem Netz geladen.",
       "unconfigured": "In den Directus-Einstellungen ist keine SoundFont hinterlegt.",
       "download": "Herunterladen",
       "redownload": "Neu herunterladen",

@@ -2,7 +2,7 @@
   "addAnotherSong": "Weiteres Lied hinzufügen",
   "addFirstSong": "Erstes Lied hinzufügen",
   "addSong": "Lied hinzufügen",
-  "addSongsToService": "Füge Lieder zu deinem Gottesdienst hinzu",
+  "addSongsToService": "Füge deinem Gottesdienst Lieder hinzu",
   "audioPlayer": {
     "description": "Dein Gottesdienst wird abgespielt",
     "next": "Weiter",
@@ -16,17 +16,17 @@
   "clearAll": "Alle löschen",
   "clearService": "Gottesdienst löschen",
   "collapse": "Einklappen",
-  "createServiceDescription": "Erstelle deinen Gottesdienst, indem du Lieder hinzufügst und die Strophen auswählst",
+  "createServiceDescription": "Füge Lieder hinzu und wähle ihre Strophen, um deinen Gottesdienst zusammenzustellen",
   "currentService": "Aktueller Gottesdienst",
   "expand": "Erweitern",
   "firstSong": "Erstes Lied",
   "history": {
     "confirmDelete": "Gottesdienst löschen",
-    "confirmDeleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "confirmDeleteDescription": "„{name}“ wirklich löschen? Das kann nicht rückgängig gemacht werden.",
     "delete": "Löschen",
-    "description": "Deine zuvor gespeicherten Gottesdienste",
+    "description": "Deine gespeicherten Gottesdienste",
     "empty": "Noch keine gespeicherten Gottesdienste",
-    "emptyDescription": "Speichere deinen ersten Gottesdienst, um ihn hier zu sehen",
+    "emptyDescription": "Gespeicherte Gottesdienste erscheinen hier",
     "load": "Laden",
     "title": "Gottesdienst-Verlauf",
     "moreActions": "Weitere Aktionen"
@@ -51,7 +51,7 @@
   "noOfflineSongs": "Keine Offline-Lieder verfügbar",
   "noSongsAdded": "Noch keine Lieder hinzugefügt",
   "noSongsAvailable": "Keine Lieder verfügbar",
-  "noSongsFound": "Keine Lieder gefunden, die deiner Suche entsprechen",
+  "noSongsFound": "Keine Lieder passen zu deiner Suche",
   "noVersesSelected": "Keine Strophen ausgewählt",
   "optional": "optional",
   "playService": "Gottesdienst abspielen",
@@ -59,7 +59,7 @@
   "progress": "Fortschritt",
   "removeSong": "Lied entfernen",
   "saveService": "Gottesdienst speichern",
-  "searchAndSelectSong": "Suche und wähle ein Lied für deinen Gottesdienst",
+  "searchAndSelectSong": "Such ein Lied für deinen Gottesdienst aus",
   "searchSongs": "Lieder suchen...",
   "secondSong": "Zweites Lied",
   "selectAll": "Alle auswählen",
@@ -68,15 +68,15 @@
   "selectOutroPiece": "Nachspiel auswählen",
   "selectPiece": "Stück auswählen",
   "changePiece": "Stück ändern",
-  "searchAndSelectPiece": "Suche und wähle ein freies Musikstück",
+  "searchAndSelectPiece": "Such ein freies Musikstück aus",
   "searchPieces": "Musikstücke suchen…",
   "loadingPieces": "Musikstücke werden geladen…",
-  "noPiecesFound": "Keine Musikstücke gefunden, die deiner Suche entsprechen",
+  "noPiecesFound": "Keine Musikstücke passen zu deiner Suche",
   "noPiecesAvailable": "Keine Musikstücke verfügbar",
   "selectSecondSong": "Zweites Lied auswählen",
   "selectSong": "Lied auswählen",
   "selectSongPlaceholder": "Lied {number} auswählen",
-  "selectTwoSongs": "Wähle zwei Lieder und deren Strophen für deinen Gottesdienst",
+  "selectTwoSongs": "Wähle zwei Lieder und ihre Strophen für deinen Gottesdienst",
   "selectVerses": "Strophen auswählen",
   "selectedVerses": "Ausgewählte Strophen",
   "serviceOrder": "Gottesdienst-Reihenfolge",
@@ -86,14 +86,14 @@
   "title": "Gottesdienst",
   "noSongSelected": "Kein Lied ausgewählt",
   "missingMidi": "Kein MIDI",
-  "cannotPlayMissingMidi": "Wiedergabe nicht möglich – diese Lieder haben kein MIDI-Trio: {songs}",
+  "cannotPlayMissingMidi": "Wiedergabe nicht möglich. Diesen Liedern fehlt ein MIDI-Trio: {songs}",
   "cannotPlayMissingVerses": "Keine Strophen ausgewählt für „{song}“",
   "verse": "Strophe",
   "verses": "Strophen",
   "previewListen": {
     "play": "Vorhören",
     "stop": "Vorhören stoppen",
-    "hint": "Diese MIDI mit aktuellem Tempo und Tonart anhören",
+    "hint": "Diese MIDI-Datei mit dem aktuellen Tempo und der aktuellen Tonart anhören",
     "failedTitle": "Vorhören fehlgeschlagen",
     "failedDescription": "Die Audiodatei konnte nicht abgespielt werden."
   },
@@ -121,7 +121,7 @@
   "outroDescription": "Freies Musikstück, das nach den Hauptliedern gespielt wird.",
   "entry": {
     "title": "Gottesdienst vorbereiten",
-    "description": "Stelle den Ablauf zusammen, wähle dein MIDI-Gerät und starte den Gottesdienst – Schritt für Schritt.",
+    "description": "Stelle den Ablauf zusammen, wähle dein MIDI-Gerät und starte dann den Gottesdienst.",
     "startNew": "Neuen Gottesdienst starten"
   },
   "stepper": {
@@ -171,7 +171,7 @@
     },
     "saveFailed": {
       "title": "Speichern fehlgeschlagen",
-      "description": "Der Gottesdienst konnte nicht gespeichert werden. Er ist noch da – bitte erneut versuchen."
+      "description": "Der Gottesdienst konnte nicht gespeichert werden, ist aber noch da. Bitte versuch es erneut."
     },
     "loaded": {
       "title": "Gottesdienst geladen",

@@ -11,41 +11,41 @@
   "categoriesHeading": "Browse by theme",
   "recentHeading": "Recent services",
   "recentViewAll": "View all",
-  "recentEmpty": "No services yet — prepare one to see it here.",
+  "recentEmpty": "No services yet. Prepare one and it will show up here.",
   "songsCountLabel": "{count} song | {count} songs",
   "gesangbuchlieder": "Gesangbuchlieder",
-  "browseDescription": "Browse and search through all the songs in the Gesangbuch.",
-  "browseAllSongs": "Browse All Songs",
+  "browseDescription": "Browse and search all songs in the Gesangbuch.",
+  "browseAllSongs": "Browse all songs",
   "quickTestFetch": "Quick test fetch (for development):",
-  "testFetchAPI": "Test Fetch API",
+  "testFetchAPI": "Test fetch API",
   "errorLoadingData": "Error loading data",
   "foundSongs": "Found {count} songs:",
-  "userInformation": "User Information",
+  "userInformation": "User information",
   "userID": "User ID",
   "email": "Email",
-  "firstName": "First Name",
-  "lastName": "Last Name",
+  "firstName": "First name",
+  "lastName": "Last name",
   "stats": {
-    "totalSongs": "Total Songs",
-    "offlineSongs": "Available Offline",
+    "totalSongs": "Total songs",
+    "offlineSongs": "Available offline",
     "favorites": "Favorites",
-    "recentlyPlayed": "Recently Played",
+    "recentlyPlayed": "Recently played",
     "loadFailed": "Could not load statistics"
   },
   "search": {
-    "title": "Search Songs",
+    "title": "Search songs",
     "placeholder": "Search for songs or authors...",
     "button": "Search",
     "noResults": "No songs found"
   },
   "actions": {
-    "browseSongs": "Browse All Songs",
-    "browseSongsDesc": "Explore the complete song collection",
-    "offlineManager": "Offline Manager",
-    "offlineManagerDesc": "Manage songs for offline usage",
-    "favorites": "My Favorites",
-    "favoritesDesc": "Your bookmarked favorite songs",
-    "churchService": "Church Service",
+    "browseSongs": "Browse all songs",
+    "browseSongsDesc": "Every song in the collection",
+    "offlineManager": "Offline manager",
+    "offlineManagerDesc": "Manage songs for offline use",
+    "favorites": "My favorites",
+    "favoritesDesc": "Songs you marked as favorites",
+    "churchService": "Church service",
     "churchServiceDesc": "Prepare songs for church services",
     "settings": "Settings",
     "settingsDesc": "MIDI device and other options"
@@ -64,13 +64,13 @@
     "empty": "No categories available. Download the songs to see them here."
   },
   "recent": {
-    "title": "Recently Played",
-    "description": "Your recently listened songs",
+    "title": "Recently played",
+    "description": "Songs you listened to recently",
     "offline": "Offline",
     "play": "Play"
   },
   "featured": {
-    "title": "Featured Songs",
-    "description": "Special songs selected by the community"
+    "title": "Featured songs",
+    "description": "Songs picked by the community"
   }
 }

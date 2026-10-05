@@ -99,7 +99,7 @@ describe("message bundles", () => {
     expect(i18n.global.t("song.songText")).toBe("Liedtext");
 
     i18n.global.locale.value = "en";
-    expect(i18n.global.t("song.songText")).toBe("Song Text");
+    expect(i18n.global.t("song.songText")).toBe("Song text");
   });
 
   it("does not strip the namespace prefix from keys", async () => {

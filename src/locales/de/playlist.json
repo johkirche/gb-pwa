@@ -1,6 +1,6 @@
 {
   "title": "Playlisten",
-  "description": "Verwalte deine Playlisten – gruppiere Lieder, die du häufig zusammen nutzt.",
+  "description": "Gruppiere Lieder, die du häufig zusammen nutzt.",
   "myPlaylists": "Meine Playlisten",
   "allSongs": "Alle Lieder",
   "create": "Neue Playlist",
@@ -27,7 +27,7 @@
   "save": "Speichern",
   "cancel": "Abbrechen",
   "confirmDelete": "Playlist löschen",
-  "confirmDeleteDescription": "„{name}\" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+  "confirmDeleteDescription": "„{name}“ wirklich löschen? Das kann nicht rückgängig gemacht werden.",
   "createTitle": "Neue Playlist erstellen",
   "createDescription": "Gib einen Namen und optional eine Beschreibung an.",
   "editTitle": "Playlist bearbeiten",

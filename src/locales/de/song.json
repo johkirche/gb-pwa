@@ -1,13 +1,13 @@
 {
-  "pageTitle": "Lied Details",
+  "pageTitle": "Lieddetails",
   "backButton": "Zurück",
-  "offlineVersionMessage": "Offline-Version angezeigt. Verbinde dich mit dem Internet für die neuesten Updates.",
-  "notAvailableOffline": "Dieses Lied ist offline nicht verfügbar. Bitte verbinde dich mit dem Internet, um es anzuzeigen, oder lade Lieder für den Offline-Zugriff von der Startseite herunter.",
+  "offlineVersionMessage": "Offline-Version. Verbinde dich mit dem Internet, um die neuesten Änderungen zu sehen.",
+  "notAvailableOffline": "Dieses Lied ist offline nicht verfügbar. Verbinde dich mit dem Internet, um es anzuzeigen, oder lade auf der Startseite Lieder für die Offline-Nutzung herunter.",
   "songNotFound": "Lied nicht gefunden.",
-  "songNotFoundDescription": "Das angeforderte Lied konnte nicht gefunden werden.",
+  "songNotFoundDescription": "Dieses Lied wurde nicht gefunden.",
   "backToSongList": "Zurück zur Liederliste",
   "loadingSongDetails": "Lied-Details werden geladen...",
-  "errorLoadingSong": "Fehler beim Laden des Liedes",
+  "errorLoadingSong": "Lied konnte nicht geladen werden",
   "retry": "Wiederholen",
   "songNumber": "Lied Nr.",
   "songNumber2026": "GB 2026 Nr.",
@@ -42,7 +42,7 @@
     "description": "Melodie aus MusicXML",
     "errors": {
       "initFailed": "Notation konnte nicht initialisiert werden",
-      "renderFailed": "Fehler beim Rendern der Noten"
+      "renderFailed": "Noten konnten nicht dargestellt werden"
     }
   },
   "midiPlayer": {
@@ -55,7 +55,7 @@
     "accessNeeded": "Zugriff auf MIDI-Geräte wird benötigt.",
     "requestAccess": "MIDI-Zugriff erlauben",
     "accessHint": "Hardware-Geräte erscheinen nach erlaubtem MIDI-Zugriff.",
-    "notSupportedHint": "Web-MIDI wird in diesem Browser nicht unterstützt – Hardware-Geräte sind nicht verfügbar. Der Browser-Synthesizer funktioniert trotzdem.",
+    "notSupportedHint": "Web-MIDI wird in diesem Browser nicht unterstützt, deshalb sind keine Hardware-Geräte verfügbar. Der Browser-Synthesizer funktioniert trotzdem.",
     "builtInSynth": "Browser-Synthesizer (kein Gerät nötig)",
     "noDevices": "Kein MIDI-Ausgabegerät gefunden. Bitte ein USB-MIDI-Keyboard anschließen.",
     "loadingFiles": "MIDI-Dateien werden geladen…",
@@ -64,7 +64,7 @@
     "statusOutro": "Letzte Strophe ({current} von {total})",
     "statusPause": "Pause",
     "errors": {
-      "notSupported": "Web MIDI API wird in diesem Browser nicht unterstützt. Bitte Chrome, Edge oder Opera verwenden.",
+      "notSupported": "Dieser Browser unterstützt Web-MIDI nicht. Bitte Chrome, Edge oder Opera verwenden.",
       "parseFailed": "MIDI-Datei konnte nicht gelesen werden"
     }
   },
@@ -80,9 +80,9 @@
     "paused": "Pausiert",
     "apply": "Anwenden",
     "errors": {
-      "loadingAborted": "Audio-Laden wurde abgebrochen",
-      "networkError": "Netzwerkfehler aufgetreten",
-      "decodingFailed": "Audio-Dekodierung fehlgeschlagen",
+      "loadingAborted": "Laden des Audios abgebrochen",
+      "networkError": "Netzwerkfehler",
+      "decodingFailed": "Audio konnte nicht dekodiert werden",
       "formatNotSupported": "Audio-Format nicht unterstützt",
       "unknownError": "Unbekannter Audio-Fehler"
     },

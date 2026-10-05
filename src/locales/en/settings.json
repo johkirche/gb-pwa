@@ -1,8 +1,8 @@
 {
   "pageTitle": "Settings",
   "midi": {
-    "title": "MIDI Device",
-    "description": "Choose the MIDI output device used for playback and church services. The choice is stored in the browser.",
+    "title": "MIDI device",
+    "description": "Choose the MIDI output device for playback and church services. Your choice is stored in the browser.",
     "currentlySelected": "Currently selected"
   },
   "synth": {
@@ -20,16 +20,16 @@
       "choirAahs": "Choir aahs"
     },
     "status": {
-      "idle": "Not initialized yet — will load on first playback.",
+      "idle": "Not loaded yet. It loads the first time you play something.",
       "loading": "Loading SoundFont …",
       "spessasynth": "SoundFont synthesizer active.",
-      "oscillator": "No SoundFont available — simple oscillator fallback is active. Upload a SoundFont file in the Directus settings for a better sound."
+      "oscillator": "No SoundFont available, so a simple oscillator plays instead. Upload a SoundFont file in the Directus settings for better sound."
     },
     "loadError": "Failed to load SoundFont",
     "soundfont": {
       "label": "SoundFont file",
       "cached": "Stored for offline use.",
-      "notCached": "Not downloaded yet — will be fetched from the network on first playback.",
+      "notCached": "Not downloaded yet. It will be fetched from the network the first time you play something.",
       "unconfigured": "No SoundFont is configured in the Directus settings.",
       "download": "Download",
       "redownload": "Re-download",
